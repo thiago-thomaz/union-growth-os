@@ -239,3 +239,4 @@ O sistema foi programado para operar em regime contínuo 24/7 na VPS:
 - **16:00 BRT:** Revisão de métricas e conversões.
 - **18:00 BRT:** Fechamento comercial e relatório executivo.
 - **Diariamente às 03:00 BRT:** Backup automático com verificação de integridade SHA256 e rotação de arquivos com mais de 30 dias.
+
