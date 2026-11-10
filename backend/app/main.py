@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router as api_v1_router
 from app.core.config import settings
-from app.core.database import Base, SessionLocal, check_db_health, engine
+from app.core.database import Base, SessionLocal, check_db_health, engine, run_automatic_schema_migrations
 from app.services.automation_scheduler import get_scheduler_status, start_native_scheduler
 from app.services.seed_service import ensure_initial_workspace_seeded
 from app.services.seo_and_market_engine import generate_dynamic_robots_txt, generate_dynamic_sitemap_xml
@@ -18,6 +18,7 @@ from app.services.seo_and_market_engine import generate_dynamic_robots_txt, gene
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    run_automatic_schema_migrations(engine)
     db = SessionLocal()
     try:
         ensure_initial_workspace_seeded(db)

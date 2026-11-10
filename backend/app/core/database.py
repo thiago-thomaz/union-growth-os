@@ -83,6 +83,37 @@ def check_db_health() -> dict:
         }
 
 
+def run_automatic_schema_migrations(engine_instance=None):
+    """
+    Executa migrações DDL seguras e idempotentes para garantir compatibilidade
+    regressiva entre versões sem perda de dados na VPS (Fase 15).
+    """
+    eng = engine_instance or engine
+    dialect_name = eng.dialect.name
+    migrations = [
+        ("agent_execution_logs", "model_used", "VARCHAR(100) DEFAULT 'rule-based-v1'"),
+        ("agent_execution_logs", "processing_type", "VARCHAR(50) DEFAULT 'DETERMINISTIC_PYTHON_ENGINE'"),
+        ("agent_execution_logs", "tokens_consumed", "INTEGER DEFAULT 0"),
+        ("agent_execution_logs", "estimated_cost_brl", "FLOAT DEFAULT 0.0"),
+        ("content_factory_items", "responsible_agent", "VARCHAR(80) DEFAULT 'AGENT_04_SOCIAL'"),
+        ("content_factory_items", "change_history_json", "TEXT DEFAULT '[]'"),
+    ]
+
+    with eng.connect() as conn:
+        for table, col, col_def in migrations:
+            try:
+                if dialect_name == "postgresql":
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {col_def};"))
+                    conn.commit()
+                elif dialect_name == "sqlite":
+                    pragma = conn.execute(text(f"PRAGMA table_info({table});")).fetchall()
+                    existing_cols = {row[1] for row in pragma}
+                    if col not in existing_cols:
+                        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_def};"))
+            except Exception as e:
+                logger.debug("Migração idempotente para %s.%s ignorada: %s", table, col, e)
+
+
 def create_database_backup(db: Session, tenant_id: int | None = None) -> dict:
     """Create a portable JSON + SQLite file backup of tenant or system data."""
     from app.models.entities import (
