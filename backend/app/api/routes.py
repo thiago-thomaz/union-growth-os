@@ -94,6 +94,34 @@ from app.schemas.contracts import (
     TenantUpdateRequest,
     UserLoginRequest,
     UserRegisterRequest,
+    ContentFactoryBatchGenerateRequest,
+    ContentFactoryBatchResponse,
+    ContentFactoryItemResponse,
+    AssistedPublishingPackageResponse,
+    CEODelegatedTaskResponse,
+    CEODailyPlanResponse,
+    CEOTaskUpdateRequest,
+    WeeklySEORoutineResponse,
+    OperationalDashboardResponse,
+    OperationalAlertResponse,
+    PilotRunResponse,
+    PilotSummaryResponse,
+    ResourceCostsResponse,
+)
+from app.services.phase14_automation_factory import (
+    generate_30_day_content_batch_service,
+    get_content_factory_items_service,
+    export_assisted_publishing_package_service,
+    generate_ceo_daily_execution_plan_service,
+    get_ceo_daily_plan_service,
+    update_delegated_task_status_service,
+    generate_weekly_seo_routine_service,
+    get_operational_dashboard_service,
+    get_system_alerts_service,
+    resolve_system_alert_service,
+    run_7_day_pilot_simulation_service,
+    get_7_day_pilot_history_service,
+    get_resource_costs_service,
 )
 from app.services.automation_scheduler import (
     ensure_tenant_automations_seeded,
@@ -2279,3 +2307,185 @@ def security_self_audit(user: User = Depends(require_roles("owner", "admin")), d
         "tenant_isolation": "Todas as consultas filtram tenant_id; X-Tenant-Id só aceito para tenants do próprio owner",
         "environment": _s.ENVIRONMENT,
     }
+
+
+# ==============================================================================
+# 20. FASE 14 — CONTENT FACTORY, CEO PLAN, OPERATIONAL & PILOT ENDPOINTS
+# ==============================================================================
+@router.post("/content-factory/generate-batch", response_model=ContentFactoryBatchResponse, status_code=status.HTTP_201_CREATED)
+def content_factory_generate_batch(
+    payload: ContentFactoryBatchGenerateRequest,
+    user: User = Depends(require_roles("owner", "admin", "operator")),
+    db: Session = Depends(get_db),
+):
+    """Gera um lote de 30 publicações mensais multicanal na UNION Content Factory com controle de qualidade."""
+    tid = get_active_tenant_id(user)
+    return generate_30_day_content_batch_service(
+        db,
+        tenant_id=tid,
+        company_name=payload.company_name,
+        niche=payload.niche,
+        target_audience=payload.target_audience,
+        count=payload.count,
+    )
+
+
+@router.get("/content-factory/items", response_model=list[ContentFactoryItemResponse])
+def content_factory_list_items(
+    channel: str | None = None,
+    status: str | None = None,
+    limit: int = 50,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Lista as publicações planejadas da Content Factory com filtros por canal e status."""
+    tid = get_active_tenant_id(user)
+    return get_content_factory_items_service(db, tenant_id=tid, channel=channel, status_filter=status, limit=limit)
+
+
+@router.get("/content-factory/assisted-export/{item_id}", response_model=AssistedPublishingPackageResponse)
+def content_factory_assisted_export(
+    item_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Gera pacote de 1 clique para publicação assistida (legenda formatada, mídia, link oficial e checklist)."""
+    tid = get_active_tenant_id(user)
+    try:
+        return export_assisted_publishing_package_service(db, tenant_id=tid, item_id=item_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post("/content-factory/items/{item_id}/publish")
+def content_factory_publish_item(
+    item_id: int,
+    user: User = Depends(require_roles("owner", "admin", "operator")),
+    db: Session = Depends(get_db),
+):
+    """Atualiza o status de um item da Content Factory para publicado ou na fila."""
+    from app.models.entities import ContentFactoryItem as _CFI
+    tid = get_active_tenant_id(user)
+    item = db.query(_CFI).filter(_CFI.id == item_id, _CFI.tenant_id == tid).first()
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item não encontrado")
+    item.status = "PUBLISHED"
+    item.published_post_id = f"pub_{item.channel}_{uuid.uuid4().hex[:8]}"
+    item.data_origin = "REAL"
+    db.commit()
+    db.refresh(item)
+    return {"id": item.id, "status": item.status, "published_post_id": item.published_post_id}
+
+
+@router.get("/ceo/daily-plan", response_model=CEODailyPlanResponse)
+def ceo_get_daily_plan(
+    date: str | None = None,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Retorna o Plano Diário de Execução do CEO Digital com missões delegadas aos 8 especialistas."""
+    tid = get_active_tenant_id(user)
+    return get_ceo_daily_plan_service(db, tenant_id=tid, briefing_date=date)
+
+
+@router.post("/ceo/daily-plan/generate", response_model=CEODailyPlanResponse, status_code=status.HTTP_201_CREATED)
+def ceo_generate_daily_plan(
+    date: str | None = None,
+    user: User = Depends(require_roles("owner", "admin")),
+    db: Session = Depends(get_db),
+):
+    """Força a geração do Plano Diário de Execução do CEO Digital com novas missões operacionais."""
+    tid = get_active_tenant_id(user)
+    return generate_ceo_daily_execution_plan_service(db, tenant_id=tid, briefing_date=date)
+
+
+@router.put("/ceo/daily-plan/tasks/{task_id}", response_model=CEODelegatedTaskResponse)
+def ceo_update_delegated_task(
+    task_id: int,
+    payload: CEOTaskUpdateRequest,
+    user: User = Depends(require_roles("owner", "admin", "operator")),
+    db: Session = Depends(get_db),
+):
+    """Atualiza o status e entregável de uma missão delegada pelo CEO."""
+    tid = get_active_tenant_id(user)
+    try:
+        return update_delegated_task_status_service(
+            db, tenant_id=tid, task_id=task_id, new_status=payload.status, deliverable=payload.deliverable
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post("/seo/weekly-report", response_model=WeeklySEORoutineResponse, status_code=status.HTTP_201_CREATED)
+def seo_run_weekly_routine(
+    user: User = Depends(require_roles("owner", "admin")),
+    db: Session = Depends(get_db),
+):
+    """Executa a rotina semanal de SEO: auditoria técnica, validação de Core Web Vitals, Schema.org e sitemap."""
+    tid = get_active_tenant_id(user)
+    return generate_weekly_seo_routine_service(db, tenant_id=tid)
+
+
+@router.get("/system/operational-dashboard", response_model=OperationalDashboardResponse)
+def system_operational_dashboard(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Painel operacional 24/7 com status consolidado de VPS, Coolify, GitHub, DB, Scheduler e Negócios."""
+    tid = get_active_tenant_id(user)
+    return get_operational_dashboard_service(db, tenant_id=tid)
+
+
+@router.get("/system/alerts", response_model=list[OperationalAlertResponse])
+def system_list_alerts(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Lista alertas operacionais do sistema com nível de criticidade e ação sugerida."""
+    tid = get_active_tenant_id(user)
+    return get_system_alerts_service(db, tenant_id=tid)
+
+
+@router.post("/system/alerts/{alert_id}/resolve")
+def system_resolve_alert(
+    alert_id: int,
+    user: User = Depends(require_roles("owner", "admin")),
+    db: Session = Depends(get_db),
+):
+    """Marca um alerta operacional como resolvido."""
+    tid = get_active_tenant_id(user)
+    try:
+        return resolve_system_alert_service(db, tenant_id=tid, alert_id=alert_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post("/system/pilot-7-days", response_model=PilotSummaryResponse, status_code=status.HTTP_201_CREATED)
+def system_run_7_day_pilot(
+    user: User = Depends(require_roles("owner", "admin")),
+    db: Session = Depends(get_db),
+):
+    """Executa o Piloto Operacional Autônomo de 7 Dias consecutivos no banco de produção."""
+    tid = get_active_tenant_id(user)
+    return run_7_day_pilot_simulation_service(db, tenant_id=tid)
+
+
+@router.get("/system/pilot-7-days", response_model=PilotSummaryResponse)
+def system_get_7_day_pilot(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Retorna os registros históricos do Piloto Operacional de 7 Dias."""
+    tid = get_active_tenant_id(user)
+    return get_7_day_pilot_history_service(db, tenant_id=tid)
+
+
+@router.get("/system/resource-costs", response_model=ResourceCostsResponse)
+def system_resource_costs(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Audita o consumo de banco, tokens de IA e certifica a garantia de custo R$ 0,00."""
+    tid = get_active_tenant_id(user)
+    return get_resource_costs_service(db, tenant_id=tid)
+

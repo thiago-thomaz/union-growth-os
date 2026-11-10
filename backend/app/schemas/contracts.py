@@ -357,3 +357,165 @@ class FullMarketingOperationRequest(BaseModel):
     confirmation_token: str | None = None
 
 
+# ==============================================================================
+# FASE 14 — SCHEMAS: CONTENT FACTORY, CEO PLAN, OPERATIONAL & PILOT
+# ==============================================================================
+class ContentFactoryBatchGenerateRequest(BaseModel):
+    company_name: str = ""
+    niche: str = ""
+    target_audience: str = ""
+    count: int = 30
+    platforms: list[str] = [
+        "instagram",
+        "facebook",
+        "tiktok",
+        "youtube",
+        "linkedin",
+        "pinterest",
+        "blog_seo",
+        "email_marketing",
+    ]
+
+
+class ContentFactoryItemResponse(BaseModel):
+    id: int
+    batch_id: str
+    channel: str
+    content_type: str
+    objective: str
+    target_audience: str
+    title: str
+    body_text: str
+    cta: str
+    hashtags: list[str] = []
+    media_specs: dict[str, Any] = {}
+    image_url: str = ""
+    scheduled_for: str
+    quality_score: int
+    is_duplicate: bool
+    status: str
+    published_post_id: str = ""
+    data_origin: str = "GOAL"
+    created_at: str
+
+
+class ContentFactoryBatchResponse(BaseModel):
+    batch_id: str
+    total_generated: int
+    items_by_channel: dict[str, int]
+    items_by_type: dict[str, int]
+    average_quality_score: float
+    duplicates_prevented: int
+    items: list[ContentFactoryItemResponse]
+
+
+class AssistedPublishingPackageResponse(BaseModel):
+    item_id: int
+    channel: str
+    title: str
+    formatted_copy_for_clipboard: str
+    hashtags_formatted: str
+    media_download_url: str
+    recommended_best_time: str
+    platform_upload_url: str
+    checklist: list[str]
+
+
+class CEODelegatedTaskResponse(BaseModel):
+    id: int
+    briefing_date: str
+    target_agent: str
+    title: str
+    objective: str
+    priority: str
+    status: str
+    deliverable: str = ""
+    action_type: str = "EXECUTE"
+    created_at: str
+    completed_at: str | None = None
+
+
+class CEODailyPlanResponse(BaseModel):
+    briefing_date: str
+    headline: str
+    total_tasks: int
+    tasks_pending: int
+    tasks_completed: int
+    tasks: list[CEODelegatedTaskResponse]
+
+
+class CEOTaskUpdateRequest(BaseModel):
+    status: str
+    deliverable: str = ""
+
+
+class WeeklySEORoutineResponse(BaseModel):
+    tenant_id: int
+    audit_score: int
+    core_web_vitals: dict[str, Any]
+    keywords_monitored_count: int
+    top_opportunities: list[dict[str, Any]]
+    schema_org_valid: bool
+    sitemap_status: str
+    robots_status: str
+    recommendations: list[str]
+    generated_at: str
+
+
+class OperationalDashboardResponse(BaseModel):
+    vps_status: dict[str, Any]
+    coolify_status: dict[str, Any]
+    git_info: dict[str, Any]
+    database_status: dict[str, Any]
+    scheduler_status: dict[str, Any]
+    daily_routines_status: list[dict[str, Any]]
+    social_queue_summary: dict[str, int]
+    business_kpis: dict[str, Any]
+    alerts_count: int
+
+
+class OperationalAlertResponse(BaseModel):
+    id: int
+    severity: str
+    category: str
+    title: str
+    message: str
+    suggested_action: str
+    is_resolved: bool
+    created_at: str
+
+
+class PilotRunResponse(BaseModel):
+    day_number: int
+    date: str
+    status: str
+    actions_count: int
+    actions: list[str]
+    metrics: dict[str, Any]
+
+
+class PilotSummaryResponse(BaseModel):
+    tenant_id: int
+    days_simulated: int
+    total_content_pieces_produced: int
+    total_seo_routines_executed: int
+    total_leads_qualified: int
+    total_ceo_briefings: int
+    zero_unexpected_costs: bool
+    all_days_healthy: bool
+    daily_runs: list[PilotRunResponse]
+
+
+class ResourceCostsResponse(BaseModel):
+    tenant_id: int
+    database_records_total: int
+    estimated_db_size_mb: float
+    ai_engine_calls_total: int
+    ai_deterministic_calls: int
+    ai_llm_calls: int
+    external_api_costs_brl: float
+    currency: str = "BRL"
+    verdict: str
+
+
+

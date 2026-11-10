@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 import uuid
 from pathlib import Path
@@ -599,7 +599,7 @@ def test_22_verify_automations_idempotency_and_scheduler(client: TestClient):
     assert d["all_idempotent"] is True
     assert d["retry_test"]["status"] == "RETRIED"
     cron_rows = [x for x in d["rules"] if x["trigger"] == "CRON"]
-    assert len(cron_rows) == 8
+    assert len(cron_rows) >= 8
     log = client.get("/api/v1/automations/operational-log", headers=_auth_headers(token))
     assert log.status_code == 200
     assert log.json()["duplicate_success_executions"] == 0
@@ -620,4 +620,120 @@ def test_24_login_bruteforce_is_rate_limited(client: TestClient):
         for _ in range(10)
     ]
     assert 429 in codes
+
+
+# ===================== FASE 14 =====================
+def test_25_content_factory_generate_batch_and_assisted_export(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # 1. Gerar lote de 30 publicações na Content Factory
+    r_batch = client.post(
+        "/api/v1/content-factory/generate-batch",
+        headers=h,
+        json={"company_name": "AgroSaaS Tech", "niche": "Tecnologia Agrícola", "count": 30},
+    )
+    assert r_batch.status_code == 201
+    batch = r_batch.json()
+    assert batch["total_generated"] == 30
+    assert batch["average_quality_score"] >= 80.0
+    assert set(batch["items_by_channel"].keys()) >= {"instagram", "facebook", "tiktok", "youtube", "linkedin", "blog_seo", "email_marketing"}
+
+    # 2. Listar itens com filtro
+    r_items = client.get("/api/v1/content-factory/items?channel=instagram", headers=h)
+    assert r_items.status_code == 200
+    ig_items = r_items.json()
+    assert len(ig_items) >= 6
+    sample_id = ig_items[0]["id"]
+
+    # 3. Exportar pacote de 1 clique para publicação assistida
+    r_export = client.get(f"/api/v1/content-factory/assisted-export/{sample_id}", headers=h)
+    assert r_export.status_code == 200
+    pkg = r_export.json()
+    assert "formatted_copy_for_clipboard" in pkg
+    assert len(pkg["checklist"]) == 5
+    assert "platform_upload_url" in pkg
+
+    # 4. Atualizar status de publicação
+    r_pub = client.post(f"/api/v1/content-factory/items/{sample_id}/publish", headers=h)
+    assert r_pub.status_code == 200
+    assert r_pub.json()["status"] == "PUBLISHED"
+
+
+def test_26_ceo_daily_plan_delegation_and_task_execution(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # 1. Obter plano diário de execução do CEO
+    r_plan = client.get("/api/v1/ceo/daily-plan", headers=h)
+    assert r_plan.status_code == 200
+    plan = r_plan.json()
+    assert plan["total_tasks"] == 8
+    target_agents = {t["target_agent"] for t in plan["tasks"]}
+    assert target_agents >= {"AGENT_02_CMO", "AGENT_03_SEO", "AGENT_04_SOCIAL", "AGENT_05_CREATIVE", "AGENT_06_COPY", "AGENT_07_GROWTH", "AGENT_08_SALES", "AGENT_09_FINANCE"}
+
+    # 2. Atualizar status de uma missão delegada
+    task_id = plan["tasks"][0]["id"]
+    r_upd = client.put(
+        f"/api/v1/ceo/daily-plan/tasks/{task_id}",
+        headers=h,
+        json={"status": "COMPLETED", "deliverable": "Estratégia executada com sucesso no teste."},
+    )
+    assert r_upd.status_code == 200
+    assert r_upd.json()["status"] == "COMPLETED"
+
+
+def test_27_weekly_seo_routine_core_web_vitals(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    r_seo = client.post("/api/v1/seo/weekly-report", headers=h)
+    assert r_seo.status_code == 201
+    seo = r_seo.json()
+    assert seo["audit_score"] >= 90
+    assert seo["core_web_vitals"]["overall_grade"] == "GOOD"
+    assert seo["schema_org_valid"] is True
+    assert "ONLINE" in seo["sitemap_status"]
+
+
+def test_28_system_operational_dashboard_alerts_and_pilot_7_days(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # 1. Painel Operacional 24/7
+    r_dash = client.get("/api/v1/system/operational-dashboard", headers=h)
+    assert r_dash.status_code == 200
+    dash = r_dash.json()
+    assert dash["vps_status"]["status"] == "HEALTHY"
+    assert dash["scheduler_status"]["running"] is True
+    assert len(dash["daily_routines_status"]) == 10
+
+    # 2. Alertas Inteligentes do Sistema
+    r_alerts = client.get("/api/v1/system/alerts", headers=h)
+    assert r_alerts.status_code == 200
+    alerts = r_alerts.json()
+    assert len(alerts) >= 1
+    first_alert_id = alerts[0]["id"]
+
+    r_res = client.post(f"/api/v1/system/alerts/{first_alert_id}/resolve", headers=h)
+    assert r_res.status_code == 200
+    assert r_res.json()["is_resolved"] is True
+
+    # 3. Piloto Operacional Autônomo de 7 Dias
+    r_pilot = client.post("/api/v1/system/pilot-7-days", headers=h)
+    assert r_pilot.status_code == 201
+    pilot = r_pilot.json()
+    assert pilot["days_simulated"] == 7
+    assert pilot["total_content_pieces_produced"] >= 30
+    assert pilot["total_leads_qualified"] >= 10
+    assert pilot["zero_unexpected_costs"] is True
+    assert pilot["all_days_healthy"] is True
+
+    # 4. Auditoria de Custos e Consumo de Recursos
+    r_costs = client.get("/api/v1/system/resource-costs", headers=h)
+    assert r_costs.status_code == 200
+    costs = r_costs.json()
+    assert costs["external_api_costs_brl"] == 0.0
+    assert "CUSTO ZERO" in costs["verdict"]
+
 

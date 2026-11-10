@@ -526,3 +526,87 @@ class SchedulerHeartbeat(Base):
     kind = Column(String(30), default="HEARTBEAT")  # BOOT, HEARTBEAT, CATCHUP
     note = Column(String(300), default="")
     created_at = Column(DateTime, default=utcnow, index=True)
+
+
+# ==============================================================================
+# FASE 14 — CONTENT FACTORY, CEO DAILY PLAN, OPERATIONAL ALERTS & PILOT
+# ==============================================================================
+class ContentFactoryItem(Base):
+    """Batch-generated omnichannel content produced by the UNION Content Factory."""
+
+    __tablename__ = "content_factory_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    batch_id = Column(String(64), index=True, nullable=False)
+    channel = Column(String(50), nullable=False)  # instagram, facebook, tiktok, youtube, linkedin, pinterest, blog_seo, email_marketing
+    content_type = Column(String(50), nullable=False)  # POST, CAROUSEL, REELS_SHORT, YOUTUBE_SCRIPT, SEO_ARTICLE, SALES_EMAIL, SEASONAL_CAMPAIGN
+    objective = Column(String(100), default="brand_awareness")
+    target_audience = Column(String(150), default="Público Geral")
+    title = Column(String(255), nullable=False)
+    body_text = Column(Text, nullable=False)
+    cta = Column(String(255), nullable=False)
+    hashtags_json = Column(Text, default="[]")
+    media_specs_json = Column(Text, default="{}")
+    image_url = Column(String(500), default="")
+    scheduled_for = Column(String(50), nullable=False)
+    quality_score = Column(Integer, default=90)
+    is_duplicate = Column(Boolean, default=False)
+    similarity_hash = Column(String(64), default="")
+    status = Column(String(40), default="PLANNED")  # PLANNED, APPROVED, QUEUED, PUBLISHED, ASSISTED_EXPORTED
+    published_post_id = Column(String(120), default="")
+    data_origin = Column(String(30), default="GOAL")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class CEODelegatedTask(Base):
+    """Actionable delegated tasks assigned by the Autonomous Digital CEO to specialists."""
+
+    __tablename__ = "ceo_delegated_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    briefing_date = Column(String(30), index=True, nullable=False)
+    target_agent = Column(String(50), nullable=False)  # cmo, seo, social, creative, copywriter, growth, sales, finance
+    title = Column(String(255), nullable=False)
+    objective = Column(Text, nullable=False)
+    priority = Column(String(20), default="HIGH")  # URGENT, HIGH, MEDIUM, LOW
+    status = Column(String(30), default="PENDING")  # PENDING, IN_PROGRESS, COMPLETED, FAILED
+    deliverable = Column(Text, default="")
+    action_type = Column(String(60), default="EXECUTE")
+    created_at = Column(DateTime, default=utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
+
+class OperationalAlert(Base):
+    """Central operational alerts with severity, category, and actionable suggestions."""
+
+    __tablename__ = "operational_alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    severity = Column(String(20), default="INFO")  # INFO, WARNING, CRITICAL
+    category = Column(String(50), nullable=False)  # SCHEDULER, SOCIAL_API, DATABASE, SYSTEM, REVENUE, SEO
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    suggested_action = Column(Text, default="")
+    is_resolved = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=utcnow)
+    resolved_at = Column(DateTime, nullable=True)
+
+
+class PilotOperationalRun(Base):
+    """Audit log of 7-day autonomous pilot simulations and production runs."""
+
+    __tablename__ = "pilot_operational_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    run_date = Column(String(30), nullable=False)
+    day_number = Column(Integer, nullable=False)
+    status = Column(String(30), default="COMPLETED")
+    actions_executed_json = Column(Text, default="[]")
+    metrics_summary_json = Column(Text, default="{}")
+    errors_json = Column(Text, default="[]")
+    created_at = Column(DateTime, default=utcnow)
+

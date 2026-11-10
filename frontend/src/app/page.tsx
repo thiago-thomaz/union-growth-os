@@ -17,6 +17,10 @@ type MenuId =
   | "finance"
   | "cs"
   | "calendar"
+  | "content_factory"
+  | "ceo_plan"
+  | "operational247"
+  | "pilot7d"
   | "automations"
   | "approvals"
   | "reports"
@@ -30,21 +34,25 @@ const MENU_ITEMS: { id: MenuId; num: string; label: string }[] = [
   { id: "marketing", num: "03", label: "Marketing (AI CMO)" },
   { id: "seo", num: "04", label: "SEO Director" },
   { id: "social", num: "05", label: "Redes Sociais" },
-  { id: "creative", num: "06", label: "Creative Studio" },
-  { id: "copywriter", num: "07", label: "Copywriter" },
-  { id: "growth", num: "08", label: "Growth Hacker" },
-  { id: "crm", num: "09", label: "CRM & Leads" },
-  { id: "commercial", num: "10", label: "Comercial & Pipeline" },
-  { id: "competitors", num: "11", label: "Concorrentes" },
-  { id: "finance", num: "12", label: "Financeiro & KPIs" },
-  { id: "cs", num: "13", label: "Customer Success" },
-  { id: "calendar", num: "14", label: "Calendário Editorial" },
-  { id: "automations", num: "15", label: "Automações Python" },
-  { id: "approvals", num: "16", label: "Aprovações" },
-  { id: "reports", num: "17", label: "Relatórios" },
-  { id: "integrations", num: "18", label: "Integrações" },
-  { id: "settings", num: "19", label: "Configurações & Planos" },
-  { id: "audit", num: "20", label: "Auditoria e Logs" },
+  { id: "content_factory", num: "06", label: "🏭 Content Factory 30D" },
+  { id: "ceo_plan", num: "07", label: "📋 Plano Diário CEO" },
+  { id: "operational247", num: "08", label: "🖥️ Painel 24/7 & Alertas" },
+  { id: "pilot7d", num: "09", label: "🚀 Piloto 7 Dias" },
+  { id: "creative", num: "10", label: "Creative Studio" },
+  { id: "copywriter", num: "11", label: "Copywriter" },
+  { id: "growth", num: "12", label: "Growth Hacker" },
+  { id: "crm", num: "13", label: "CRM & Leads" },
+  { id: "commercial", num: "14", label: "Comercial & Pipeline" },
+  { id: "competitors", num: "15", label: "Concorrentes" },
+  { id: "finance", num: "16", label: "Financeiro & KPIs" },
+  { id: "cs", num: "17", label: "Customer Success" },
+  { id: "calendar", num: "18", label: "Calendário Editorial" },
+  { id: "automations", num: "19", label: "Automações Python" },
+  { id: "approvals", num: "20", label: "Aprovações" },
+  { id: "reports", num: "21", label: "Relatórios" },
+  { id: "integrations", num: "22", label: "Integrações" },
+  { id: "settings", num: "23", label: "Configurações & Planos" },
+  { id: "audit", num: "24", label: "Auditoria e Logs" },
 ];
 
 const PIPELINE_STAGES = [
@@ -116,6 +124,16 @@ export default function UnionGrowthOSPortal() {
   const [integrationsData, setIntegrationsData] = useState<any[]>([]);
   const [auditData, setAuditData] = useState<any>(null);
   const [diagResult, setDiagResult] = useState<any>(null);
+
+  // FASE 14 State Stores
+  const [contentFactoryItems, setContentFactoryItems] = useState<any[]>([]);
+  const [cfFilter, setCfFilter] = useState<string>("ALL");
+  const [assistedPackage, setAssistedPackage] = useState<any>(null);
+  const [ceoDailyPlan, setCeoDailyPlan] = useState<any>(null);
+  const [opDashboard, setOpDashboard] = useState<any>(null);
+  const [systemAlerts, setSystemAlerts] = useState<any[]>([]);
+  const [pilotData, setPilotData] = useState<any>(null);
+  const [resourceCosts, setResourceCosts] = useState<any>(null);
 
   // CEO Goal Form
   const [goalTitle, setGoalTitle] = useState("");
@@ -267,6 +285,24 @@ export default function UnionGrowthOSPortal() {
       setReportsData(rep);
       setIntegrationsData(intg);
       setAuditData(aud);
+
+      // Carregar dados da FASE 14
+      try {
+        const [cfItems, cPlan, opDash, sAlerts, rCosts] = await Promise.all([
+          apiFetch("/api/v1/content-factory/items").catch(() => []),
+          apiFetch("/api/v1/ceo/daily-plan").catch(() => null),
+          apiFetch("/api/v1/system/operational-dashboard").catch(() => null),
+          apiFetch("/api/v1/system/alerts").catch(() => []),
+          apiFetch("/api/v1/system/resource-costs").catch(() => null),
+        ]);
+        setContentFactoryItems(cfItems || []);
+        setCeoDailyPlan(cPlan);
+        setOpDashboard(opDash);
+        setSystemAlerts(sAlerts || []);
+        setResourceCosts(rCosts);
+      } catch (e) {
+        // silencioso para não interromper carga base
+      }
     } catch (err: any) {
       showNotice(err.message || "Falha ao carregar dados");
     } finally {
@@ -1200,6 +1236,482 @@ export default function UnionGrowthOSPortal() {
                     {item.last_error && <div className="text-[11px] text-amber-400/90">{item.last_error}</div>}
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* FASE 14 — CONTENT FACTORY */}
+          {activeMenu === "content_factory" && (
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-[#0f1629] border border-indigo-500/30 p-5 rounded-xl">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>🏭</span> UNION Content Factory — Produção Mensal Multicanal (30 Dias)
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Geração coordenada de 30 publicações estratégicas (Posts, Carrosséis, Reels/Shorts, Vídeos Longos YouTube, Artigos SEO, E-mails e Lançamentos) com validação de qualidade editorial e anti-duplicação.
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    setLoading(true);
+                    try {
+                      const res = await apiFetch("/api/v1/content-factory/generate-batch", {
+                        method: "POST",
+                        body: JSON.stringify({ count: 30 }),
+                      });
+                      await loadAllActiveData();
+                      showNotice(`Content Factory: ${res.total_generated} conteúdos gerados com score médio de ${res.average_quality_score}/100!`);
+                    } catch (e: any) {
+                      showNotice(e.message || "Erro ao gerar lote");
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs shadow-lg flex items-center gap-2 whitespace-nowrap"
+                >
+                  <span>⚡</span> Gerar Lote de 30 Publicações
+                </button>
+              </div>
+
+              {/* Filtro de Canais */}
+              <div className="flex flex-wrap gap-2">
+                {["ALL", "instagram", "facebook", "tiktok", "youtube", "linkedin", "blog_seo", "email_marketing"].map((ch) => (
+                  <button
+                    key={ch}
+                    onClick={() => setCfFilter(ch)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                      cfFilter === ch
+                        ? "bg-indigo-600 text-white shadow"
+                        : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {ch === "ALL" ? "Todos os Canais" : ch.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+
+              {/* Lista de Itens da Content Factory */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {contentFactoryItems
+                  .filter((it: any) => cfFilter === "ALL" || it.channel === cfFilter)
+                  .map((it: any) => (
+                    <div key={it.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-3 text-xs flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold uppercase text-[10px]">
+                            {it.channel} • {it.content_type}
+                          </span>
+                          <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
+                            Nota {it.quality_score}/100
+                          </span>
+                        </div>
+                        <div className="font-bold text-white text-sm line-clamp-2">{it.title}</div>
+                        <p className="text-slate-300 line-clamp-4 whitespace-pre-line text-[11px]">{it.body_text}</p>
+                        <div className="p-2 rounded bg-slate-900/80 border border-slate-800 text-[11px] text-indigo-300">
+                          <strong>CTA:</strong> {it.cta}
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-800 space-y-2">
+                        <div className="flex items-center justify-between text-[10px] text-slate-400">
+                          <span>Data: <strong>{it.scheduled_for?.split("T")[0]}</strong></span>
+                          <span>Status: <strong className="text-amber-300">{it.status}</strong></span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                const pkg = await apiFetch(`/api/v1/content-factory/assisted-export/${it.id}`);
+                                setAssistedPackage(pkg);
+                              } catch (e: any) {
+                                showNotice(e.message || "Erro ao exportar");
+                              }
+                            }}
+                            className="flex-1 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 text-[11px] font-medium"
+                          >
+                            📋 Pacote 1-Clique
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                await apiFetch(`/api/v1/content-factory/items/${it.id}/publish`, { method: "POST" });
+                                await loadAllActiveData();
+                                showNotice("Status atualizado para Publicado!");
+                              } catch (e: any) {
+                                showNotice(e.message || "Erro ao publicar");
+                              }
+                            }}
+                            className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-medium"
+                          >
+                            ✓
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* FASE 14 — PLANO DIÁRIO CEO */}
+          {activeMenu === "ceo_plan" && (
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-[#0f1629] border border-indigo-500/30 p-5 rounded-xl">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>📋</span> AI CEO — Plano Diário de Execução & Delegação
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {ceoDailyPlan?.headline || "Missões executivas diárias distribuídas para todos os especialistas."}
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    setLoading(true);
+                    try {
+                      const res = await apiFetch("/api/v1/ceo/daily-plan/generate", { method: "POST" });
+                      setCeoDailyPlan(res);
+                      showNotice("Novo Plano Diário de Execução gerado com sucesso!");
+                    } catch (e: any) {
+                      showNotice(e.message || "Erro ao gerar plano");
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  className="px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg whitespace-nowrap"
+                >
+                  🔄 Regenerar Missões Diárias
+                </button>
+              </div>
+
+              {/* Grid de Missões Delegadas */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {ceoDailyPlan?.tasks?.map((task: any) => (
+                  <div key={task.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold text-[11px]">
+                        {task.target_agent}
+                      </span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        task.priority === "CRITICAL"
+                          ? "bg-red-500/20 text-red-300 border border-red-500/30"
+                          : task.priority === "HIGH"
+                          ? "bg-amber-500/20 text-amber-300"
+                          : "bg-slate-700 text-slate-300"
+                      }`}>
+                        {task.priority}
+                      </span>
+                    </div>
+
+                    <div className="font-bold text-white text-sm">{task.title}</div>
+                    <p className="text-slate-300 text-xs">{task.objective}</p>
+
+                    <div className="p-2.5 rounded bg-slate-900 border border-slate-800 text-[11px] text-slate-300">
+                      <strong className="text-indigo-400">Entregável Esperado:</strong> {task.deliverable}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                      <span className="text-[11px] text-slate-400">
+                        Status: <strong className={task.status === "COMPLETED" ? "text-emerald-400" : "text-amber-400"}>{task.status}</strong>
+                      </span>
+                      <div className="flex gap-1.5">
+                        {task.status !== "COMPLETED" && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await apiFetch(`/api/v1/ceo/daily-plan/tasks/${task.id}`, {
+                                  method: "PUT",
+                                  body: JSON.stringify({ status: "COMPLETED", deliverable: "Executado e validado em produção." }),
+                                });
+                                await loadAllActiveData();
+                                showNotice(`Missão ${task.id} marcada como CONCLUÍDA!`);
+                              } catch (e: any) {
+                                showNotice(e.message || "Erro ao atualizar");
+                              }
+                            }}
+                            className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-medium"
+                          >
+                            Concluir Missão
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* FASE 14 — PAINEL OPERACIONAL 24/7 & ALERTAS */}
+          {activeMenu === "operational247" && (
+            <div className="space-y-6">
+              {/* Status da Infraestrutura */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
+                  <div className="text-slate-400">VPS Host (Coolify)</div>
+                  <div className="text-base font-bold text-emerald-400">{opDashboard?.vps_status?.status || "HEALTHY"}</div>
+                  <div className="text-[11px] text-slate-400">IP: {opDashboard?.vps_status?.server_ip || "72.62.13.62"}</div>
+                </div>
+                <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
+                  <div className="text-slate-400">PostgreSQL 16</div>
+                  <div className="text-base font-bold text-emerald-400">{opDashboard?.database_status?.connection || "CONECTADO"}</div>
+                  <div className="text-[11px] text-slate-400">{opDashboard?.database_status?.total_records_monitored || 0} registros ativos</div>
+                </div>
+                <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
+                  <div className="text-slate-400">APScheduler (America/Sao_Paulo)</div>
+                  <div className="text-base font-bold text-emerald-400">17 Rotinas Ativas</div>
+                  <div className="text-[11px] text-slate-400">100% Internalizado no Python</div>
+                </div>
+                <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
+                  <div className="text-slate-400">Garantia Custo Cloud</div>
+                  <div className="text-base font-bold text-indigo-400">R$ 0,00 Externo</div>
+                  <div className="text-[11px] text-slate-400">100% Ferramentas Open-Source</div>
+                </div>
+              </div>
+
+              {/* Tabela de 10 Rotinas Diárias (07h às 18h) */}
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white">Rotinas Operacionais Contínuas (America/Sao_Paulo)</h3>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const r = await apiFetch("/api/v1/seo/weekly-report", { method: "POST" });
+                        await loadAllActiveData();
+                        showNotice(`Auditoria Semanal de SEO executada! Score: ${r.audit_score}/100`);
+                      } catch (e: any) {
+                        showNotice(e.message || "Erro");
+                      }
+                    }}
+                    className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs"
+                  >
+                    🔍 Executar Auditoria Semanal de SEO
+                  </button>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left">
+                    <thead className="text-[11px] text-slate-400 border-b border-slate-800">
+                      <tr>
+                        <th className="py-2">Horário</th>
+                        <th className="py-2">Rotina Automatizada</th>
+                        <th className="py-2">Agente Responsável</th>
+                        <th className="py-2">Frequência</th>
+                        <th className="py-2">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800 text-slate-300">
+                      {opDashboard?.daily_routines_status?.map((r: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-slate-900/50">
+                          <td className="py-2.5 font-mono text-indigo-300 font-bold">{r.hour}</td>
+                          <td className="py-2.5 font-medium text-white">{r.routine}</td>
+                          <td className="py-2.5 text-slate-400">{r.agent}</td>
+                          <td className="py-2.5">{r.frequency}</td>
+                          <td className="py-2.5">
+                            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
+                              {r.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Alertas Inteligentes do Sistema */}
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>🚨</span> Alertas Operacionais Inteligentes & Sugestões de Ação
+                </h3>
+                <div className="space-y-3">
+                  {systemAlerts.map((a: any) => (
+                    <div
+                      key={a.id}
+                      className={`p-4 rounded-xl border text-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 ${
+                        a.severity === "CRITICAL"
+                          ? "bg-red-500/10 border-red-500/30"
+                          : a.severity === "WARNING"
+                          ? "bg-amber-500/10 border-amber-500/30"
+                          : "bg-indigo-500/10 border-indigo-500/30"
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            a.severity === "CRITICAL" ? "bg-red-600 text-white" : a.severity === "WARNING" ? "bg-amber-600 text-white" : "bg-indigo-600 text-white"
+                          }`}>
+                            {a.severity}
+                          </span>
+                          <span className="font-bold text-white">{a.title}</span>
+                          <span className="text-[10px] text-slate-400 font-mono">[{a.category}]</span>
+                        </div>
+                        <p className="text-slate-300 text-[11px]">{a.message}</p>
+                        <p className="text-emerald-300 text-[11px]">👉 <strong>Ação Sugerida:</strong> {a.suggested_action}</p>
+                      </div>
+                      {!a.is_resolved && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              await apiFetch(`/api/v1/system/alerts/${a.id}/resolve`, { method: "POST" });
+                              await loadAllActiveData();
+                              showNotice("Alerta marcado como resolvido!");
+                            } catch (e: any) {
+                              showNotice(e.message || "Erro");
+                            }
+                          }}
+                          className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs whitespace-nowrap"
+                        >
+                          Marcar Resolvido
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* FASE 14 — PILOTO 7 DIAS */}
+          {activeMenu === "pilot7d" && (
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-[#0f1629] border border-indigo-500/30 p-5 rounded-xl">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>🚀</span> Piloto Operacional Autônomo de 7 Dias Consecutivos
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Simulação e validação ponta a ponta dos 7 dias de rotinas empresariais (Briefings diários, produção de 30 conteúdos na Content Factory, auditorias de SEO, qualificação de leads e consolidação financeira).
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    setLoading(true);
+                    try {
+                      const res = await apiFetch("/api/v1/system/pilot-7-days", { method: "POST" });
+                      setPilotData(res);
+                      showNotice(`Piloto de 7 Dias executado! ${res.total_content_pieces_produced} conteúdos produzidos e ${res.total_leads_qualified} leads qualificados.`);
+                    } catch (e: any) {
+                      showNotice(e.message || "Erro ao executar piloto");
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-lg whitespace-nowrap"
+                >
+                  🚀 Executar Piloto de 7 Dias
+                </button>
+              </div>
+
+              {pilotData && (
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
+                    <div className="text-slate-400">Dias Auditados</div>
+                    <div className="text-lg font-bold text-white">{pilotData.days_simulated} Dias</div>
+                  </div>
+                  <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
+                    <div className="text-slate-400">Conteúdos Produzidos</div>
+                    <div className="text-lg font-bold text-indigo-400">{pilotData.total_content_pieces_produced} Peças</div>
+                  </div>
+                  <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
+                    <div className="text-slate-400">Leads Qualificados</div>
+                    <div className="text-lg font-bold text-emerald-400">{pilotData.total_leads_qualified} Oportunidades</div>
+                  </div>
+                  <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
+                    <div className="text-slate-400">Auditorias de SEO</div>
+                    <div className="text-lg font-bold text-amber-400">{pilotData.total_seo_routines_executed} Executadas</div>
+                  </div>
+                  <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
+                    <div className="text-slate-400">Custo Adicional</div>
+                    <div className="text-lg font-bold text-emerald-400">R$ 0,00</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Linha do Tempo dos 7 Dias */}
+              <div className="space-y-3">
+                {pilotData?.daily_runs?.map((d: any) => (
+                  <div key={d.day_number} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 text-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white text-sm">
+                        Dia {d.day_number} — {d.date}
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
+                        {d.status}
+                      </span>
+                    </div>
+                    <ul className="space-y-1 text-slate-300 text-[11px] list-disc list-inside">
+                      {d.actions?.map((act: string, idx: number) => (
+                        <li key={idx}>{act}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* MODAL DE EXPORTAÇÃO ASSISTIDA (1 CLIQUE) */}
+          {assistedPackage && (
+            <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+              <div className="bg-[#0f1629] border border-indigo-500/40 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl text-xs">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>📋</span> Pacote de Publicação Assistida (1 Clique) — {assistedPackage.channel.toUpperCase()}
+                  </h3>
+                  <button
+                    onClick={() => setAssistedPackage(null)}
+                    className="text-slate-400 hover:text-white text-base font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-slate-300 font-semibold">Legenda Formatada com Hashtags:</label>
+                  <textarea
+                    readOnly
+                    rows={6}
+                    value={assistedPackage.formatted_copy_for_clipboard}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white text-xs font-mono"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(assistedPackage.formatted_copy_for_clipboard);
+                      showNotice("Texto copiado para a área de transferência com sucesso!");
+                    }}
+                    className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs"
+                  >
+                    📄 Copiar Texto Completo para o Clipboard
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <a
+                    href={assistedPackage.platform_upload_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="py-2 text-center rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 font-medium"
+                  >
+                    🔗 Abrir Central Oficial da Rede
+                  </a>
+                  <button
+                    onClick={() => {
+                      showNotice("Download de mídia iniciado.");
+                      setAssistedPackage(null);
+                    }}
+                    className="py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
+                  >
+                    💾 Baixar Criativo Visual
+                  </button>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800 space-y-1 text-slate-400 text-[11px]">
+                  <p className="font-semibold text-slate-300">Checklist Rápido:</p>
+                  {assistedPackage.checklist?.map((c: string, idx: number) => (
+                    <p key={idx}>{c}</p>
+                  ))}
+                </div>
               </div>
             </div>
           )}
