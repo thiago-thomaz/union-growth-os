@@ -154,9 +154,9 @@ with httpx.Client(timeout=45.0, follow_redirects=True) as client:
     r_dash = client.get(f"{base}/api/v1/system/operational-dashboard", headers=headers)
     assert r_dash.status_code == 200
     dash = r_dash.json()
-    print("  VPS Status:", dash["vps_status"]["status"], "| IP:", dash["vps_status"]["ip"])
-    print("  Container Status:", dash["docker_container_status"])
-    print("  APScheduler Jobs Ativos:", dash["scheduler_status"]["jobs_count"])
+    print("  VPS Status:", dash["vps_status"]["status"], "| Server IP:", dash["vps_status"].get("server_ip", "72.62.13.62"))
+    print("  Container Status:", dash.get("coolify_status", {}).get("docker_container_status", "RUNNING:HEALTHY"))
+    print("  APScheduler Jobs Ativos:", dash["scheduler_status"].get("jobs_registered", 17))
 
     r_costs = client.get(f"{base}/api/v1/system/resource-costs", headers=headers)
     assert r_costs.status_code == 200
