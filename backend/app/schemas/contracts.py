@@ -2,7 +2,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, EmailStr, Field
 
 
-DataOriginType = Literal["REAL", "IMPORTED", "ESTIMATED", "GOAL"]
+DataOriginType = Literal["REAL", "IMPORTED", "ESTIMATED", "GOAL", "TEST", "DEMO"]
 AutonomyLevelType = Literal[1, 2, 3]
 PlanTierType = Literal["STARTER", "PRO", "BUSINESS", "ENTERPRISE"]
 
@@ -394,6 +394,8 @@ class ContentFactoryItemResponse(BaseModel):
     quality_score: int
     is_duplicate: bool
     status: str
+    responsible_agent: str = "AGENT_04_SOCIAL"
+    change_history: list[dict[str, Any]] = []
     published_post_id: str = ""
     data_origin: str = "GOAL"
     created_at: str

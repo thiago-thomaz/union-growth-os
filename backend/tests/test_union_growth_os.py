@@ -737,3 +737,107 @@ def test_28_system_operational_dashboard_alerts_and_pilot_7_days(client: TestCli
     assert "CUSTO ZERO" in costs["verdict"]
 
 
+def test_29_backup_integrity_and_isolated_restore_verification(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # Executa teste real de restauração em ambiente isolado (in-memory SQLite)
+    r = client.post("/api/v1/system/backup/test-restore", headers=h)
+    assert r.status_code == 200
+    data = r.json()
+    assert data["status"] == "RESTORE_VERIFIED"
+    assert data["production_database_protected"] is True
+    assert data["isolated_environment"] == "sqlite:///:memory:"
+    assert data["total_restored_records"] > 0
+    assert "tenants" in data["restored_tables"]
+    assert "strategic_goals" in data["restored_tables"]
+
+
+def test_30_agent_execution_logs_processing_types(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    r = client.get("/api/v1/agents/execution-logs", headers=h)
+    assert r.status_code == 200
+    data = r.json()
+    assert "processing_type_breakdown" in data
+    breakdown = data["processing_type_breakdown"]
+    for expected_key in ("REAL_LLM", "LOCAL_MODEL", "DETERMINISTIC_PYTHON_ENGINE", "TEMPLATE_ENGINE", "FALLBACK"):
+        assert expected_key in breakdown
+    if data["logs"]:
+        first_log = data["logs"][0]
+        assert "processing_type" in first_log
+        assert "model_used" in first_log
+        assert "tokens_consumed" in first_log
+
+
+def test_31_crm_lead_opt_out_and_origin_classification(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # 1. Cria lead com data_origin TEST
+    lead_payload = {
+        "full_name": "Juliana Teste LGPD",
+        "email": f"juliana.teste.{RUN_SUFFIX}@empresa.com.br",
+        "phone": "+5511988887777",
+        "company_name": "Empresa Teste SA",
+        "source_channel": "Formulário Web",
+        "buy_intent": "HIGH",
+        "estimated_value": 7500.0,
+        "data_origin": "TEST",
+        "consent_lgpd": True,
+        "consent_source": "Opt-in voluntário",
+        "notes": "Lead de validação automatizada da Fase 15",
+    }
+    r_create = client.post("/api/v1/crm/leads", headers=h, json=lead_payload)
+    assert r_create.status_code == 201
+    lead_id = r_create.json()["id"]
+
+    # 2. Executa descadastro formal (opt-out)
+    r_optout = client.post(f"/api/v1/crm/leads/{lead_id}/opt-out", headers=h)
+    assert r_optout.status_code == 200
+    assert r_optout.json()["opt_out"] is True
+
+    # 3. Consulta CRM overview com filtro de origem TEST
+    r_overview = client.get("/api/v1/crm/overview?origin=TEST", headers=h)
+    assert r_overview.status_code == 200
+    comm = r_overview.json()["commercial_summary"]
+    assert "data_origin_breakdown" in comm
+    assert comm["data_origin_breakdown"]["TEST"] >= 1
+    # Garante que o lead criado está nos resultados
+    leads = r_overview.json()["leads"]
+    assert any(l["id"] == lead_id and l["opt_out"] is True for l in leads)
+
+
+def test_32_content_factory_item_update_and_history(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # 1. Obtém lista de itens da Content Factory (ou gera se ainda não houver itens)
+    r_items = client.get("/api/v1/content-factory/items?limit=5", headers=h)
+    assert r_items.status_code == 200
+    items = r_items.json()
+    if not items:
+        r_gen = client.post("/api/v1/content-factory/generate-batch", headers=h, json={"count": 5})
+        assert r_gen.status_code == 201
+        items = client.get("/api/v1/content-factory/items?limit=5", headers=h).json()
+    assert len(items) >= 1
+    item_id = items[0]["id"]
+
+    # 2. Edita o item com rastreabilidade de histórico
+    update_payload = {
+        "title": "Título Editorial Revisado por Especialista — Versão Otimizada",
+        "cta": "Clique no link e acesse o diagnóstico exclusivo agora.",
+        "notes": "Ajuste de copy e alinhamento de headline para o público-alvo",
+    }
+    r_update = client.put(f"/api/v1/content-factory/items/{item_id}", headers=h, json=update_payload)
+    assert r_update.status_code == 200
+    updated = r_update.json()
+    assert updated["title"] == update_payload["title"]
+    assert updated["cta"] == update_payload["cta"]
+    assert len(updated["change_history"]) >= 1
+    last_entry = updated["change_history"][-1]
+    assert last_entry["action"] == "EDITED"
+
+
+

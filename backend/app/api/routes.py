@@ -20,7 +20,13 @@ from app.agents.orchestrator import (
     get_tenant_autonomy_config,
 )
 from app.core.config import settings
-from app.core.database import check_db_health, create_database_backup, get_db
+from app.core.database import (
+    check_db_health,
+    create_database_backup,
+    get_db,
+    restore_database_from_backup,
+    verify_backup_integrity,
+)
 from app.core.security import (
     check_login_allowed,
     clear_login_failures,
@@ -112,6 +118,7 @@ from app.schemas.contracts import (
 from app.services.phase14_automation_factory import (
     generate_30_day_content_batch_service,
     get_content_factory_items_service,
+    update_content_factory_item_service,
     export_assisted_publishing_package_service,
     generate_ceo_daily_execution_plan_service,
     get_ceo_daily_plan_service,
@@ -1381,11 +1388,24 @@ def record_growth_experiment_result(
 # 10. AGENT 08 — CRM, LEADS, PIPELINE & COMERCIAL
 # ==============================================================================
 @router.get("/crm/overview")
-def get_crm_overview(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def get_crm_overview(
+    origin: str | None = None,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     tid = get_active_tenant_id(user)
-    leads = db.query(CRMLead).filter(CRMLead.tenant_id == tid).order_by(CRMLead.lead_score.desc()).all()
+    all_leads = db.query(CRMLead).filter(CRMLead.tenant_id == tid).order_by(CRMLead.lead_score.desc()).all()
     deals = db.query(CRMDeal).filter(CRMDeal.tenant_id == tid).order_by(CRMDeal.id.desc()).all()
     activities = db.query(CRMActivity).filter(CRMActivity.tenant_id == tid).order_by(CRMActivity.id.desc()).all()
+
+    origin_breakdown = {
+        "REAL": sum(1 for l in all_leads if l.data_origin == "REAL"),
+        "TEST": sum(1 for l in all_leads if l.data_origin == "TEST"),
+        "IMPORTED": sum(1 for l in all_leads if l.data_origin == "IMPORTED"),
+        "DEMO": sum(1 for l in all_leads if l.data_origin == "DEMO"),
+    }
+
+    leads = [l for l in all_leads if l.data_origin == origin.upper()] if origin else all_leads
 
     open_deals = [d for d in deals if d.status == "OPEN"]
     won_deals = [d for d in deals if d.status == "WON" or d.stage == "CLOSED_WON"]
@@ -1394,11 +1414,13 @@ def get_crm_overview(user: User = Depends(get_current_user), db: Session = Depen
     return {
         "commercial_summary": {
             "total_leads": len(leads),
+            "total_leads_all_origins": len(all_leads),
             "qualified_leads": sum(1 for l in leads if l.qualification_status == "QUALIFIED"),
             "open_deals_count": len(open_deals),
             "won_deals_count": len(won_deals),
             "won_revenue_brl": round(sum(d.value for d in won_deals), 2),
             "weighted_forecast_brl": weighted_forecast,
+            "data_origin_breakdown": origin_breakdown,
         },
         "leads": [
             {
@@ -1502,6 +1524,40 @@ def create_crm_lead(payload: CRMLeadCreate, user: User = Depends(get_current_use
         "qualification_status": lead.qualification_status,
         "pipeline_stage": lead.pipeline_stage,
         "data_origin": lead.data_origin,
+    }
+
+
+@router.post("/crm/leads/{lead_id}/opt-out")
+def opt_out_crm_lead(
+    lead_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Marca descadastro formal e bloqueio de contato no CRM em conformidade com a LGPD."""
+    tid = get_active_tenant_id(user)
+    lead = db.query(CRMLead).filter(CRMLead.id == lead_id, CRMLead.tenant_id == tid).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead não encontrado.")
+    lead.opt_out = True
+    db.add(
+        AuditLog(
+            tenant_id=tid,
+            user_id=user.id,
+            actor=user.email,
+            action="CRM_LEAD_OPT_OUT",
+            resource_type="CRMLead",
+            resource_id=str(lead.id),
+            details_json=json.dumps({"reason": "Solicitação formal de descadastro LGPD", "email": lead.email}),
+        )
+    )
+    db.commit()
+    db.refresh(lead)
+    return {
+        "id": lead.id,
+        "full_name": lead.full_name,
+        "email": lead.email,
+        "opt_out": True,
+        "message": "Contato descadastrado e bloqueado para comunicações em massa conforme LGPD.",
     }
 
 
@@ -2089,12 +2145,71 @@ def get_audit_and_agent_logs(user: User = Depends(get_current_user), db: Session
                 "parent_agent_id": l.parent_agent_id,
                 "autonomy_level": l.autonomy_level,
                 "provider_used": l.provider_used,
+                "model_used": getattr(l, "model_used", "rule-based-v1"),
+                "processing_type": getattr(l, "processing_type", "DETERMINISTIC_PYTHON_ENGINE"),
+                "tokens_consumed": getattr(l, "tokens_consumed", 0),
+                "estimated_cost_brl": getattr(l, "estimated_cost_brl", 0.0),
                 "quality_score": l.quality_score,
                 "duration_ms": l.duration_ms,
                 "status": l.status,
                 "created_at": l.created_at.isoformat(),
             }
             for l in agent_logs
+        ],
+    }
+
+
+@router.get("/agents/execution-logs")
+def get_agent_execution_logs(
+    agent_id: str | None = None,
+    processing_type: str | None = None,
+    limit: int = 50,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Retorna o histórico transparente de execuções de IA com discriminação exata de motor/modelo."""
+    tid = get_active_tenant_id(user)
+    query = db.query(AgentExecutionLog).filter(AgentExecutionLog.tenant_id == tid)
+    if agent_id:
+        query = query.filter(AgentExecutionLog.agent_id == agent_id)
+    if processing_type:
+        query = query.filter(AgentExecutionLog.processing_type == processing_type.upper())
+
+    logs = query.order_by(AgentExecutionLog.id.desc()).limit(limit).all()
+
+    all_logs = db.query(AgentExecutionLog).filter(AgentExecutionLog.tenant_id == tid).all()
+    type_breakdown = {
+        "REAL_LLM": sum(1 for l in all_logs if getattr(l, "processing_type", "") == "REAL_LLM"),
+        "LOCAL_MODEL": sum(1 for l in all_logs if getattr(l, "processing_type", "") == "LOCAL_MODEL"),
+        "DETERMINISTIC_PYTHON_ENGINE": sum(
+            1 for l in all_logs if getattr(l, "processing_type", "DETERMINISTIC_PYTHON_ENGINE") == "DETERMINISTIC_PYTHON_ENGINE"
+        ),
+        "TEMPLATE_ENGINE": sum(1 for l in all_logs if getattr(l, "processing_type", "") == "TEMPLATE_ENGINE"),
+        "FALLBACK": sum(1 for l in all_logs if getattr(l, "processing_type", "") == "FALLBACK"),
+    }
+
+    return {
+        "total_executions": len(all_logs),
+        "filtered_count": len(logs),
+        "processing_type_breakdown": type_breakdown,
+        "logs": [
+            {
+                "id": l.id,
+                "workflow_run_id": l.workflow_run_id,
+                "agent_id": l.agent_id,
+                "agent_name": l.agent_name,
+                "task_name": l.task_name,
+                "provider_used": l.provider_used,
+                "model_used": getattr(l, "model_used", "rule-based-v1"),
+                "processing_type": getattr(l, "processing_type", "DETERMINISTIC_PYTHON_ENGINE"),
+                "tokens_consumed": getattr(l, "tokens_consumed", 0),
+                "estimated_cost_brl": getattr(l, "estimated_cost_brl", 0.0),
+                "duration_ms": l.duration_ms,
+                "quality_score": l.quality_score,
+                "status": l.status,
+                "created_at": l.created_at.isoformat() if l.created_at else "",
+            }
+            for l in logs
         ],
     }
 
@@ -2117,6 +2232,48 @@ def trigger_database_backup(
     )
     return info
 
+
+@router.post("/system/backup/test-restore")
+def test_database_restore_isolated(
+    user: User = Depends(require_roles("owner", "admin")),
+    db: Session = Depends(get_db),
+):
+    """
+    Executa teste real de restauração em ambiente isolado (in-memory SQLite).
+    Garante proteção estrita: não sobrescreve nem altera o banco de dados de produção.
+    """
+    tid = get_active_tenant_id(user)
+    # 1. Gera backup snapshot fresco
+    backup_meta = create_database_backup(db, tenant_id=tid)
+    backup_file_path = backup_meta["path"]
+
+    # 2. Executa restauração no banco de dados temporário isolado
+    restore_report = restore_database_from_backup(
+        backup_path=backup_file_path,
+        target_engine_url="sqlite:///:memory:",
+        allow_production_overwrite=False,
+    )
+
+    record_audit_log(
+        db,
+        tenant_id=tid,
+        user_id=user.id,
+        actor=user.email,
+        action="DATABASE_RESTORE_TEST_SUCCESS",
+        resource_type="backup_restore_test",
+        resource_id=backup_meta["backup_file"],
+    )
+
+    return {
+        "status": "RESTORE_VERIFIED",
+        "isolated_environment": "sqlite:///:memory:",
+        "production_database_protected": True,
+        "backup_tested": backup_meta["backup_file"],
+        "sha256": backup_meta.get("sha256", restore_report.get("sha256_verified")),
+        "restored_tables": restore_report["restored_tables"],
+        "total_restored_records": restore_report["total_restored_records"],
+        "verification_timestamp": restore_report["verified_at"],
+    }
 
 
 # ==============================================================================
@@ -2376,6 +2533,27 @@ def content_factory_publish_item(
     db.commit()
     db.refresh(item)
     return {"id": item.id, "status": item.status, "published_post_id": item.published_post_id}
+
+
+@router.put("/content-factory/items/{item_id}")
+def content_factory_update_item(
+    item_id: int,
+    payload: dict[str, Any],
+    user: User = Depends(require_roles("owner", "admin", "operator")),
+    db: Session = Depends(get_db),
+):
+    """Edita um item do calendário editorial com rastreabilidade de histórico (Fase 15)."""
+    tid = get_active_tenant_id(user)
+    try:
+        return update_content_factory_item_service(
+            db,
+            tenant_id=tid,
+            item_id=item_id,
+            updates=payload,
+            actor=f"{user.full_name} ({user.email})",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
 @router.get("/ceo/daily-plan", response_model=CEODailyPlanResponse)

@@ -682,6 +682,19 @@ def generate_30_day_content_batch_service(
             quality += 5
         quality = min(quality, 100)
 
+        resp_agent = (
+            "AGENT_04_SOCIAL" if template["channel"] in ("instagram", "facebook", "tiktok", "youtube", "linkedin", "pinterest")
+            else ("AGENT_03_SEO" if template["channel"] == "blog_seo" else "AGENT_06_COPYWRITER")
+        )
+        initial_history = [
+            {
+                "timestamp": now.isoformat(),
+                "action": "GENERATED_BY_CONTENT_FACTORY",
+                "agent": resp_agent,
+                "notes": f"Lote inicial {batch_id} gerado com score editorial {quality}/100",
+            }
+        ]
+
         item = ContentFactoryItem(
             tenant_id=tenant_id,
             batch_id=batch_id,
@@ -700,6 +713,8 @@ def generate_30_day_content_batch_service(
             is_duplicate=is_dup,
             similarity_hash=sim_hash,
             status="PLANNED",
+            responsible_agent=resp_agent,
+            change_history_json=json.dumps(initial_history, ensure_ascii=False),
             data_origin="GOAL",
         )
         db.add(item)
@@ -803,12 +818,70 @@ def get_content_factory_items_service(
             "quality_score": it.quality_score,
             "is_duplicate": it.is_duplicate,
             "status": it.status,
+            "responsible_agent": getattr(it, "responsible_agent", "AGENT_04_SOCIAL"),
+            "change_history": json.loads(getattr(it, "change_history_json", "[]") or "[]"),
             "published_post_id": it.published_post_id or "",
             "data_origin": it.data_origin,
             "created_at": it.created_at.isoformat() if it.created_at else "",
         }
         for it in items
     ]
+
+
+def update_content_factory_item_service(
+    db: Session,
+    tenant_id: int,
+    item_id: int,
+    updates: dict[str, Any],
+    actor: str = "Editor Humano",
+) -> dict[str, Any]:
+    """Permite editar conteúdo do calendário editorial com rastreabilidade e histórico de alterações."""
+    item = (
+        db.query(ContentFactoryItem)
+        .filter(ContentFactoryItem.id == item_id, ContentFactoryItem.tenant_id == tenant_id)
+        .first()
+    )
+    if not item:
+        raise ValueError(f"Item {item_id} da Content Factory não encontrado.")
+
+    history = json.loads(item.change_history_json or "[]")
+    diffs = {}
+
+    for field in ("title", "body_text", "cta", "scheduled_for", "status", "channel"):
+        if field in updates and updates[field] is not None:
+            old_val = getattr(item, field)
+            new_val = updates[field]
+            if old_val != new_val:
+                diffs[field] = {"old": old_val, "new": new_val}
+                setattr(item, field, new_val)
+
+    if diffs:
+        history.append(
+            {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "actor": actor,
+                "action": "EDITED",
+                "diffs": diffs,
+                "notes": updates.get("notes", "Edição no calendário editorial"),
+            }
+        )
+        item.change_history_json = json.dumps(history, ensure_ascii=False)
+        item.similarity_hash = _compute_similarity_hash(item.title + " " + item.body_text[:200])
+
+    db.commit()
+    db.refresh(item)
+
+    return {
+        "id": item.id,
+        "title": item.title,
+        "body_text": item.body_text,
+        "cta": item.cta,
+        "status": item.status,
+        "scheduled_for": item.scheduled_for,
+        "responsible_agent": item.responsible_agent,
+        "change_history": json.loads(item.change_history_json or "[]"),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 def export_assisted_publishing_package_service(

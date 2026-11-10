@@ -19,7 +19,8 @@ logger = logging.getLogger("union_growth_os.scheduler")
 
 _scheduler_lock = threading.Lock()
 _running_rules_lock: set[int] = set()
-scheduler = BackgroundScheduler(timezone="UTC")
+SCHEDULER_TZ = "America/Sao_Paulo"
+scheduler = BackgroundScheduler(timezone=SCHEDULER_TZ)
 
 
 DEFAULT_12_AUTOMATION_TEMPLATES: list[dict[str, Any]] = [

@@ -491,6 +491,10 @@ class AgentExecutionLog(Base):
     parent_agent_id = Column(String(60), default="")
     autonomy_level = Column(Integer, default=2)
     provider_used = Column(String(80), default="deterministic-expert-engine")
+    model_used = Column(String(100), default="rule-based-v1")
+    processing_type = Column(String(50), default="DETERMINISTIC_PYTHON_ENGINE")  # REAL_LLM, LOCAL_MODEL, DETERMINISTIC_PYTHON_ENGINE, TEMPLATE_ENGINE, FALLBACK
+    tokens_consumed = Column(Integer, default=0)
+    estimated_cost_brl = Column(Float, default=0.0)
     input_payload_json = Column(Text, default="{}")
     output_payload_json = Column(Text, default="{}")
     quality_score = Column(Float, default=95.0)
@@ -554,6 +558,8 @@ class ContentFactoryItem(Base):
     is_duplicate = Column(Boolean, default=False)
     similarity_hash = Column(String(64), default="")
     status = Column(String(40), default="PLANNED")  # PLANNED, APPROVED, QUEUED, PUBLISHED, ASSISTED_EXPORTED
+    responsible_agent = Column(String(80), default="AGENT_04_SOCIAL")
+    change_history_json = Column(Text, default="[]")
     published_post_id = Column(String(120), default="")
     data_origin = Column(String(30), default="GOAL")
     created_at = Column(DateTime, default=utcnow)

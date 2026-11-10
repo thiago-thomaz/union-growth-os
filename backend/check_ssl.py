@@ -24,3 +24,4 @@ with httpx.Client(timeout=15.0, follow_redirects=True) as client:
         print(f"[{res.status_code}] {url} -> Content-Type: {res.headers.get('content-type')}")
 
 print("\nVERIFICAÇÃO CONCLUÍDA COM SUCESSO!")
+

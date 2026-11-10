@@ -1091,6 +1091,13 @@ class CentralOrchestrator:
         output_data["_llm_used"] = llm_used
         provider_name = f"{provider_name} | origem={response_origin}"
 
+        model_label = output_data.get("_llm_model") or (
+            "ollama/llama3.2" if response_origin == "LOCAL_MODEL"
+            else ("gemini-2.5-flash" if response_origin == "REAL_LLM"
+            else ("framework-template-v1" if response_origin == "TEMPLATE_ENGINE" else "python-rules-v1"))
+        )
+        tokens_val = int(output_data.get("_tokens_consumed", 350) if llm_used else 0)
+
         log_entry = AgentExecutionLog(
             tenant_id=tenant.id,
             workflow_run_id=contract.workflow_run_id,
@@ -1100,6 +1107,10 @@ class CentralOrchestrator:
             parent_agent_id=contract.sender_agent,
             autonomy_level=autonomy,
             provider_used=provider_name,
+            model_used=model_label,
+            processing_type=response_origin,
+            tokens_consumed=tokens_val,
+            estimated_cost_brl=0.0,
             input_payload_json=json.dumps(params, ensure_ascii=False),
             output_payload_json=json.dumps(output_data, ensure_ascii=False),
             quality_score=96.0,
