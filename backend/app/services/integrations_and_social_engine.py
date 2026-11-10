@@ -7,6 +7,7 @@ from typing import Any
 import httpx
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.security import decrypt_secret, encrypt_secret, mask_secret
 from app.models.entities import ApprovalRequest, EditorialCalendarItem, IntegrationConnection, Tenant
 
@@ -714,7 +715,7 @@ def audit_social_platforms_detailed(db: Session, tenant_id: int, public_base_url
         for c in db.query(IntegrationConnection).filter(IntegrationConnection.tenant_id == tenant_id).all()
     }
     calendar_items = db.query(EditorialCalendarItem).filter(EditorialCalendarItem.tenant_id == tenant_id).all()
-    base = (public_base_url or "https://uniongrowth.72.62.13.62.sslip.io").rstrip("/")
+    base = (public_base_url or getattr(settings, "PUBLIC_URL", "https://automacao.projetosunion.cloud")).rstrip("/")
 
     platforms_out = []
     for pkey in ("instagram", "facebook", "tiktok", "youtube", "linkedin", "pinterest"):

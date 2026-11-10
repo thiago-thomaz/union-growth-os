@@ -67,7 +67,7 @@ def ensure_initial_workspace_seeded(db: Session) -> Tenant:
         brand_name="UNION GROWTH OS",
         primary_color="#6366F1",
         secondary_color="#10B981",
-        domain="https://uniongrowth.72.62.13.62.sslip.io",
+        domain="https://automacao.projetosunion.cloud",
         niche="Plataforma SaaS de Inteligência Empresarial, Marketing & Automação",
         target_audience="Empresas B2B, E-commerces e Operações Digitais em Escala",
         products_json=json.dumps(["Union Growth OS Enterprise", "AI Marketing Director Suite", "CRM & Sales Automation"]),

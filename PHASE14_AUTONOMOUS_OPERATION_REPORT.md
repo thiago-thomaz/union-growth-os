@@ -1,9 +1,9 @@
 # UNION GROWTH OS — RELATÓRIO OFICIAL DE AUTOMAÇÃO TOTAL & PRODUÇÃO CONTÍNUA (FASE 14)
 **Data de Execução:** 10 de Novembro de 2026  
-**Versão do Sistema:** 1.0.0 (Commit `3c0d1ad`)  
+**Versão do Sistema:** 1.0.0 (Commit `8e8f467`)  
 **Status de Produção:** ONLINE & OPERACIONAL (100% Saudável)  
-**Endpoint Ativo (HTTPS):** `https://uniongrowth.72.62.13.62.sslip.io`  
-**Domínio Customizado:** `https://growth.projetosunion.cloud` (Aguardando apontamento DNS Tipo A)  
+**URL Oficial & Definitiva (HTTPS):** `https://automacao.projetosunion.cloud`  
+**Domínio Espelho / Fallback:** `https://uniongrowth.72.62.13.62.sslip.io`  
 **Servidor VPS:** `72.62.13.62` (Hospedagem Gerenciada Coolify)  
 **Banco de Dados:** PostgreSQL 16 Nativo (`union-growth-os-db`)  
 **Orquestrador de Rotinas:** APScheduler Python 3.12 (Timezone `America/Sao_Paulo`)  
@@ -15,7 +15,7 @@
 
 A **FASE 14: Automação Total + CI/CD + Produção Contínua na VPS** consolidou a transição do **UNION GROWTH OS** de uma plataforma multiagente para uma **verdadeira operação empresarial autônoma de marketing, vendas, SEO e gestão executiva**, funcionando 24 horas por dia, 7 dias por semana na VPS, sem qualquer dependência de ferramentas terceirizadas como n8n ou APIs pagas.
 
-Todos os 15 objetivos e 14 critérios de aceite foram integralmente desenvolvidos, testados com suíte automatizada de 29 testes (100% aprovados), compilados com static build export Next.js 15, commitados e publicados no GitHub via pipeline CI/CD, e validados em tempo real no container de produção gerenciado pelo Coolify.
+A URL oficial e definitiva do sistema foi configurada com sucesso para **`https://automacao.projetosunion.cloud`**, com apontamento DNS tipo A validado (`automacao -> 72.62.13.62`), certificado SSL Let's Encrypt gerado automaticamente pelo Traefik do Coolify, e espelho de segurança preservado em `https://uniongrowth.72.62.13.62.sslip.io`.
 
 ---
 
@@ -26,8 +26,8 @@ Todos os 15 objetivos e 14 critérios de aceite foram integralmente desenvolvido
 | **VPS Host** | Ubuntu / Linux 72.62.13.62 | Saudável (`running:healthy`) | Inspecionado via Coolify Sentinel |
 | **Coolify Application** | UUID: `swpy83sa5wshb558fadlrzwc` | `running:healthy` | Healthcheck 200 via Traefik |
 | **Banco PostgreSQL** | UUID: `thkpm0vkt5f4rj8znd3e2abi` | Saudável (`is_fallback: False`) | Pool ativo, 145 registros monitorados |
-| **Domínio Primário** | `https://uniongrowth.72.62.13.62.sslip.io` | HTTPS Ativo (Let's Encrypt) | HTTP 200 em `/health` e rotas estáticas |
-| **Domínio Customizado**| `growth.projetosunion.cloud` | Aguardando DNS A | Diagnóstico transparente registrado em alertas |
+| **Domínio Oficial** | `https://automacao.projetosunion.cloud` | HTTPS Ativo (Let's Encrypt) | HTTP 200 em `/health` e rotas estáticas |
+| **Domínio Espelho** | `https://uniongrowth.72.62.13.62.sslip.io` | HTTPS Ativo (Let's Encrypt) | Preservado como fallback de segurança |
 | **APScheduler** | Motor Python 3.12 (100% Internalizado) | Ativo (`running: True`) | 17 jobs persistidos, Timezone `America/Sao_Paulo` |
 | **GitHub CI/CD** | `.github/workflows/ci-cd.yml` | Integrado na branch `main` | Testes, static build e auditoria de segurança |
 | **Deploy Remoto** | UUID: `h3vrffh33g5yutz2djlr09m7` | Concluído (`finished`) | Rolling update concluído em 86s |
@@ -206,17 +206,17 @@ Auditado via `GET /api/v1/system/resource-costs`:
 
 ---
 
-## 13. GUIA OPERACIONAL & APONTAMENTO DNS
+## 13. GUIA OPERACIONAL & APONTAMENTO DNS VALIDADO
 
-### Como apontar o domínio customizado:
-O sistema está 100% pronto para responder no domínio `growth.projetosunion.cloud`. Para ativá-lo:
-1. Acesse o painel DNS da sua registradora (Cloudflare, Registro.br, etc.).
-2. Adicione uma entrada DNS do tipo **A**:
-   - **Nome / Host:** `growth` (ou `@` para raiz)
-   - **Destino / IP:** `72.62.13.62`
-   - **TTL:** Automático ou 300 segundos
-   - **Proxy:** DNS Only (ou Proxy ativo no Cloudflare)
-3. Após a propagação DNS, o Traefik do Coolify emitirá o certificado SSL Let's Encrypt automaticamente para `https://growth.projetosunion.cloud`.
+O domínio oficial **`https://automacao.projetosunion.cloud`** está 100% ativo com a seguinte configuração DNS comprovada:
+- **Tipo:** A
+- **Host:** automacao
+- **IP:** 72.62.13.62
+- **TTL:** 14400
+- **Status:** Resolvendo e respondendo HTTP 200 / HTTPS Let's Encrypt em produção.
+
+O domínio `https://uniongrowth.72.62.13.62.sslip.io` permanece configurado no Coolify como espelho de segurança.
 
 ---
 *Relatório emitido pela Engenharia Principal do UNION GROWTH OS.*
+

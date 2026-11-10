@@ -2,10 +2,11 @@
 
 **Data de Conclusão**: 10/11/2026  
 **Versão Implantada**: `1.0.0` (Commit `6d21496`)  
-**URL Pública HTTPS em Produção**: https://uniongrowth.72.62.13.62.sslip.io  
-**Health Check Público**: https://uniongrowth.72.62.13.62.sslip.io/health  
-**Readiness Probe Público**: https://uniongrowth.72.62.13.62.sslip.io/ready  
-**Documentação Interativa da API (OpenAPI)**: https://uniongrowth.72.62.13.62.sslip.io/docs  
+**URL Oficial Definitiva (HTTPS)**: https://automacao.projetosunion.cloud  
+**URL Espelho / Fallback (HTTPS)**: https://uniongrowth.72.62.13.62.sslip.io  
+**Health Check Público**: https://automacao.projetosunion.cloud/health  
+**Readiness Probe Público**: https://automacao.projetosunion.cloud/ready  
+**Documentação Interativa da API (OpenAPI)**: https://automacao.projetosunion.cloud/docs  
 **Repositório GitHub**: https://github.com/thiago-thomaz/union-growth-os  
 
 ---
@@ -110,15 +111,15 @@ Todos os **13 testes automatizados** passaram com 100% de sucesso:
 - **Projeto Coolify Isolado**: `union-growth-os` (UUID `97wwk7lp9cyuljxel7kh3pss`)
 - **Banco PostgreSQL 16 Dedicado**: `union-growth-os-db` (UUID `thkpm0vkt5f4rj8znd3e2abi`)
 - **Aplicação Coolify**: `union-growth-os` (UUID `swpy83sa5wshb558fadlrzwc`)
-- **URL Pública HTTPS**: https://uniongrowth.72.62.13.62.sslip.io
-- **Domínio Customizado Preparado**: `https://growth.projetosunion.cloud` (para ativar, basta adicionar um registro DNS Tipo `A` para `growth` apontando para `72.62.13.62` no painel DNS de `projetosunion.cloud`).
+- **URL Pública Oficial HTTPS**: https://automacao.projetosunion.cloud
+- **URL Mirror/Fallback HTTPS**: https://uniongrowth.72.62.13.62.sslip.io
 - **Custos Recorrentes Conhecidos**: **R$ 0,00 adicionais** (reutiliza a VPS e o Coolify já existentes, utilizando 100% de ferramentas gratuitas e open source, sem depender de APIs pagas ou n8n).
 
 ---
 
 ## 7. Próximas Melhorias Recomendadas
 
-1. Apontar o subdomínio `growth.projetosunion.cloud` (registro `A` -> `72.62.13.62`) no provedor de DNS para utilizar o domínio próprio ao lado do domínio HTTPS `sslip.io`.
+1. Domínio oficial `automacao.projetosunion.cloud` já configurado com DNS Tipo A apontando para `72.62.13.62` e SSL Let's Encrypt ativo.
 2. Conectar as credenciais OAuth2 do Google Search Console e Instagram Graph API na aba **Integrações** para habilitar ingestão automática de impressões da SERP e publicação direta sem intervenção manual.
 3. Caso deseje utilizar LLMs locais adicionais no futuro, apontar `OLLAMA_BASE_URL` ou `OPENAI_COMPATIBLE_BASE_URL` nas variáveis de ambiente da aplicação no Coolify.
 

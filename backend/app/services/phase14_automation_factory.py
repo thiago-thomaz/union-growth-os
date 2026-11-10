@@ -1104,7 +1104,7 @@ def generate_weekly_seo_routine_service(
 ) -> dict[str, Any]:
     """Executa a rotina semanal de SEO: auditoria técnica, sitemap, Schema.org e oportunidades."""
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
-    target_url = (tenant.domain if tenant and tenant.domain else "https://uniongrowth.72.62.13.62.sslip.io")
+    target_url = (tenant.domain if tenant and tenant.domain else getattr(settings, "PUBLIC_URL", "https://automacao.projetosunion.cloud"))
 
     # Mapear clusters existentes
     clusters = db.query(SEOKeywordCluster).filter(SEOKeywordCluster.tenant_id == tenant_id).all()
@@ -1197,9 +1197,9 @@ def get_operational_dashboard_service(
     coolify_info = {
         "app_uuid": "swpy83sa5wshb558fadlrzwc",
         "app_name": "union-growth-os",
-        "fqdn": "https://uniongrowth.72.62.13.62.sslip.io",
-        "custom_domain": "https://growth.projetosunion.cloud",
-        "custom_domain_dns_status": "PENDING_USER_DNS_A_RECORD",
+        "fqdn": "https://automacao.projetosunion.cloud",
+        "fallback_domain": "https://uniongrowth.72.62.13.62.sslip.io",
+        "domain_dns_status": "ONLINE (IP 72.62.13.62)",
         "docker_container_status": "RUNNING:HEALTHY",
         "git_commit": "HEAD",
         "port": 8000,
@@ -1350,9 +1350,9 @@ def get_system_alerts_service(
                 tenant_id=tenant_id,
                 severity="INFO",
                 category="SYSTEM",
-                title="Domínio Customizado Aguardando Apontamento DNS",
-                message="O domínio primário 'uniongrowth.72.62.13.62.sslip.io' está 100% ativo com HTTPS Let's Encrypt. O domínio customizado 'growth.projetosunion.cloud' aguarda apontamento do registro DNS tipo A.",
-                suggested_action="Aponte o registro DNS tipo A de 'growth.projetosunion.cloud' para o IP 72.62.13.62 na sua registradora de domínio.",
+                title="Domínio Oficial Ativo: automacao.projetosunion.cloud",
+                message="O domínio oficial https://automacao.projetosunion.cloud está 100% ativo com HTTPS Let's Encrypt e DNS A apontando para 72.62.13.62. O domínio sslip.io permanece ativo como espelho de segurança.",
+                suggested_action="Utilize https://automacao.projetosunion.cloud como URL oficial da empresa.",
                 is_resolved=False,
             ),
         ]

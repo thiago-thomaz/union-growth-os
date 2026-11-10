@@ -1,8 +1,8 @@
 """UNION GROWTH OS — FASE 14: SCRIPT DE VERIFICAÇÃO REAL EM PRODUÇÃO NA VPS
 
 Executa testes reais de ponta a ponta contra a aplicação em produção:
-- FQDN Primário: https://uniongrowth.72.62.13.62.sslip.io
-- Domínio Customizado: https://growth.projetosunion.cloud (diagnóstico DNS)
+- FQDN Oficial: https://automacao.projetosunion.cloud (DNS A -> 72.62.13.62)
+- FQDN Espelho / Fallback: https://uniongrowth.72.62.13.62.sslip.io
 - 15 Estágios Operacionais completos da FASE 14
 """
 
@@ -11,8 +11,8 @@ import json
 from pathlib import Path
 import httpx
 
-base = "https://uniongrowth.72.62.13.62.sslip.io"
-custom_domain = "https://growth.projetosunion.cloud"
+base = "https://automacao.projetosunion.cloud"
+fallback_base = "https://uniongrowth.72.62.13.62.sslip.io"
 admin_email = "admin@projetosunion.cloud"
 
 secret_file = Path("data/admin_prod_initial.secret.txt")
@@ -28,23 +28,21 @@ with httpx.Client(timeout=45.0, follow_redirects=True) as client:
     print("UNION GROWTH OS — FASE 14: VERIFICAÇÃO DE PRODUÇÃO CONTÍNUA")
     print("=" * 70)
 
-    # 1. Health & Readiness
-    print("\n[ESTÁGIO 01] HEALTH & READINESS")
+    # 1. Health & Readiness no Domínio Oficial
+    print("\n[ESTÁGIO 01] HEALTH & READINESS NO DOMÍNIO OFICIAL")
     h = client.get(f"{base}/health")
-    print("  /health Status:", h.status_code, "DB Engine:", h.json()["database"]["engine"])
+    print(f"  {base}/health Status:", h.status_code, "DB Engine:", h.json()["database"]["engine"])
     print("  Scheduler:", h.json()["scheduler"]["engine"], "| Timezone:", h.json()["scheduler"]["timezone"])
     assert h.status_code == 200
     assert h.json()["database"]["status"] == "healthy"
     assert h.json()["scheduler"]["running"] is True
 
-    # 2. Diagnóstico de Domínios
+    # 2. Diagnóstico de Domínios & Espelho
     print("\n[ESTÁGIO 02] DIAGNÓSTICO DE DOMÍNIOS & HTTPS")
-    print("  Domínio Primário (sslip.io):", base, "-> ONLINE com Let's Encrypt")
-    try:
-        cd_res = client.get(f"{custom_domain}/health", timeout=5.0)
-        print("  Domínio Customizado (projetosunion.cloud):", cd_res.status_code)
-    except Exception as e:
-        print("  Domínio Customizado (growth.projetosunion.cloud): DNS A pendente de apontamento (Conforme esperado)")
+    print("  Domínio Oficial:", base, "-> ONLINE com Let's Encrypt")
+    fb_res = client.get(f"{fallback_base}/health", timeout=10.0)
+    print("  Domínio Espelho (sslip.io):", fallback_base, "-> Status:", fb_res.status_code)
+    assert fb_res.status_code == 200
 
     # 3. Autenticação Segura com Senha Rotacionada
     print("\n[ESTÁGIO 03] AUTENTICAÇÃO SEGURA")

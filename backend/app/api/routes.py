@@ -19,6 +19,7 @@ from app.agents.orchestrator import (
     get_effective_autonomy_level,
     get_tenant_autonomy_config,
 )
+from app.core.config import settings
 from app.core.database import check_db_health, create_database_backup, get_db
 from app.core.security import (
     check_login_allowed,
@@ -1948,7 +1949,7 @@ def get_integrations(user: User = Depends(get_current_user), db: Session = Depen
                     "oauth_authorize_url": build_oauth_authorization_url(
                         c.provider_key,
                         client_id="YOUR_CLIENT_ID",
-                        redirect_uri="https://uniongrowth.72.62.13.62.sslip.io/api/v1/integrations/oauth/callback",
+                        redirect_uri=f"{settings.PUBLIC_URL.rstrip('/')}/api/v1/integrations/oauth/callback",
                         state=f"tenant_{tid}_{c.provider_key}",
                     ),
                 },

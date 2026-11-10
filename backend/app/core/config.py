@@ -27,9 +27,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     ENCRYPTION_KEY: str = ""
 
-    PUBLIC_URL: str = "https://uniongrowth.72.62.13.62.sslip.io"
-    CUSTOM_DOMAIN_URL: str = "https://growth.projetosunion.cloud"
-    CORS_ORIGINS: str = "https://uniongrowth.72.62.13.62.sslip.io,https://growth.projetosunion.cloud,http://localhost:3000,http://localhost:8000"
+    PUBLIC_URL: str = "https://automacao.projetosunion.cloud"
+    CUSTOM_DOMAIN_URL: str = "https://automacao.projetosunion.cloud"
+    CORS_ORIGINS: str = "https://automacao.projetosunion.cloud,https://uniongrowth.72.62.13.62.sslip.io,https://growth.projetosunion.cloud,http://localhost:3000,http://localhost:8000"
 
     ADMIN_INITIAL_EMAIL: str = "admin@projetosunion.cloud"
     ADMIN_INITIAL_PASSWORD: str = ""
