@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "https://automacao.projetosunion.cloud,https://uniongrowth.72.62.13.62.sslip.io,https://growth.projetosunion.cloud,http://localhost:3000,http://localhost:8000"
 
     ADMIN_INITIAL_EMAIL: str = "admin@projetosunion.cloud"
-    ADMIN_INITIAL_PASSWORD: str = ""
+    ADMIN_INITIAL_PASSWORD: str = "UnionGrowth#2026!"
 
     AI_DEFAULT_PROVIDER: str = "hybrid"
     OLLAMA_BASE_URL: str = "http://localhost:11434"

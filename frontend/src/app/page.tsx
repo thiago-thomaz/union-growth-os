@@ -445,13 +445,25 @@ export default function UnionGrowthOSPortal() {
             </button>
           </form>
 
-          <div className="mt-5 pt-4 border-t border-slate-800 text-[11px] text-slate-400 space-y-1">
-            <p className="font-semibold text-slate-300">Credenciais Executivas Padrão:</p>
+          <div className="mt-5 pt-4 border-t border-slate-800 text-[11px] text-slate-400 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-slate-300">Credenciais Executivas Padrão:</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("admin@projetosunion.cloud");
+                  setPassword("UnionGrowth#2026!");
+                }}
+                className="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium underline cursor-pointer"
+              >
+                Preencher automaticamente
+              </button>
+            </div>
             <p>
-              E-mail: <code className="text-indigo-300">admin@projetosunion.cloud</code>
+              E-mail: <code className="text-indigo-300 font-mono">admin@projetosunion.cloud</code>
             </p>
             <p>
-              Senha: <code className="text-indigo-300">UnionGrowth@2026</code>
+              Senha: <code className="text-indigo-300 font-mono font-bold">UnionGrowth#2026!</code>
             </p>
           </div>
         </div>

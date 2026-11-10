@@ -3,7 +3,7 @@
 ## 1. Credenciais Executivas Iniciais
 
 - **E-mail**: `admin@projetosunion.cloud`
-- **Senha**: `UnionGrowth@2026`
+- **Senha**: `UnionGrowth#2026!`
 - **Papel**: `owner` (Acesso total multi-tenant e governança)
 
 ---
