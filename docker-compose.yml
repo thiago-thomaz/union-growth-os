@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-union_growth_os}
+      POSTGRES_USER: ${POSTGRES_USER:-union_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-UnionGrowthDBStrong2026}
+    volumes:
+      - union_growth_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-union_user} -d ${POSTGRES_DB:-union_growth_os}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  union-growth-os:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: "production"
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://union_user:UnionGrowthDBStrong2026@postgres:5432/union_growth_os}
+      SECRET_KEY: ${SECRET_KEY:-union-growth-os-prod-secret-key-2026}
+      JWT_SECRET: ${JWT_SECRET:-union-growth-os-prod-jwt-key-2026}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      PUBLIC_URL: ${PUBLIC_URL:-https://uniongrowth.72.62.13.62.sslip.io}
+      SCHEDULER_ENABLED: "true"
+    volumes:
+      - union_growth_appdata:/app/data
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  union_growth_pgdata:
+  union_growth_appdata:

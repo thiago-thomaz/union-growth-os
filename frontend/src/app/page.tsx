@@ -1,0 +1,1827 @@
+"use client";
+
+import React, { useEffect, useState, useCallback } from "react";
+
+type MenuId =
+  | "overview"
+  | "ceo"
+  | "marketing"
+  | "seo"
+  | "social"
+  | "creative"
+  | "copywriter"
+  | "growth"
+  | "crm"
+  | "commercial"
+  | "competitors"
+  | "finance"
+  | "cs"
+  | "calendar"
+  | "automations"
+  | "approvals"
+  | "reports"
+  | "integrations"
+  | "settings"
+  | "audit";
+
+const MENU_ITEMS: { id: MenuId; num: string; label: string }[] = [
+  { id: "overview", num: "01", label: "Visão Geral" },
+  { id: "ceo", num: "02", label: "AI CEO" },
+  { id: "marketing", num: "03", label: "Marketing (AI CMO)" },
+  { id: "seo", num: "04", label: "SEO Director" },
+  { id: "social", num: "05", label: "Redes Sociais" },
+  { id: "creative", num: "06", label: "Creative Studio" },
+  { id: "copywriter", num: "07", label: "Copywriter" },
+  { id: "growth", num: "08", label: "Growth Hacker" },
+  { id: "crm", num: "09", label: "CRM & Leads" },
+  { id: "commercial", num: "10", label: "Comercial & Pipeline" },
+  { id: "competitors", num: "11", label: "Concorrentes" },
+  { id: "finance", num: "12", label: "Financeiro & KPIs" },
+  { id: "cs", num: "13", label: "Customer Success" },
+  { id: "calendar", num: "14", label: "Calendário Editorial" },
+  { id: "automations", num: "15", label: "Automações Python" },
+  { id: "approvals", num: "16", label: "Aprovações" },
+  { id: "reports", num: "17", label: "Relatórios" },
+  { id: "integrations", num: "18", label: "Integrações" },
+  { id: "settings", num: "19", label: "Configurações & Planos" },
+  { id: "audit", num: "20", label: "Auditoria e Logs" },
+];
+
+function OriginBadge({ origin }: { origin?: string }) {
+  const o = (origin || "REAL").toUpperCase();
+  const styles: Record<string, string> = {
+    REAL: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+    IMPORTED: "bg-sky-500/15 text-sky-300 border-sky-500/30",
+    ESTIMATED: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+    GOAL: "bg-purple-500/15 text-purple-300 border-purple-500/30",
+  };
+  const labels: Record<string, string> = {
+    REAL: "DADO REAL",
+    IMPORTED: "DADO IMPORTADO",
+    ESTIMATED: "ESTIMATIVA",
+    GOAL: "META",
+  };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${styles[o] || styles.REAL}`}>
+      {labels[o] || o}
+    </span>
+  );
+}
+
+export default function UnionGrowthOSPortal() {
+  const [token, setToken] = useState<string>("");
+  const [activeTenantId, setActiveTenantId] = useState<number | null>(null);
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [email, setEmail] = useState("admin@projetosunion.cloud");
+  const [password, setPassword] = useState("UnionGrowth@2026");
+  const [fullName, setFullName] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [authError, setAuthError] = useState("");
+
+  const [activeMenu, setActiveMenu] = useState<MenuId>("overview");
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<string>("");
+
+  // State Stores
+  const [meData, setMeData] = useState<any>(null);
+  const [overviewData, setOverviewData] = useState<any>(null);
+  const [agentsData, setAgentsData] = useState<any>(null);
+  const [ceoData, setCeoData] = useState<any>(null);
+  const [marketingData, setMarketingData] = useState<any>(null);
+  const [seoData, setSeoData] = useState<any>(null);
+  const [calendarData, setCalendarData] = useState<any[]>([]);
+  const [creativeData, setCreativeData] = useState<any[]>([]);
+  const [copyData, setCopyData] = useState<any[]>([]);
+  const [growthData, setGrowthData] = useState<any[]>([]);
+  const [crmData, setCrmData] = useState<any>(null);
+  const [competitorsData, setCompetitorsData] = useState<any[]>([]);
+  const [financeData, setFinanceData] = useState<any>(null);
+  const [csData, setCsData] = useState<any>(null);
+  const [automationsData, setAutomationsData] = useState<any>(null);
+  const [approvalsData, setApprovalsData] = useState<any[]>([]);
+  const [reportsData, setReportsData] = useState<any>(null);
+  const [integrationsData, setIntegrationsData] = useState<any[]>([]);
+  const [auditData, setAuditData] = useState<any>(null);
+  const [diagResult, setDiagResult] = useState<any>(null);
+
+  // Forms
+  const [seoUrlInput, setSeoUrlInput] = useState("https://example.com");
+  const [seoKwInput, setSeoKwInput] = useState("automação de marketing com inteligência artificial");
+  const [seoTopicInput, setSeoTopicInput] = useState("Como Escalar Vendas B2B com IA e SEO");
+
+  const [creativeTitle, setCreativeTitle] = useState("Campanha Executiva Q4");
+  const [creativeType, setCreativeType] = useState("CAROUSEL");
+  const [creativeHeadline, setCreativeHeadline] = useState("Cresça com 11 Agentes de IA Trabalhando 24/7");
+  const [creativeCta, setCreativeCta] = useState("Solicitar Diagnóstico");
+
+  const [copyTitle, setCopyTitle] = useState("Oferta Principal SaaS");
+  const [copyFramework, setCopyFramework] = useState("AIDA");
+  const [copyOffer, setCopyOffer] = useState("Union Growth OS Enterprise");
+  const [copyBenefit, setCopyBenefit] = useState("reduzir custos manuais e dobrar a geração de leads qualificados");
+
+  const [leadName, setLeadName] = useState("");
+  const [leadEmail, setLeadEmail] = useState("");
+  const [leadCompany, setLeadCompany] = useState("");
+  const [leadValue, setLeadValue] = useState("15000");
+
+  const [finType, setFinType] = useState("REVENUE");
+  const [finAmount, setFinAmount] = useState("12000");
+  const [finDesc, setFinDesc] = useState("Novo contrato mensal fechado");
+  const [finOrigin, setFinOrigin] = useState("REAL");
+
+  const [compName, setCompName] = useState("");
+  const [compUrl, setCompUrl] = useState("https://example.org");
+
+  const [calTitle, setCalTitle] = useState("");
+  const [calPlatform, setCalPlatform] = useState("instagram");
+  const [calDate, setCalDate] = useState("2026-11-20 12:30");
+
+  const [newTenantName, setNewTenantName] = useState("");
+
+  const showNotice = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 5000);
+  };
+
+  const apiFetch = useCallback(
+    async (path: string, options: RequestInit = {}) => {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(options.headers as Record<string, string>),
+      };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      if (activeTenantId) headers["X-Tenant-Id"] = String(activeTenantId);
+      const res = await fetch(path, { ...options, headers });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({ detail: res.statusText }));
+        throw new Error(errBody.detail || `Erro HTTP ${res.status}`);
+      }
+      return res.json();
+    },
+    [token, activeTenantId]
+  );
+
+  const loadAllActiveData = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const [me, ov, ag, ceo, mkt, seo, cal, cre, cp, gr, crm, comp, fin, cs, auto, app, rep, intg, aud] =
+        await Promise.all([
+          apiFetch("/api/v1/auth/me"),
+          apiFetch("/api/v1/dashboard/overview"),
+          apiFetch("/api/v1/agents"),
+          apiFetch("/api/v1/ceo/briefings"),
+          apiFetch("/api/v1/marketing/overview"),
+          apiFetch("/api/v1/seo/overview"),
+          apiFetch("/api/v1/social/calendar"),
+          apiFetch("/api/v1/creative/assets"),
+          apiFetch("/api/v1/copywriter/items"),
+          apiFetch("/api/v1/growth/experiments"),
+          apiFetch("/api/v1/crm/overview"),
+          apiFetch("/api/v1/competitors"),
+          apiFetch("/api/v1/finance/overview"),
+          apiFetch("/api/v1/customer-success/overview"),
+          apiFetch("/api/v1/automations"),
+          apiFetch("/api/v1/approvals"),
+          apiFetch("/api/v1/reports/executive"),
+          apiFetch("/api/v1/integrations"),
+          apiFetch("/api/v1/audit-logs"),
+        ]);
+      setMeData(me);
+      setOverviewData(ov);
+      setAgentsData(ag);
+      setCeoData(ceo);
+      setMarketingData(mkt);
+      setSeoData(seo);
+      setCalendarData(cal);
+      setCreativeData(cre);
+      setCopyData(cp);
+      setGrowthData(gr);
+      setCrmData(crm);
+      setCompetitorsData(comp);
+      setFinanceData(fin);
+      setCsData(cs);
+      setAutomationsData(auto);
+      setApprovalsData(app);
+      setReportsData(rep);
+      setIntegrationsData(intg);
+      setAuditData(aud);
+    } catch (err: any) {
+      showNotice(err.message || "Falha ao carregar dados");
+    } finally {
+      setLoading(false);
+    }
+  }, [token, apiFetch]);
+
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("ug_token") : null;
+    if (saved) setToken(saved);
+  }, []);
+
+  useEffect(() => {
+    if (token) {
+      loadAllActiveData();
+    }
+  }, [token, activeTenantId, loadAllActiveData]);
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError("");
+    try {
+      const endpoint = authMode === "login" ? "/api/v1/auth/login" : "/api/v1/auth/register";
+      const body =
+        authMode === "login"
+          ? { email, password }
+          : { email, password, full_name: fullName, company_name: companyName, lgpd_consent: true };
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Falha na autenticação");
+      localStorage.setItem("ug_token", data.access_token);
+      setToken(data.access_token);
+      setActiveTenantId(data.tenant?.id || null);
+    } catch (err: any) {
+      setAuthError(err.message);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("ug_token");
+    setToken("");
+    setMeData(null);
+  };
+
+  if (!token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#070b14] p-6">
+        <div className="w-full max-w-md bg-[#0f1629] border border-indigo-500/30 rounded-2xl p-8 shadow-2xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-10 w-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-lg">
+              UG
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white tracking-tight">UNION GROWTH OS</h1>
+              <p className="text-xs text-slate-400">AI Business, CEO, Marketing, SEO & CRM Platform</p>
+            </div>
+          </div>
+
+          <div className="flex gap-2 mb-6 bg-slate-900/90 p-1 rounded-lg">
+            <button
+              type="button"
+              onClick={() => setAuthMode("login")}
+              className={`flex-1 py-2 text-xs font-semibold rounded-md ${
+                authMode === "login" ? "bg-indigo-600 text-white" : "text-slate-400"
+              }`}
+            >
+              Entrar no Sistema
+            </button>
+            <button
+              type="button"
+              onClick={() => setAuthMode("register")}
+              className={`flex-1 py-2 text-xs font-semibold rounded-md ${
+                authMode === "register" ? "bg-indigo-600 text-white" : "text-slate-400"
+              }`}
+            >
+              Nova Empresa (Multi-Tenant)
+            </button>
+          </div>
+
+          {authError && (
+            <div className="mb-4 p-3 rounded-lg bg-red-500/15 border border-red-500/40 text-red-300 text-xs">
+              {authError}
+            </div>
+          )}
+
+          <form onSubmit={handleAuthSubmit} className="space-y-4">
+            {authMode === "register" && (
+              <>
+                <div>
+                  <label className="block text-xs text-slate-300 mb-1">Seu Nome Completo</label>
+                  <input
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white"
+                    placeholder="Ex: Thiago Thomaz"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-300 mb-1">Nome da Empresa / Marca</label>
+                  <input
+                    required
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white"
+                    placeholder="Ex: Union Digital Ltda"
+                  />
+                </div>
+              </>
+            )}
+            <div>
+              <label className="block text-xs text-slate-300 mb-1">E-mail Corporativo</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-slate-300 mb-1">Senha de Acesso</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition"
+            >
+              {authMode === "login" ? "Acessar Central Executiva" : "Criar Workspace & Ativar 11 Agentes"}
+            </button>
+          </form>
+
+          <div className="mt-5 pt-4 border-t border-slate-800 text-[11px] text-slate-400 space-y-1">
+            <p className="font-semibold text-slate-300">Credenciais Executivas Padrão:</p>
+            <p>E-mail: <code className="text-indigo-300">admin@projetosunion.cloud</code></p>
+            <p>Senha: <code className="text-indigo-300">UnionGrowth@2026</code></p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex bg-[#070b14] text-slate-100">
+      {/* SIDEBAR MENU (20 SECTIONS) */}
+      <aside className="w-64 bg-[#0c1222] border-r border-slate-800/80 flex flex-col shrink-0">
+        <div className="p-4 border-b border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-sm">
+              UG
+            </div>
+            <div>
+              <div className="font-bold text-sm text-white leading-tight">UNION GROWTH OS</div>
+              <div className="text-[10px] text-emerald-400 font-medium">11 AI Agents • Native Cloud</div>
+            </div>
+          </div>
+
+          {/* Multi-tenant company switcher */}
+          {meData?.available_tenants && (
+            <div className="mt-3">
+              <label className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1">
+                Empresa Ativa (Multi-Tenant)
+              </label>
+              <select
+                value={activeTenantId || meData?.active_tenant?.id || ""}
+                onChange={(e) => setActiveTenantId(Number(e.target.value))}
+                className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white"
+              >
+                {meData.available_tenants.map((t: any) => (
+                  <option key={t.id} value={t.id}>
+                    {t.brand_name} ({t.plan_tier})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
+          {MENU_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveMenu(item.id)}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
+                activeMenu === item.id
+                  ? "bg-indigo-600 text-white shadow"
+                  : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+              }`}
+            >
+              <span className="text-[10px] opacity-60 font-mono">{item.num}</span>
+              <span className="truncate">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-3 border-t border-slate-800 text-xs space-y-2">
+          <div className="text-[11px] text-slate-400 truncate">
+            {meData?.user?.full_name} ({meData?.user?.role})
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full py-1.5 rounded bg-slate-800 hover:bg-red-900/50 text-slate-300 text-xs"
+          >
+            Sair da Conta
+          </button>
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* TOP HEADER */}
+        <header className="h-16 bg-[#0c1222]/90 border-b border-slate-800 px-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-bold text-white">
+              {MENU_ITEMS.find((m) => m.id === activeMenu)?.label}
+            </h2>
+            <p className="text-xs text-slate-400">
+              Marca: <strong className="text-slate-200">{meData?.active_tenant?.brand_name}</strong> • Nível de Autonomia:{" "}
+              <strong className="text-indigo-400">Nível {meData?.active_tenant?.autonomy_default_level || 2}</strong>
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {toast && (
+              <div className="px-3 py-1.5 rounded-lg bg-indigo-600/20 border border-indigo-500/40 text-indigo-200 text-xs">
+                {toast}
+              </div>
+            )}
+            <button
+              onClick={async () => {
+                showNotice("Executando Diagnóstico Multiagente completo...");
+                const res = await apiFetch("/api/v1/orchestrator/diagnose", {
+                  method: "POST",
+                  body: JSON.stringify({ reason: "Acionamento Executivo Manual" }),
+                });
+                setDiagResult(res);
+                await loadAllActiveData();
+                showNotice("Diagnóstico Multiagente concluído com sucesso!");
+              }}
+              className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+            >
+              Acionar Orquestrador Multiagente
+            </button>
+            <button
+              onClick={loadAllActiveData}
+              className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs"
+            >
+              {loading ? "Atualizando..." : "Atualizar Dados"}
+            </button>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* 01. VISÃO GERAL */}
+          {activeMenu === "overview" && overviewData && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {overviewData.metrics_cards.map((card: any) => (
+                  <div key={card.key} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-slate-400">{card.label}</span>
+                      <OriginBadge origin={card.origin} />
+                    </div>
+                    <div className="text-2xl font-bold text-white">{card.value}</div>
+                    <div className="text-[11px] text-slate-400 mt-1">{card.subtext}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Painel de Autonomia Operacional */}
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5">
+                <h3 className="text-sm font-bold text-white mb-3">
+                  Painel de Autonomia Operacional & Governança em Tempo Real
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
+                  <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                    <div className="text-xl font-bold text-emerald-400">
+                      {overviewData.autonomy_status_panel.executed_by_ai_count}
+                    </div>
+                    <div className="text-[11px] text-slate-400">Executado pela IA</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                    <div className="text-xl font-bold text-amber-400">
+                      {overviewData.autonomy_status_panel.pending_approval_count}
+                    </div>
+                    <div className="text-[11px] text-slate-400">Aguardando Aprovação</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                    <div className="text-xl font-bold text-red-400">
+                      {overviewData.autonomy_status_panel.failed_count}
+                    </div>
+                    <div className="text-[11px] text-slate-400">Falhas Registradas</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                    <div className="text-xl font-bold text-purple-400">
+                      {overviewData.autonomy_status_panel.blocked_count}
+                    </div>
+                    <div className="text-[11px] text-slate-400">Bloqueado por Segurança</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
+                    <div className="text-xl font-bold text-sky-400">
+                      {overviewData.autonomy_status_panel.needs_configuration_count}
+                    </div>
+                    <div className="text-[11px] text-slate-400">Aguardando Credenciais</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resumo CEO Daily Briefing + 11 Agentes */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-[#0f1629] border border-indigo-500/30 rounded-xl p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-indigo-300">CEO DAILY BRIEFING — Destaque do Dia</h3>
+                    <button
+                      onClick={() => setActiveMenu("ceo")}
+                      className="text-xs text-indigo-400 hover:underline"
+                    >
+                      Ver Completo →
+                    </button>
+                  </div>
+                  <p className="text-xs text-white font-medium">{overviewData.ceo_briefing.headline}</p>
+                  <div className="space-y-1">
+                    <div className="text-[11px] font-semibold text-slate-300">Recomendações Prioritárias da IA:</div>
+                    {overviewData.ceo_briefing.recommendations.map((r: string, idx: number) => (
+                      <div key={idx} className="text-xs text-slate-300 bg-slate-900/70 p-2 rounded">
+                        {r}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
+                  <h3 className="text-sm font-bold text-white">Equipe Digital de 11 Agentes Especializados</h3>
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    {agentsData?.agents?.map((ag: any) => (
+                      <div
+                        key={ag.id}
+                        className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900 border border-slate-800"
+                      >
+                        <div>
+                          <div className="text-xs font-bold text-white">{ag.name}</div>
+                          <div className="text-[11px] text-slate-400">{ag.role}</div>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            await apiFetch(`/api/v1/agents/${ag.id}/execute`, {
+                              method: "POST",
+                              body: JSON.stringify({}),
+                            });
+                            await loadAllActiveData();
+                            showNotice(`${ag.name} executou sua rotina com sucesso!`);
+                          }}
+                          className="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold shrink-0"
+                        >
+                          Executar Agora
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {diagResult && (
+                <div className="bg-[#0f1629] border border-emerald-500/40 rounded-xl p-5 space-y-2">
+                  <h3 className="text-sm font-bold text-emerald-300">
+                    Resultado do Último Diagnóstico Coordenado pelo Orquestrador ({diagResult.workflow_run_id})
+                  </h3>
+                  <p className="text-xs text-slate-200">{diagResult.ceo_consolidation?.summary}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-2">
+                    {diagResult.specialist_diagnostics?.map((d: any, i: number) => (
+                      <div key={i} className="p-2.5 rounded bg-slate-900 border border-slate-800 text-xs">
+                        <div className="font-bold text-indigo-300">{d.agent_name}</div>
+                        <div className="text-slate-300 mt-1">{d.summary}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 02. AI CEO */}
+          {activeMenu === "ceo" && ceoData && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between bg-[#0f1629] border border-slate-800 p-4 rounded-xl">
+                <div>
+                  <h3 className="text-sm font-bold text-white">AGENTE 01 — AI CEO & Direção Estratégica</h3>
+                  <p className="text-xs text-slate-400">
+                    Nunca inventa números financeiros ou declara decisões não executadas.
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    await apiFetch("/api/v1/ceo/briefings/generate", { method: "POST" });
+                    await loadAllActiveData();
+                    showNotice("Novo CEO Daily Briefing gerado com base nos dados reais!");
+                  }}
+                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                >
+                  Gerar Novo CEO Daily Briefing
+                </button>
+              </div>
+
+              {ceoData.briefings?.[0] && (
+                <div className="bg-[#0f1629] border border-indigo-500/30 rounded-xl p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-base font-bold text-white">{ceoData.briefings[0].summary_headline}</h4>
+                    <OriginBadge origin="REAL" />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div className="p-3 rounded-lg bg-slate-900 space-y-1">
+                      <div className="font-bold text-indigo-300">O que aconteceu (Fatos Auditados)</div>
+                      {ceoData.briefings[0].what_happened.map((x: string, i: number) => (
+                        <p key={i} className="text-slate-300">• {x}</p>
+                      ))}
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-900 space-y-1">
+                      <div className="font-bold text-emerald-300">O que está funcionando</div>
+                      {ceoData.briefings[0].what_is_working.map((x: string, i: number) => (
+                        <p key={i} className="text-slate-300">• {x}</p>
+                      ))}
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-900 space-y-1">
+                      <div className="font-bold text-amber-300">O que está dando errado / Gargalos</div>
+                      {ceoData.briefings[0].what_is_wrong.map((x: string, i: number) => (
+                        <p key={i} className="text-slate-300">• {x}</p>
+                      ))}
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-900 space-y-1">
+                      <div className="font-bold text-sky-300">Oportunidades Identificadas & Recomendações</div>
+                      {ceoData.briefings[0].recommendations.map((x: string, i: number) => (
+                        <p key={i} className="text-slate-300">{x}</p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
+                <h4 className="text-sm font-bold text-white">Metas Estratégicas (Mensais, Trimestrais e Anuais)</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {ceoData.goals.map((g: any) => (
+                    <div key={g.id} className="p-4 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">
+                          {g.period}
+                        </span>
+                        <OriginBadge origin={g.data_origin} />
+                      </div>
+                      <div className="text-xs font-bold text-white">{g.title}</div>
+                      <div className="text-sm font-semibold text-emerald-400">
+                        Atual: {g.current_value} / Meta: {g.target_value} {g.unit}
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        Impacto Financeiro: {g.financial_impact_score}/100 • Prazo: {g.deadline}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 03. MARKETING (AI CMO) */}
+          {activeMenu === "marketing" && marketingData && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between bg-[#0f1629] border border-slate-800 p-4 rounded-xl">
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    AGENTE 02 — AI CMO (Posicionamento, Personas, Campanhas e Planejamento Mensal)
+                  </h3>
+                </div>
+                <button
+                  onClick={async () => {
+                    await apiFetch("/api/v1/agents/AGENT_02_CMO/execute", {
+                      method: "POST",
+                      body: JSON.stringify({ task_name: "generate_monthly_marketing_plan" }),
+                    });
+                    await loadAllActiveData();
+                    showNotice("Novo Planejamento Mensal de Marketing gerado pelo AI CMO!");
+                  }}
+                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                >
+                  Gerar Planejamento Mensal Automático
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
+                  <h4 className="text-sm font-bold text-white">Personas & Público-Alvo (ICP)</h4>
+                  {marketingData.personas.map((p: any) => (
+                    <div key={p.id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1 text-xs">
+                      <div className="font-bold text-indigo-300">{p.name}</div>
+                      <div className="text-slate-400">{p.role_segment} • {p.demographics}</div>
+                      <div className="text-slate-200 mt-1"><strong>Proposta de Valor:</strong> {p.value_proposition}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
+                  <h4 className="text-sm font-bold text-white">Campanhas Ativas & ROI</h4>
+                  {marketingData.campaigns.map((c: any) => (
+                    <div key={c.id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-white">{c.name}</span>
+                        <OriginBadge origin={c.data_origin} />
+                      </div>
+                      <div className="text-slate-400">
+                        Canal: {c.channel} • Tipo: {c.campaign_type} • ROI: <strong className="text-emerald-400">{c.roi_pct}%</strong>
+                      </div>
+                      <div className="text-slate-300">
+                        Orçamento: R$ {c.budget_planned} | Gasto Real: R$ {c.spend_real} | Receita Atribuída: R$ {c.revenue_attributed}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 04. SEO DIRECTOR */}
+          {activeMenu === "seo" && seoData && (
+            <div className="space-y-6">
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs">
+                <strong>Transparência SEO:</strong> {seoData.gsc_ranking_status?.notice}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Auditoria Técnica Real */}
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-3">
+                  <h4 className="text-xs font-bold text-white uppercase">1. Auditoria Técnica de SEO (Live HTTP)</h4>
+                  <input
+                    value={seoUrlInput}
+                    onChange={(e) => setSeoUrlInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    placeholder="https://seudominio.com.br"
+                  />
+                  <button
+                    onClick={async () => {
+                      await apiFetch("/api/v1/seo/audit", {
+                        method: "POST",
+                        body: JSON.stringify({ target_url: seoUrlInput, target_keyword: seoKwInput }),
+                      });
+                      await loadAllActiveData();
+                      showNotice("Auditoria técnica de SEO concluída!");
+                    }}
+                    className="w-full py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                  >
+                    Executar Auditoria Técnica Real
+                  </button>
+                </div>
+
+                {/* Pesquisa de Palavras-Chave */}
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-3">
+                  <h4 className="text-xs font-bold text-white uppercase">2. Pesquisa de Palavras-Chave & Clusters</h4>
+                  <input
+                    value={seoKwInput}
+                    onChange={(e) => setSeoKwInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    placeholder="Palavra-chave semente"
+                  />
+                  <button
+                    onClick={async () => {
+                      await apiFetch("/api/v1/seo/keywords", {
+                        method: "POST",
+                        body: JSON.stringify({ seed_keyword: seoKwInput }),
+                      });
+                      await loadAllActiveData();
+                      showNotice("Cluster de palavras-chave e cauda longa gerado!");
+                    }}
+                    className="w-full py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                  >
+                    Descobrir Cauda Longa & Clusters
+                  </button>
+                </div>
+
+                {/* SEO Content Factory */}
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-3">
+                  <h4 className="text-xs font-bold text-white uppercase">3. SEO Content Factory (Gerar Artigo)</h4>
+                  <input
+                    value={seoTopicInput}
+                    onChange={(e) => setSeoTopicInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    placeholder="Título / Tópico do Artigo"
+                  />
+                  <button
+                    onClick={async () => {
+                      await apiFetch("/api/v1/seo/articles/generate", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          topic: seoTopicInput,
+                          target_keyword: seoKwInput,
+                          search_intent: "COMMERCIAL",
+                        }),
+                      });
+                      await loadAllActiveData();
+                      showNotice("Artigo otimizado com Schema.org gerado pela SEO Content Factory!");
+                    }}
+                    className="w-full py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+                  >
+                    Produzir Artigo Otimizado
+                  </button>
+                </div>
+              </div>
+
+              {/* Resultados de Auditoria e Artigos */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
+                  <h4 className="text-sm font-bold text-white">Últimas Auditorias Técnicas</h4>
+                  {seoData.audits.map((a: any) => (
+                    <div key={a.id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-indigo-300">{a.target_url}</span>
+                        <OriginBadge origin={a.data_origin} />
+                      </div>
+                      <div>
+                        Score: <strong className="text-emerald-400">{a.overall_score}/100</strong> • Tempo:{" "}
+                        {a.response_time_ms}ms • robots.txt: {a.has_robots_txt ? "Sim" : "Não"} • sitemap.xml:{" "}
+                        {a.has_sitemap_xml ? "Sim" : "Não"}
+                      </div>
+                      <div className="text-slate-400">
+                        Sugestão Title: <span className="text-slate-200">{a.suggested_title}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
+                  <h4 className="text-sm font-bold text-white">Artigos da SEO Content Factory</h4>
+                  {seoData.articles.map((art: any) => (
+                    <div key={art.id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1">
+                      <div className="font-bold text-white">{art.title}</div>
+                      <div className="text-slate-400">
+                        Keyword: {art.target_keyword} • Palavras: {art.word_count} • Densidade: {art.keyword_density_pct}%
+                      </div>
+                      <pre className="mt-2 p-2 rounded bg-slate-950 text-[11px] text-slate-300 max-h-40 overflow-y-auto whitespace-pre-wrap">
+                        {art.content_markdown}
+                      </pre>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 05 & 14. REDES SOCIAIS & CALENDÁRIO EDITORIAL */}
+          {(activeMenu === "social" || activeMenu === "calendar") && (
+            <div className="space-y-6">
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-white">
+                      AGENTE 04 — AI Social Media Director & Central de Publicação
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Instagram, Facebook, TikTok, YouTube, LinkedIn e Pinterest com validação e aprovação humana.
+                    </p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      await apiFetch("/api/v1/agents/AGENT_04_SOCIAL/execute", {
+                        method: "POST",
+                        body: JSON.stringify({}),
+                      });
+                      await loadAllActiveData();
+                      showNotice("Calendário multicanal gerado pelo AI Social Media Director!");
+                    }}
+                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                  >
+                    Gerar Lote de Posts Multicanal com IA
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2 border-t border-slate-800">
+                  <input
+                    value={calTitle}
+                    onChange={(e) => setCalTitle(e.target.value)}
+                    placeholder="Título da Publicação"
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                  <select
+                    value={calPlatform}
+                    onChange={(e) => setCalPlatform(e.target.value)}
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  >
+                    <option value="instagram">Instagram</option>
+                    <option value="linkedin">LinkedIn</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="pinterest">Pinterest</option>
+                  </select>
+                  <input
+                    value={calDate}
+                    onChange={(e) => setCalDate(e.target.value)}
+                    placeholder="YYYY-MM-DD HH:MM"
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!calTitle) return;
+                      await apiFetch("/api/v1/social/calendar", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          title: calTitle,
+                          platform: calPlatform,
+                          content_format: "CAROUSEL",
+                          scheduled_for: calDate,
+                          auto_generate_copy: true,
+                        }),
+                      });
+                      setCalTitle("");
+                      await loadAllActiveData();
+                      showNotice("Publicação agendada e enviada para validação!");
+                    }}
+                    className="py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+                  >
+                    Agendar no Calendário
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {calendarData.map((item: any) => (
+                  <div key={item.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold uppercase text-[10px]">
+                        {item.platform} • {item.content_format}
+                      </span>
+                      <span className="text-slate-400 font-mono">{item.scheduled_for}</span>
+                    </div>
+                    <div className="font-bold text-white text-sm">{item.title}</div>
+                    <p className="text-slate-300 whitespace-pre-line">{item.caption}</p>
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                      <span className="text-[11px] text-amber-300">
+                        Aprovação: <strong>{item.approval_status}</strong> | Status: <strong>{item.publish_status}</strong>
+                      </span>
+                      <button
+                        onClick={async () => {
+                          const r = await apiFetch(`/api/v1/social/calendar/${item.id}/publish`, { method: "POST" });
+                          await loadAllActiveData();
+                          showNotice(r.message || "Status de publicação atualizado.");
+                        }}
+                        className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px]"
+                      >
+                        Aprovar & Publicar
+                      </button>
+                    </div>
+                    {item.last_error && <div className="text-[11px] text-amber-400/90">{item.last_error}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 06. CREATIVE STUDIO */}
+          {activeMenu === "creative" && (
+            <div className="space-y-6">
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
+                <h3 className="text-sm font-bold text-white">
+                  AGENTE 05 — AI Creative Studio (Fábrica Real de Artes PNG, Carrosséis, Roteiros e E-books)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                  <input
+                    value={creativeTitle}
+                    onChange={(e) => setCreativeTitle(e.target.value)}
+                    placeholder="Nome do Criativo"
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                  <select
+                    value={creativeType}
+                    onChange={(e) => setCreativeType(e.target.value)}
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  >
+                    <option value="SOCIAL_POST">Post 1080x1080</option>
+                    <option value="CAROUSEL">Carrossel Multi-Slide</option>
+                    <option value="THUMBNAIL">Thumbnail YouTube 1280x720</option>
+                    <option value="COVER">Capa Stories/Reels 1080x1920</option>
+                    <option value="BANNER">Banner Comercial 1200x628</option>
+                    <option value="VIDEO_SCRIPT">Roteiro de Vídeo</option>
+                    <option value="EBOOK">E-book Executivo</option>
+                  </select>
+                  <input
+                    value={creativeHeadline}
+                    onChange={(e) => setCreativeHeadline(e.target.value)}
+                    placeholder="Headline Principal da Arte"
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white md:col-span-2"
+                  />
+                  <button
+                    onClick={async () => {
+                      await apiFetch("/api/v1/creative/assets/generate", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          title: creativeTitle,
+                          asset_type: creativeType,
+                          platform: "instagram",
+                          headline_text: creativeHeadline,
+                          cta_text: creativeCta,
+                        }),
+                      });
+                      await loadAllActiveData();
+                      showNotice("Ativo visual renderizado em PNG com sucesso!");
+                    }}
+                    className="py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                  >
+                    Produzir Ativo Visual
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {creativeData.map((asset: any) => (
+                  <div key={asset.id} className="bg-[#0f1629] border border-slate-800 rounded-xl overflow-hidden flex flex-col">
+                    {asset.preview_data_uri && (
+                      <img
+                        src={asset.preview_data_uri}
+                        alt={asset.title}
+                        className="w-full h-56 object-contain bg-slate-950 border-b border-slate-800"
+                      />
+                    )}
+                    <div className="p-4 space-y-2 text-xs flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-indigo-300">{asset.asset_type}</span>
+                        <span className="text-slate-400">{asset.dimensions}</span>
+                      </div>
+                      <div className="font-bold text-white text-sm">{asset.title}</div>
+                      <div className="text-[10px] text-emerald-400">{asset.license_info}</div>
+                      {asset.preview_data_uri && (
+                        <a
+                          href={asset.preview_data_uri}
+                          download={`${asset.title}.png`}
+                          className="inline-block mt-2 px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-white text-[11px]"
+                        >
+                          Baixar PNG Original
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 07. COPYWRITER */}
+          {activeMenu === "copywriter" && (
+            <div className="space-y-6">
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
+                <h3 className="text-sm font-bold text-white">
+                  AGENTE 06 — AI Copywriter (Textos Persuasivos com Variantes A/B e Verificação Ética)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                  <input
+                    value={copyTitle}
+                    onChange={(e) => setCopyTitle(e.target.value)}
+                    placeholder="Título da Copy"
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                  <select
+                    value={copyFramework}
+                    onChange={(e) => setCopyFramework(e.target.value)}
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  >
+                    <option value="AIDA">Framework AIDA</option>
+                    <option value="PAS">Framework PAS (Problema-Agitação-Solução)</option>
+                    <option value="BAB">Framework BAB (Antes-Depois-Ponte)</option>
+                  </select>
+                  <input
+                    value={copyOffer}
+                    onChange={(e) => setCopyOffer(e.target.value)}
+                    placeholder="Produto / Oferta"
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                  <input
+                    value={copyBenefit}
+                    onChange={(e) => setCopyBenefit(e.target.value)}
+                    placeholder="Benefício Principal"
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                  <button
+                    onClick={async () => {
+                      await apiFetch("/api/v1/copywriter/generate", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          title: copyTitle,
+                          copy_type: "LANDING_PAGE",
+                          framework: copyFramework,
+                          product_or_offer: copyOffer,
+                          target_audience: meData?.active_tenant?.target_audience || "Empresas B2B",
+                          key_benefit: copyBenefit,
+                        }),
+                      });
+                      await loadAllActiveData();
+                      showNotice("Variantes A/B de Copy geradas com sucesso!");
+                    }}
+                    className="py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                  >
+                    Gerar Copy A/B
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {copyData.map((c: any) => (
+                  <div key={c.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white text-sm">
+                        {c.title} ({c.framework})
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">
+                        Compliance Ético Verificado
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-3 rounded bg-slate-900 border border-slate-800 whitespace-pre-line">
+                        <div className="font-bold text-indigo-300 mb-1">Variante A (Controle)</div>
+                        {c.variant_a}
+                      </div>
+                      <div className="p-3 rounded bg-slate-900 border border-slate-800 whitespace-pre-line">
+                        <div className="font-bold text-emerald-300 mb-1">Variante B (Desafiante Teste A/B)</div>
+                        {c.variant_b}
+                      </div>
+                    </div>
+                    <div className="text-slate-400">
+                      <strong>Hipótese A/B:</strong> {c.ab_test_hypothesis}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 08. GROWTH HACKER */}
+          {activeMenu === "growth" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between bg-[#0f1629] border border-slate-800 p-4 rounded-xl">
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    AGENTE 07 — AI Growth Hacker (Experimentos, Hipóteses ICE e Otimização de Funil)
+                  </h3>
+                </div>
+                <button
+                  onClick={async () => {
+                    await apiFetch("/api/v1/agents/AGENT_07_GROWTH/execute", {
+                      method: "POST",
+                      body: JSON.stringify({}),
+                    });
+                    await loadAllActiveData();
+                    showNotice("Novo experimento de Growth estruturado!");
+                  }}
+                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                >
+                  Criar Novo Experimento ICE com IA
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {growthData.map((exp: any) => (
+                  <div key={exp.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white text-sm">{exp.title}</span>
+                      <OriginBadge origin={exp.data_origin} />
+                    </div>
+                    <div className="text-indigo-300 font-semibold">
+                      Canal: {exp.channel} • ICE Score: {exp.ice_score}/10 • Status: {exp.status}
+                    </div>
+                    <p className="text-slate-300"><strong>Hipótese:</strong> {exp.hypothesis}</p>
+                    <p className="text-slate-300"><strong>Indicador:</strong> {exp.indicator_metric}</p>
+                    <p className="text-slate-300">
+                      <strong>Linha de Base:</strong> {exp.baseline_conversion_pct}% |{" "}
+                      <strong>Resultado Real:</strong>{" "}
+                      {exp.real_result_conversion_pct !== null ? `${exp.real_result_conversion_pct}%` : "Aguardando coleta"}
+                    </p>
+                    <p className="text-emerald-300"><strong>Conclusão:</strong> {exp.conclusion}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 09 & 10. CRM, LEADS & COMERCIAL */}
+          {(activeMenu === "crm" || activeMenu === "commercial") && crmData && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
+                  <div className="text-xs text-slate-400">Total de Leads (LGPD Opt-in)</div>
+                  <div className="text-2xl font-bold text-white">{crmData.commercial_summary.total_leads}</div>
+                </div>
+                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
+                  <div className="text-xs text-slate-400">Leads Qualificados (Score &ge; 70)</div>
+                  <div className="text-2xl font-bold text-emerald-400">{crmData.commercial_summary.qualified_leads}</div>
+                </div>
+                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
+                  <div className="text-xs text-slate-400">Receita Fechada (CLOSED_WON)</div>
+                  <div className="text-2xl font-bold text-indigo-400">
+                    R$ {crmData.commercial_summary.won_revenue_brl.toLocaleString("pt-BR")}
+                  </div>
+                </div>
+                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
+                  <div className="text-xs text-slate-400">Previsão Ponderada Pipeline</div>
+                  <div className="text-2xl font-bold text-amber-400">
+                    R$ {crmData.commercial_summary.weighted_forecast_brl.toLocaleString("pt-BR")}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
+                <h4 className="text-sm font-bold text-white">
+                  Cadastrar Novo Lead com Qualificação e Lead Scoring Automático (LGPD Consentimento Obrigatório)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                  <input
+                    value={leadName}
+                    onChange={(e) => setLeadName(e.target.value)}
+                    placeholder="Nome do Contato"
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                  <input
+                    value={leadEmail}
+                    onChange={(e) => setLeadEmail(e.target.value)}
+                    placeholder="E-mail Corporativo"
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                  <input
+                    value={leadCompany}
+                    onChange={(e) => setLeadCompany(e.target.value)}
+                    placeholder="Empresa"
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                  <input
+                    type="number"
+                    value={leadValue}
+                    onChange={(e) => setLeadValue(e.target.value)}
+                    placeholder="Valor Estimado (R$)"
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!leadName || !leadEmail) return;
+                      await apiFetch("/api/v1/crm/leads", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          full_name: leadName,
+                          email: leadEmail,
+                          company_name: leadCompany,
+                          buy_intent: "URGENT",
+                          estimated_value: Number(leadValue) || 0,
+                          consent_lgpd: true,
+                          data_origin: "REAL",
+                        }),
+                      });
+                      setLeadName("");
+                      setLeadEmail("");
+                      setLeadCompany("");
+                      await loadAllActiveData();
+                      showNotice("Lead cadastrado, pontuado pelo AI Sales Director e tarefa de follow-up criada!");
+                    }}
+                    className="py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+                  >
+                    Qualificar & Registrar Lead
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
+                  <h4 className="text-sm font-bold text-white">Base de Leads Qualificados</h4>
+                  {crmData.leads.map((l: any) => (
+                    <div key={l.id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs flex justify-between items-center">
+                      <div>
+                        <div className="font-bold text-white">{l.full_name} ({l.company_name})</div>
+                        <div className="text-slate-400">{l.email} • Origem: {l.source_channel}</div>
+                        <div className="text-indigo-300 mt-1">
+                          Estágio: {l.pipeline_stage} • Valor Est.: R$ {l.estimated_value}
+                        </div>
+                      </div>
+                      <div className="text-right space-y-1">
+                        <div className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                          Score: {l.lead_score}/100
+                        </div>
+                        <OriginBadge origin={l.data_origin} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
+                  <h4 className="text-sm font-bold text-white">Negociações no Pipeline Comercial</h4>
+                  {crmData.deals.map((d: any) => (
+                    <div key={d.id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-white">{d.title}</span>
+                        <OriginBadge origin={d.data_origin} />
+                      </div>
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>Valor: <strong>R$ {d.value.toLocaleString("pt-BR")}</strong> ({d.probability_pct}%)</span>
+                        <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold">{d.stage}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 11. CONCORRENTES */}
+          {activeMenu === "competitors" && (
+            <div className="space-y-6">
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
+                <h3 className="text-sm font-bold text-white">
+                  AGENTE 09 — AI Competitive Intelligence (Análise Ética de Sites Públicos Respeitando robots.txt)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <input
+                    value={compName}
+                    onChange={(e) => setCompName(e.target.value)}
+                    placeholder="Nome do Concorrente"
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                  <input
+                    value={compUrl}
+                    onChange={(e) => setCompUrl(e.target.value)}
+                    placeholder="https://concorrente.com.br"
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!compName) return;
+                      await apiFetch("/api/v1/competitors", {
+                        method: "POST",
+                        body: JSON.stringify({ name: compName, website_url: compUrl }),
+                      });
+                      setCompName("");
+                      await loadAllActiveData();
+                      showNotice("Concorrente analisado respeitando robots.txt!");
+                    }}
+                    className="py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                  >
+                    Analisar Concorrente
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {competitorsData.map((c: any) => (
+                  <div key={c.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white text-sm">{c.name}</span>
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">
+                        robots.txt respeitado
+                      </span>
+                    </div>
+                    <div className="text-indigo-400">{c.website_url}</div>
+                    <p className="text-slate-300">{c.positioning_summary}</p>
+                    <p className="text-slate-400"><strong>Preços Públicos:</strong> {c.public_pricing_summary}</p>
+                    <div className="pt-2 border-t border-slate-800">
+                      <div className="font-bold text-emerald-300 mb-1">Oportunidades de Diferenciação:</div>
+                      {c.differentiation_opportunities.map((op: string, idx: number) => (
+                        <div key={idx} className="text-slate-300">• {op}</div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 12. FINANCEIRO & PERFORMANCE */}
+          {activeMenu === "finance" && financeData && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
+                  <div className="text-xs text-slate-400">Receita Real / Importada</div>
+                  <div className="text-xl font-bold text-emerald-400">R$ {financeData.kpis.real_revenue.toLocaleString("pt-BR")}</div>
+                </div>
+                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
+                  <div className="text-xs text-slate-400">Lucro Líquido Real</div>
+                  <div className="text-xl font-bold text-white">R$ {financeData.kpis.real_profit.toLocaleString("pt-BR")}</div>
+                </div>
+                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
+                  <div className="text-xs text-slate-400">Margem / ROI</div>
+                  <div className="text-xl font-bold text-indigo-400">
+                    {financeData.kpis.margin_pct}% | ROI {financeData.kpis.roi_pct}%
+                  </div>
+                </div>
+                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
+                  <div className="text-xs text-slate-400">CAC / Ticket Médio</div>
+                  <div className="text-xl font-bold text-amber-400">
+                    R$ {financeData.kpis.cac_brl} / R$ {financeData.kpis.average_ticket_brl}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
+                <h4 className="text-sm font-bold text-white">
+                  Registrar / Importar Lançamento Financeiro (Separação Estrita Real vs Estimativa)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                  <select
+                    value={finType}
+                    onChange={(e) => setFinType(e.target.value)}
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  >
+                    <option value="REVENUE">Receita (REVENUE)</option>
+                    <option value="EXPENSE">Despesa Operacional (EXPENSE)</option>
+                    <option value="AD_SPEND">Investimento em Mídia (AD_SPEND)</option>
+                  </select>
+                  <input
+                    type="number"
+                    value={finAmount}
+                    onChange={(e) => setFinAmount(e.target.value)}
+                    placeholder="Valor R$"
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                  <select
+                    value={finOrigin}
+                    onChange={(e) => setFinOrigin(e.target.value)}
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  >
+                    <option value="REAL">DADO REAL</option>
+                    <option value="IMPORTED">DADO IMPORTADO</option>
+                    <option value="ESTIMATED">ESTIMATIVA</option>
+                    <option value="GOAL">META</option>
+                  </select>
+                  <input
+                    value={finDesc}
+                    onChange={(e) => setFinDesc(e.target.value)}
+                    placeholder="Descrição do lançamento"
+                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                  <button
+                    onClick={async () => {
+                      await apiFetch("/api/v1/finance/records", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          period_date: new Date().toISOString().slice(0, 10),
+                          record_type: finType,
+                          amount: Number(finAmount) || 0,
+                          data_origin: finOrigin,
+                          description: finDesc,
+                        }),
+                      });
+                      await loadAllActiveData();
+                      showNotice("Lançamento financeiro registrado e KPIs recalculados!");
+                    }}
+                    className="py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+                  >
+                    Registrar Lançamento
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-2">
+                <h4 className="text-sm font-bold text-white">Razão de Lançamentos Financeiros</h4>
+                {financeData.records.map((r: any) => (
+                  <div key={r.id} className="flex items-center justify-between p-3 rounded bg-slate-900 border border-slate-800 text-xs">
+                    <div>
+                      <span className="font-bold text-white">{r.record_type}</span> • {r.description} ({r.period_date})
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-slate-200">R$ {r.amount.toLocaleString("pt-BR")}</span>
+                      <OriginBadge origin={r.data_origin} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 13. CUSTOMER SUCCESS */}
+          {activeMenu === "cs" && csData && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
+                  <div className="text-xs text-slate-400">NPS Médio</div>
+                  <div className="text-2xl font-bold text-emerald-400">{csData.summary.average_nps} / 10</div>
+                </div>
+                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
+                  <div className="text-xs text-slate-400">CSAT Médio</div>
+                  <div className="text-2xl font-bold text-indigo-400">{csData.summary.average_csat} / 5</div>
+                </div>
+                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
+                  <div className="text-xs text-slate-400">Clientes em Risco de Churn</div>
+                  <div className="text-2xl font-bold text-red-400">{csData.summary.high_churn_risk_count}</div>
+                </div>
+                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
+                  <div className="text-xs text-slate-400">Oportunidades de Upsell</div>
+                  <div className="text-2xl font-bold text-amber-400">{csData.summary.upsell_ready_count}</div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {csData.feedbacks.map((f: any) => (
+                  <div key={f.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 text-xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white">{f.customer_name}</span>
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                        NPS {f.nps_score} • Risco Churn: {f.churn_risk}
+                      </span>
+                    </div>
+                    <p className="text-slate-300">&ldquo;{f.feedback_text}&rdquo;</p>
+                    <div className="text-indigo-300"><strong>Ação de Retenção:</strong> {f.retention_suggestion}</div>
+                    <div className="text-emerald-300"><strong>Oportunidade Comercial (Upsell):</strong> {f.upsell_opportunity}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 15. AUTOMAÇÕES NATIVAS PYTHON */}
+          {activeMenu === "automations" && automationsData && (
+            <div className="space-y-6">
+              <div className="bg-[#0f1629] border border-emerald-500/30 rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    Central de Automações 100% Nativa em Python (Zero Dependência de n8n)
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Motor: {automationsData.scheduler?.engine} • Status:{" "}
+                    <strong className="text-emerald-400">
+                      {automationsData.scheduler?.running ? "ATIVO NO SERVIDOR" : "PARADO"}
+                    </strong>
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {automationsData.rules.map((r: any) => (
+                  <div key={r.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white">{r.name}</span>
+                      <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-[10px]">
+                        {r.trigger_type} • {r.frequency_label}
+                      </span>
+                    </div>
+                    <div className="text-slate-400">
+                      Agente Responsável: <strong className="text-slate-200">{r.action_agent}</strong> • Execuções:{" "}
+                      {r.run_count} • Último Status: <strong className="text-emerald-400">{r.last_status}</strong>
+                    </div>
+                    <div className="pt-2 flex gap-2">
+                      <button
+                        onClick={async () => {
+                          await apiFetch(`/api/v1/automations/${r.id}/run`, { method: "POST", body: JSON.stringify({}) });
+                          await loadAllActiveData();
+                          showNotice(`Automação '${r.name}' executada imediatamente!`);
+                        }}
+                        className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
+                      >
+                        Executar Agora
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 16. APROVAÇÕES */}
+          {activeMenu === "approvals" && (
+            <div className="space-y-4">
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-4">
+                <h3 className="text-sm font-bold text-white">
+                  Central de Aprovações Humanas & Governança de Ações de Alto Impacto
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Publicações externas, ativação de orçamento pago e alterações críticas aguardam validação humana por padrão.
+                </p>
+              </div>
+              {approvalsData.map((req: any) => (
+                <div key={req.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 flex items-center justify-between text-xs">
+                  <div className="space-y-1">
+                    <div className="font-bold text-white text-sm">{req.title}</div>
+                    <div className="text-slate-400">
+                      Agente: {req.agent_id} • Tipo: {req.action_type} • Status:{" "}
+                      <strong className="text-amber-300">{req.status}</strong>
+                    </div>
+                  </div>
+                  {req.status === "PENDING" && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={async () => {
+                          await apiFetch(`/api/v1/approvals/${req.id}/decide`, {
+                            method: "POST",
+                            body: JSON.stringify({
+                              decision: "APPROVE",
+                              confirmation_token: meData?.high_impact_confirmation_token || "CONFIRMED_BY_HUMAN",
+                            }),
+                          });
+                          await loadAllActiveData();
+                          showNotice("Solicitação aprovada e processada!");
+                        }}
+                        className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+                      >
+                        Aprovar
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await apiFetch(`/api/v1/approvals/${req.id}/decide`, {
+                            method: "POST",
+                            body: JSON.stringify({ decision: "REJECT" }),
+                          });
+                          await loadAllActiveData();
+                          showNotice("Solicitação rejeitada.");
+                        }}
+                        className="px-3 py-1.5 rounded bg-red-600/80 hover:bg-red-600 text-white font-semibold"
+                      >
+                        Rejeitar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 17. RELATÓRIOS */}
+          {activeMenu === "reports" && reportsData && (
+            <div className="space-y-6">
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white">Relatório Executivo Consolidado</h3>
+                  <button
+                    onClick={async () => {
+                      const bkp = await apiFetch("/api/v1/system/backup", { method: "POST" });
+                      showNotice(`Backup persistente criado: ${bkp.backup_file} (${bkp.size_bytes} bytes)`);
+                    }}
+                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                  >
+                    Gerar Snapshot & Backup Agora
+                  </button>
+                </div>
+                <pre className="p-4 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-300 overflow-x-auto">
+                  {JSON.stringify(reportsData, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
+
+          {/* 18. INTEGRAÇÕES */}
+          {activeMenu === "integrations" && (
+            <div className="space-y-4">
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-4">
+                <h3 className="text-sm font-bold text-white">
+                  Central de Integrações Oficiais (Criptografia Fernet • Status Real Sem Simulação)
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Cada integração informa exatamente qual credencial é necessária, onde obtê-la, permissões exigidas e teste real.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {integrationsData.map((intg: any) => (
+                  <div key={intg.provider_key} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white text-sm">{intg.provider_name}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded font-bold text-[10px] ${
+                          intg.status === "CONNECTED"
+                            ? "bg-emerald-500/20 text-emerald-300"
+                            : "bg-amber-500/20 text-amber-300"
+                        }`}
+                      >
+                        {intg.status}
+                      </span>
+                    </div>
+                    <div className="text-slate-300">
+                      <strong>Funcionalidade Habilitada:</strong> {intg.setup_guide.features_unlocked}
+                    </div>
+                    <div className="text-slate-400">
+                      <strong>Credenciais Necessárias:</strong> {intg.setup_guide.required_credentials.join(", ")}
+                    </div>
+                    <div className="text-slate-400">
+                      <strong>Onde Obter:</strong> {intg.setup_guide.where_to_obtain}
+                    </div>
+                    <div className="text-slate-400">
+                      <strong>Escopos Oficiais:</strong> {intg.setup_guide.permissions_required.join(", ")}
+                    </div>
+                    <div className="pt-2 flex gap-2">
+                      <button
+                        onClick={async () => {
+                          const r = await apiFetch(`/api/v1/integrations/${intg.provider_key}/test`, { method: "POST" });
+                          await loadAllActiveData();
+                          showNotice(`${intg.provider_name}: ${r.message}`);
+                        }}
+                        className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-white"
+                      >
+                        Testar Conexão
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 19. CONFIGURAÇÕES, AUTONOMIA & PLANOS SAAS */}
+          {activeMenu === "settings" && meData && (
+            <div className="space-y-6">
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
+                <h3 className="text-sm font-bold text-white">Nível de Autonomia Operacional da IA</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    {
+                      level: 1,
+                      title: "NÍVEL 1 — ASSISTIDO",
+                      desc: "A IA analisa, diagnostica e recomenda; o usuário executa todas as ações.",
+                    },
+                    {
+                      level: 2,
+                      title: "NÍVEL 2 — SEMIAUTÔNOMO (Padrão Recomendado)",
+                      desc: "A IA prepara tudo automaticamente e solicita aprovação humana antes de ações externas.",
+                    },
+                    {
+                      level: 3,
+                      title: "NÍVEL 3 — AUTÔNOMO",
+                      desc: "A IA executa automaticamente as atividades autorizadas dentro dos limites de segurança.",
+                    },
+                  ].map((lvl) => (
+                    <button
+                      key={lvl.level}
+                      onClick={async () => {
+                        await apiFetch("/api/v1/tenants/current", {
+                          method: "PUT",
+                          body: JSON.stringify({ autonomy_default_level: lvl.level }),
+                        });
+                        await loadAllActiveData();
+                        showNotice(`Nível de Autonomia atualizado para Nível ${lvl.level}!`);
+                      }}
+                      className={`p-4 rounded-xl border text-left transition ${
+                        meData.active_tenant.autonomy_default_level === lvl.level
+                          ? "bg-indigo-600/20 border-indigo-500 text-white"
+                          : "bg-slate-900 border-slate-800 text-slate-300"
+                      }`}
+                    >
+                      <div className="font-bold text-xs mb-1">{lvl.title}</div>
+                      <div className="text-[11px] text-slate-400">{lvl.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
+                <h3 className="text-sm font-bold text-white">Criar Nova Empresa no Grupo (Multi-Tenant Isolado)</h3>
+                <div className="flex gap-3">
+                  <input
+                    value={newTenantName}
+                    onChange={(e) => setNewTenantName(e.target.value)}
+                    placeholder="Nome da Nova Empresa / Filial"
+                    className="flex-1 px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!newTenantName) return;
+                      await apiFetch("/api/v1/tenants", {
+                        method: "POST",
+                        body: JSON.stringify({ name: newTenantName, brand_name: newTenantName }),
+                      });
+                      setNewTenantName("");
+                      await loadAllActiveData();
+                      showNotice("Nova empresa criada com isolamento multi-tenant completo!");
+                    }}
+                    className="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+                  >
+                    Adicionar Empresa
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 20. AUDITORIA E LOGS */}
+          {activeMenu === "audit" && auditData && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
+                <h4 className="text-sm font-bold text-white">Logs de Execução dos Agentes de IA</h4>
+                <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                  {auditData.agent_execution_logs.map((l: any) => (
+                    <div key={l.id} className="p-3 rounded bg-slate-900 border border-slate-800 text-xs">
+                      <div className="flex justify-between font-bold text-indigo-300">
+                        <span>{l.agent_name}</span>
+                        <span>{l.duration_ms}ms • {l.status}</span>
+                      </div>
+                      <div className="text-slate-300">Tarefa: {l.task_name} • Workflow: {l.workflow_run_id}</div>
+                      <div className="text-[10px] text-slate-500">{l.created_at}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
+                <h4 className="text-sm font-bold text-white">Trilha de Auditoria & Segurança</h4>
+                <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                  {auditData.audit_logs.map((a: any) => (
+                    <div key={a.id} className="p-3 rounded bg-slate-900 border border-slate-800 text-xs">
+                      <div className="flex justify-between font-bold text-emerald-300">
+                        <span>{a.action}</span>
+                        <span>IP: {a.ip_address}</span>
+                      </div>
+                      <div className="text-slate-300">Ator: {a.actor} • Recurso: {a.resource_type} #{a.resource_id}</div>
+                      <div className="text-[10px] text-slate-500">{a.created_at}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
