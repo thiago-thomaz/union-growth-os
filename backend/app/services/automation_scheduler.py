@@ -3,7 +3,7 @@ import logging
 import threading
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.agents.orchestrator import CentralOrchestrator, get_effective_autonomy_level
 from app.core.config import settings
 from app.core.database import SessionLocal
-from app.models.entities import AutomationExecution, AutomationRule, Tenant
+from app.models.entities import AuditLog, AutomationExecution, AutomationRule, SchedulerHeartbeat, Tenant
 from app.schemas.contracts import AgentTaskContract
 
 logger = logging.getLogger("union_growth_os.scheduler")
@@ -222,7 +222,7 @@ def execute_automation_rule(
             AutomationExecution.tenant_id == rule.tenant_id,
             AutomationExecution.rule_id == rule.id,
             AutomationExecution.idempotency_key == idem_key,
-            AutomationExecution.status == "SUCCESS",
+            AutomationExecution.status.in_(("SUCCESS", "RETRIED")),
         )
         .first()
     )
@@ -324,6 +324,17 @@ def execute_automation_rule(
         rule.last_run_at = datetime.now(timezone.utc)
         rule.last_status = "FAILED"
         rule.failure_count = (rule.failure_count or 0) + 1
+        db.add(
+            AuditLog(
+                tenant_id=rule.tenant_id,
+                actor="scheduler",
+                action="ALERT:AUTOMATION_FAILED",
+                resource_type="automation_rule",
+                resource_id=str(rule.id),
+                details_json=json.dumps({"code_key": rule.code_key, "attempts": max_attempts, "error": last_error[:300]}, ensure_ascii=False),
+            )
+        )
+        logger.error("ALERT automation %s failed after %s attempts: %s", rule.code_key, max_attempts, last_error)
         db.commit()
         db.refresh(failed_record)
         return failed_record
@@ -353,15 +364,142 @@ def trigger_event_automations(
     return results
 
 
+BOOT_ID = uuid.uuid4().hex[:12]
+SCHEDULER_TZ = "America/Sao_Paulo"
+
+
+def _record_heartbeat(db: Session, kind: str = "HEARTBEAT", note: str = "") -> None:
+    db.add(
+        SchedulerHeartbeat(
+            boot_id=BOOT_ID,
+            jobs_count=len(scheduler.get_jobs()) if scheduler.running else 0,
+            kind=kind,
+            note=note[:300],
+        )
+    )
+    db.commit()
+
+
+def _scheduled_slot_key(rule_id: int, slot: datetime) -> str:
+    return f"cron-{rule_id}-{slot.strftime('%Y%m%d%H%M')}"
+
+
+def _run_cron_rule_job(rule_id: int, slot_iso: str | None = None) -> None:
+    """Job body for real CRON automations. Idempotent per (rule, scheduled slot)."""
+    db = SessionLocal()
+    try:
+        rule = db.query(AutomationRule).filter(AutomationRule.id == rule_id).first()
+        if not rule or not rule.is_active:
+            return
+        slot = datetime.fromisoformat(slot_iso) if slot_iso else datetime.now(timezone.utc).replace(second=0, microsecond=0)
+        execute_automation_rule(db, rule, idempotency_key=_scheduled_slot_key(rule.id, slot))
+    except Exception as exc:
+        logger.error("Cron job for rule %s crashed: %s", rule_id, exc)
+    finally:
+        db.close()
+
+
+def _build_trigger(cron_expression: str):
+    from apscheduler.triggers.cron import CronTrigger
+
+    try:
+        return CronTrigger.from_crontab(cron_expression, timezone=SCHEDULER_TZ)
+    except Exception:
+        return CronTrigger.from_crontab(cron_expression, timezone="UTC")
+
+
+def sync_cron_jobs(db: Session) -> int:
+    """Registers one real APScheduler cron job per active CRON AutomationRule (all tenants)."""
+    count = 0
+    rules = (
+        db.query(AutomationRule)
+        .filter(AutomationRule.trigger_type == "CRON", AutomationRule.is_active == True)  # noqa: E712
+        .all()
+    )
+    wanted_ids = set()
+    for r in rules:
+        if not r.cron_expression:
+            continue
+        job_id = f"rule-{r.id}"
+        wanted_ids.add(job_id)
+        scheduler.add_job(
+            _run_cron_rule_job,
+            _build_trigger(r.cron_expression),
+            args=[r.id],
+            id=job_id,
+            replace_existing=True,
+            coalesce=True,
+            max_instances=1,
+            misfire_grace_time=3600,
+        )
+        count += 1
+    for job in scheduler.get_jobs():
+        if job.id.startswith("rule-") and job.id not in wanted_ids:
+            scheduler.remove_job(job.id)
+    return count
+
+
+def recover_missed_runs(db: Session, lookback_hours: int = 36) -> list[dict[str, Any]]:
+    """After a restart, runs CRON slots that should have fired while the app was down (idempotent)."""
+    recovered: list[dict[str, Any]] = []
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(hours=lookback_hours)
+    rules = (
+        db.query(AutomationRule)
+        .filter(AutomationRule.trigger_type == "CRON", AutomationRule.is_active == True)  # noqa: E712
+        .all()
+    )
+    for r in rules:
+        if not r.cron_expression:
+            continue
+        trigger = _build_trigger(r.cron_expression)
+        last_slot = None
+        cursor = window_start
+        for _ in range(500):
+            nxt = trigger.get_next_fire_time(None, cursor)
+            if not nxt or nxt > now:
+                break
+            last_slot = nxt
+            cursor = nxt + timedelta(seconds=1)
+        if last_slot is None:
+            continue
+        last_slot_utc = last_slot.astimezone(timezone.utc)
+        last_run = r.last_run_at.replace(tzinfo=timezone.utc) if (r.last_run_at and r.last_run_at.tzinfo is None) else r.last_run_at
+        if last_run and last_run >= last_slot_utc:
+            continue
+        key = _scheduled_slot_key(r.id, last_slot_utc)
+        ex = execute_automation_rule(db, r, idempotency_key=key)
+        recovered.append({"rule_id": r.id, "code_key": r.code_key, "slot": last_slot_utc.isoformat(), "status": ex.status})
+    if recovered:
+        _record_heartbeat(db, kind="CATCHUP", note=f"Recuperadas {len(recovered)} execucoes perdidas durante indisponibilidade")
+    return recovered
+
+
 def _periodic_scheduler_heartbeat() -> None:
-    """Background worker tick that checks active rules and ensures continuous cloud execution."""
+    """Persists liveness evidence and keeps cron jobs synchronized with the database."""
     db = SessionLocal()
     try:
         tenants = db.query(Tenant).all()
         for t in tenants:
             ensure_tenant_automations_seeded(db, t.id)
+        sync_cron_jobs(db)
+        _record_heartbeat(db, kind="HEARTBEAT", note="tick")
     except Exception as exc:
         logger.warning("Scheduler heartbeat warning: %s", exc)
+    finally:
+        db.close()
+
+
+def _boot_recovery_task() -> None:
+    db = SessionLocal()
+    try:
+        for t in db.query(Tenant).all():
+            ensure_tenant_automations_seeded(db, t.id)
+        jobs = sync_cron_jobs(db)
+        _record_heartbeat(db, kind="BOOT", note=f"boot_id={BOOT_ID}; cron_jobs={jobs}")
+        recover_missed_runs(db)
+    except Exception as exc:
+        logger.error("Boot recovery failed: %s", exc)
     finally:
         db.close()
 
@@ -378,10 +516,12 @@ def start_native_scheduler() -> dict[str, Any]:
             replace_existing=True,
         )
         scheduler.start()
+        threading.Thread(target=_boot_recovery_task, name="ugos-boot-recovery", daemon=True).start()
     return {
         "running": scheduler.running,
         "jobs_count": len(scheduler.get_jobs()),
         "engine": "APScheduler Native Python (No n8n)",
+        "boot_id": BOOT_ID,
     }
 
 
@@ -390,4 +530,7 @@ def get_scheduler_status() -> dict[str, Any]:
         "running": scheduler.running,
         "jobs_count": len(scheduler.get_jobs()) if scheduler.running else 0,
         "engine": "APScheduler Native Python (100% Internalized)",
+        "boot_id": BOOT_ID,
+        "timezone": SCHEDULER_TZ,
     }
+

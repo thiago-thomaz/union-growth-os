@@ -32,3 +32,4 @@
 - **Rate Limiting**: janela deslizante por IP (`RATE_LIMIT_PER_MINUTE`).
 - **Headers de Segurança**: `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `X-XSS-Protection: 1; mode=block`, `Referrer-Policy: strict-origin-when-cross-origin`.
 - **Trava de Alto Impacto**: criação de campanhas com gasto financeiro ou aprovação de ações críticas exige token de confirmação HMAC (`CONFIRM-...`) ou aprovação explícita na Central de Aprovações.
+

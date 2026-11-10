@@ -45,3 +45,4 @@ services:
 volumes:
   union_growth_pgdata:
   union_growth_appdata:
+

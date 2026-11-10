@@ -3,7 +3,8 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.agents.orchestrator import compute_lead_score, generate_ceo_daily_briefing_service
-from app.core.security import hash_password
+from app.core.config import settings
+from app.core.security import hash_password, verify_password
 from app.models.entities import (
     Competitor,
     CRMDeal,
@@ -24,14 +25,38 @@ from app.services.integrations_and_social_engine import ensure_tenant_integratio
 from app.services.seo_and_market_engine import generate_seo_factory_article, research_keywords_and_clusters
 
 
+def get_configured_admin_password() -> str:
+    """Strong initial password comes ONLY from env ADMIN_INITIAL_PASSWORD; otherwise a random unknown one (account locked until set)."""
+    import secrets
+
+    pwd = (settings.ADMIN_INITIAL_PASSWORD or "").strip()
+    if pwd and pwd.lower() != "uniongrowth@2026" and len(pwd) >= 10:
+        return pwd
+    return secrets.token_urlsafe(32)
+
+
 def ensure_initial_workspace_seeded(db: Session) -> Tenant:
     """
     Idempotently initializes the default executive workspace on first boot so the system
     is immediately operational with real persisted records, clearly labeled data origins,
-    working login, and active automations.
+    working login, and active automations. Also rotates any legacy weak default password.
     """
+    effective_pwd = get_configured_admin_password()
     tenant = db.query(Tenant).filter(Tenant.slug == "union-growth-hq").first()
     if tenant:
+        admin_user = db.query(User).filter(User.email == "admin@projetosunion.cloud").first()
+        if admin_user and verify_password("UnionGrowth@2026", admin_user.hashed_password):
+            admin_user.hashed_password = hash_password(effective_pwd)
+            prefs = {}
+            try:
+                prefs = json.loads(admin_user.preferences_json or "{}")
+            except Exception:
+                prefs = {}
+            prefs["initial_default_password_invalidated"] = True
+            prefs["must_change_password"] = True
+            prefs["password_rotated_at"] = datetime.now(timezone.utc).isoformat()
+            admin_user.preferences_json = json.dumps(prefs, ensure_ascii=False)
+            db.commit()
         ensure_tenant_integrations_seeded(db, tenant.id)
         ensure_tenant_automations_seeded(db, tenant.id)
         return tenant
@@ -60,10 +85,18 @@ def ensure_initial_workspace_seeded(db: Session) -> Tenant:
         tenant_id=tenant.id,
         email="admin@projetosunion.cloud",
         full_name="Thiago Thomaz — Diretor Executivo",
-        hashed_password=hash_password("UnionGrowth@2026"),
+        hashed_password=hash_password(effective_pwd),
         role="owner",
         is_active=True,
         lgpd_consent=True,
+        preferences_json=json.dumps(
+            {
+                "initial_default_password_invalidated": True,
+                "must_change_password": True,
+                "password_rotated_at": datetime.now(timezone.utc).isoformat(),
+            },
+            ensure_ascii=False,
+        ),
     )
     db.add(admin_user)
     db.commit()
@@ -354,3 +387,4 @@ def ensure_initial_workspace_seeded(db: Session) -> Tenant:
         execute_automation_rule(db, rules[1], idempotency_key="initial-seed-ceo-briefing")
 
     return tenant
+

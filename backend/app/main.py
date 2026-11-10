@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router as api_v1_router
@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.database import Base, SessionLocal, check_db_health, engine
 from app.services.automation_scheduler import get_scheduler_status, start_native_scheduler
 from app.services.seed_service import ensure_initial_workspace_seeded
+from app.services.seo_and_market_engine import generate_dynamic_robots_txt, generate_dynamic_sitemap_xml
 
 
 @asynccontextmanager
@@ -35,10 +36,10 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Tenant-Id"],
 )
 
 
@@ -49,7 +50,22 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
+
+
+@app.get("/robots.txt", include_in_schema=False)
+def robots_txt():
+    return PlainTextResponse(generate_dynamic_robots_txt())
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+def sitemap_xml():
+    db = SessionLocal()
+    try:
+        return Response(content=generate_dynamic_sitemap_xml(db), media_type="application/xml")
+    finally:
+        db.close()
 
 
 @app.get("/health")
@@ -108,3 +124,4 @@ else:
             "health": "/health",
             "ready": "/ready",
         }
+

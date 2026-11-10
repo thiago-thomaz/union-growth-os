@@ -10,6 +10,7 @@ import httpx
 from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.models.entities import Competitor, SEOArticle, SEOAuditReport, SEOKeywordCluster, Tenant
 
 # Simple in-memory cache to avoid redundant external HTTP requests
@@ -72,6 +73,91 @@ def check_sitemap_exists(base_url: str) -> bool:
             return exists
     except Exception:
         return False
+
+
+def fetch_pagespeed_insights(target_url: str, response_time_ms: float = 0.0) -> dict[str, Any]:
+    """
+    Queries official Google PageSpeed Insights v5 API for real Core Web Vitals & Lighthouse scores.
+    Falls back gracefully with explicit data_origin if rate-limited or offline.
+    """
+    cache_key = f"psi:{target_url}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    params: dict[str, Any] = {
+        "url": target_url,
+        "strategy": "mobile",
+        "category": ["PERFORMANCE", "SEO"],
+    }
+    if settings.PAGESPEED_API_KEY:
+        params["key"] = settings.PAGESPEED_API_KEY
+
+    try:
+        with httpx.Client(timeout=7.0) as client:
+            r = client.get("https://www.googleapis.com/pagespeedonline/v5/runPagespeed", params=params)
+            if r.status_code == 200:
+                data = r.json()
+                lh = data.get("lighthouseResult", {})
+                cats = lh.get("categories", {})
+                audits = lh.get("audits", {})
+                perf_score = round((cats.get("performance", {}).get("score") or 0.0) * 100, 1)
+                seo_score = round((cats.get("seo", {}).get("score") or 0.0) * 100, 1)
+                res = {
+                    "provider": "Google PageSpeed Insights API v5",
+                    "data_origin": "REAL",
+                    "performance_score": perf_score,
+                    "lighthouse_seo_score": seo_score,
+                    "fcp_display": audits.get("first-contentful-paint", {}).get("displayValue", "N/A"),
+                    "lcp_display": audits.get("largest-contentful-paint", {}).get("displayValue", "N/A"),
+                    "cls_display": audits.get("cumulative-layout-shift", {}).get("displayValue", "N/A"),
+                    "speed_index": audits.get("speed-index", {}).get("displayValue", "N/A"),
+                }
+                _cache_set(cache_key, res)
+                return res
+    except Exception:
+        pass
+
+    est_perf = 92.0 if 0 < response_time_ms < 500 else (78.0 if response_time_ms < 1200 else 64.0)
+    return {
+        "provider": "HTTP Direct Latency Benchmark (PageSpeed Quota Fallback)",
+        "data_origin": "ESTIMATED",
+        "performance_score": est_perf,
+        "lighthouse_seo_score": None,
+        "ttfb_measured_ms": response_time_ms,
+        "note": "Configure PAGESPEED_API_KEY para cota dedicada sem rate-limit público da Google API.",
+    }
+
+
+def generate_dynamic_robots_txt(base_url: str | None = None) -> str:
+    root = (base_url or settings.PUBLIC_URL).rstrip("/")
+    return (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /api/v1/admin/\n"
+        "Disallow: /api/v1/system/\n\n"
+        f"Sitemap: {root}/sitemap.xml\n"
+    )
+
+
+def generate_dynamic_sitemap_xml(db: Session, base_url: str | None = None) -> str:
+    root = (base_url or settings.PUBLIC_URL).rstrip("/")
+    articles = db.query(SEOArticle).order_by(SEOArticle.id.desc()).limit(200).all()
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    urls_xml = [
+        f"  <url>\n    <loc>{root}/</loc>\n    <lastmod>{today}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>1.0</priority>\n  </url>"
+    ]
+    for art in articles:
+        lastmod = art.created_at.strftime("%Y-%m-%d") if art.created_at else today
+        urls_xml.append(
+            f"  <url>\n    <loc>{root}/artigos/{art.slug}</loc>\n    <lastmod>{lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>"
+        )
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(urls_xml)
+        + "\n</urlset>\n"
+    )
 
 
 def perform_real_seo_audit(
@@ -230,12 +316,15 @@ def perform_real_seo_audit(
         f"Descubra como a {tenant.brand_name} lidera em {kw}. Estratégia, tecnologia e resultados comprovados. Solicite diagnóstico."
     )[:158]
 
+    psi_data = fetch_pagespeed_insights(url, elapsed_ms)
+
     generated_schema = {
         "@context": "https://schema.org",
         "@type": "Organization",
         "name": tenant.brand_name,
         "url": url,
         "description": suggested_meta,
+        "pagespeed_insights": psi_data,
     }
 
     final_score = max(10.0, min(100.0, round(score, 1)))
@@ -543,3 +632,4 @@ def analyze_competitor_public(
     db.commit()
     db.refresh(competitor)
     return competitor
+

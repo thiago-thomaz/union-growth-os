@@ -512,3 +512,17 @@ class AuditLog(Base):
     ip_address = Column(String(80), default="127.0.0.1")
     details_json = Column(Text, default="{}")
     created_at = Column(DateTime, default=utcnow)
+
+
+
+class SchedulerHeartbeat(Base):
+    """Persisted scheduler liveness evidence (survives restarts; used for 24/7 operational audit)."""
+
+    __tablename__ = "scheduler_heartbeats"
+
+    id = Column(Integer, primary_key=True, index=True)
+    boot_id = Column(String(40), index=True, nullable=False)
+    jobs_count = Column(Integer, default=0)
+    kind = Column(String(30), default="HEARTBEAT")  # BOOT, HEARTBEAT, CATCHUP
+    note = Column(String(300), default="")
+    created_at = Column(DateTime, default=utcnow, index=True)

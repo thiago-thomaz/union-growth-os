@@ -136,3 +136,4 @@ def record_audit_log(
     db.commit()
     db.refresh(entry)
     return entry
+

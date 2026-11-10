@@ -121,3 +121,4 @@ Todos os **13 testes automatizados** passaram com 100% de sucesso:
 1. Apontar o subdomínio `growth.projetosunion.cloud` (registro `A` -> `72.62.13.62`) no provedor de DNS para utilizar o domínio próprio ao lado do domínio HTTPS `sslip.io`.
 2. Conectar as credenciais OAuth2 do Google Search Console e Instagram Graph API na aba **Integrações** para habilitar ingestão automática de impressões da SERP e publicação direta sem intervenção manual.
 3. Caso deseje utilizar LLMs locais adicionais no futuro, apontar `OLLAMA_BASE_URL` ou `OPENAI_COMPATIBLE_BASE_URL` nas variáveis de ambiente da aplicação no Coolify.
+

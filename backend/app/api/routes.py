@@ -8,23 +8,31 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.agents.orchestrator import (
+    AGENT_AI_CAPABILITY_AUDIT,
     AGENT_REGISTRY,
+    AIUsageTracker,
     CentralOrchestrator,
     MultiProviderAIAdapter,
     calculate_tenant_financial_kpis,
     compute_lead_score,
     generate_ceo_daily_briefing_service,
     get_effective_autonomy_level,
+    get_tenant_autonomy_config,
 )
 from app.core.database import check_db_health, create_database_backup, get_db
 from app.core.security import (
+    check_login_allowed,
+    clear_login_failures,
     create_access_token,
     generate_high_impact_token,
     get_active_tenant_id,
     get_current_user,
     hash_password,
+    register_login_failure,
     require_roles,
     sanitize_text,
+    user_must_change_password,
+    validate_strong_password,
     verify_high_impact_token,
     verify_password,
 )
@@ -60,6 +68,8 @@ from app.schemas.contracts import (
     AgentTaskContract,
     ApprovalDecisionRequest,
     AutomationRuleCreate,
+    AutonomyConfigUpdateRequest,
+    CompanyOnboardingRequest,
     CompetitorCreate,
     CopyGenerateRequest,
     CreativeAssetGenerateRequest,
@@ -68,12 +78,14 @@ from app.schemas.contracts import (
     CustomerFeedbackCreate,
     EditorialItemCreate,
     FinancialRecordCreate,
+    FullMarketingOperationRequest,
     GrowthExperimentCreate,
     GrowthExperimentUpdateResult,
     IntegrationConnectRequest,
     LGPDPreferencesRequest,
     MarketingCampaignCreate,
     MarketingPersonaCreate,
+    PasswordChangeRequest,
     SEOArticleGenerateRequest,
     SEOAuditRequest,
     SEOKeywordResearchRequest,
@@ -92,11 +104,21 @@ from app.services.automation_scheduler import (
 from app.services.creative_and_copy_engine import generate_creative_asset, generate_persuasive_copy
 from app.services.integrations_and_social_engine import (
     INTEGRATION_CATALOG,
+    audit_social_platforms_detailed,
     build_oauth_authorization_url,
     ensure_tenant_integrations_seeded,
     save_integration_credentials,
     test_integration_connection,
     validate_and_publish_social_item,
+)
+from app.services.phase13_services import (
+    build_autonomy_panel,
+    build_operational_log,
+    check_autonomy_limit,
+    run_company_onboarding,
+    run_full_marketing_pipeline,
+    save_autonomy_config,
+    verify_all_automations,
 )
 from app.services.plans_and_audit import SAAS_PLANS, get_tenant_plan_info, record_audit_log
 from app.services.seo_and_market_engine import (
@@ -122,6 +144,9 @@ def _get_tenant_or_404(db: Session, tenant_id: int) -> Tenant:
 @router.post("/auth/register", status_code=status.HTTP_201_CREATED)
 def register_user_and_tenant(payload: UserRegisterRequest, request: Request, db: Session = Depends(get_db)):
     email = payload.email.strip().lower()
+    ok_pwd, pwd_msg = validate_strong_password(payload.password)
+    if not ok_pwd:
+        raise HTTPException(status_code=400, detail=pwd_msg)
     if db.query(User).filter(User.email == email).first():
         raise HTTPException(status_code=400, detail="E-mail já cadastrado no sistema.")
 
@@ -196,9 +221,12 @@ def register_user_and_tenant(payload: UserRegisterRequest, request: Request, db:
 @router.post("/auth/login")
 def login_user(payload: UserLoginRequest, request: Request, db: Session = Depends(get_db)):
     email = payload.email.strip().lower()
+    check_login_allowed(request, email)
     user = db.query(User).filter(User.email == email, User.is_active == True).first()
     if not user or not verify_password(payload.password, user.hashed_password):
+        register_login_failure(request, email)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais inválidas.")
+    clear_login_failures(request, email)
 
     user.last_login_at = datetime.now(timezone.utc)
     db.commit()
@@ -219,6 +247,7 @@ def login_user(payload: UserLoginRequest, request: Request, db: Session = Depend
     return {
         "access_token": token,
         "token_type": "bearer",
+        "must_change_password": user_must_change_password(user),
         "user": {
             "id": user.id,
             "email": user.email,
@@ -238,6 +267,42 @@ def login_user(payload: UserLoginRequest, request: Request, db: Session = Depend
     }
 
 
+@router.post("/auth/change-password")
+def change_password(
+    payload: PasswordChangeRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not verify_password(payload.current_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="Senha atual incorreta.")
+    ok_pwd, msg = validate_strong_password(payload.new_password)
+    if not ok_pwd:
+        raise HTTPException(status_code=400, detail=msg)
+    if verify_password(payload.new_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="A nova senha deve ser diferente da atual.")
+    user.hashed_password = hash_password(payload.new_password)
+    try:
+        prefs = json.loads(user.preferences_json or "{}")
+    except Exception:
+        prefs = {}
+    prefs["must_change_password"] = False
+    prefs["password_changed_at"] = datetime.now(timezone.utc).isoformat()
+    user.preferences_json = json.dumps(prefs, ensure_ascii=False)
+    db.commit()
+    record_audit_log(
+        db,
+        tenant_id=user.tenant_id,
+        user_id=user.id,
+        actor=user.email,
+        action="PASSWORD_CHANGED",
+        resource_type="user",
+        resource_id=str(user.id),
+        ip_address=request.client.host if request.client else "127.0.0.1",
+    )
+    return {"status": "password_changed", "must_change_password": False}
+
+
 @router.get("/auth/me")
 def get_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     tid = get_active_tenant_id(user)
@@ -254,6 +319,7 @@ def get_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)
             "tenant_id": tid,
             "lgpd_consent": user.lgpd_consent,
             "marketing_opt_in": user.marketing_opt_in,
+            "must_change_password": user_must_change_password(user),
         },
         "active_tenant": {
             "id": tenant.id,
@@ -267,7 +333,8 @@ def get_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)
             "target_audience": tenant.target_audience,
             "plan_tier": tenant.plan_tier,
             "autonomy_default_level": tenant.autonomy_default_level,
-            "agent_autonomy": json.loads(tenant.agent_autonomy_json or "{}"),
+            "agent_autonomy": get_tenant_autonomy_config(tenant)["agent_autonomy"],
+            "autonomy_limits": get_tenant_autonomy_config(tenant)["limits"],
             "products": json.loads(tenant.products_json or "[]"),
             "services": json.loads(tenant.services_json or "[]"),
         },
@@ -381,7 +448,14 @@ def update_current_tenant(
     if payload.autonomy_default_level is not None:
         tenant.autonomy_default_level = payload.autonomy_default_level
     if payload.agent_autonomy is not None:
-        tenant.agent_autonomy_json = json.dumps(payload.agent_autonomy, ensure_ascii=False)
+        try:
+            existing_cfg = json.loads(tenant.agent_autonomy_json or "{}")
+        except Exception:
+            existing_cfg = {}
+        merged_cfg = {k: v for k, v in payload.agent_autonomy.items() if k in AGENT_REGISTRY}
+        if "_limits" in existing_cfg:
+            merged_cfg["_limits"] = existing_cfg["_limits"]
+        tenant.agent_autonomy_json = json.dumps(merged_cfg, ensure_ascii=False)
     if payload.products is not None:
         tenant.products_json = json.dumps(payload.products, ensure_ascii=False)
     if payload.services is not None:
@@ -551,6 +625,7 @@ def list_agents(user: User = Depends(get_current_user), db: Session = Depends(ge
     for lg in logs:
         counts[lg.agent_id] = counts.get(lg.agent_id, 0) + 1
 
+    status_info = MultiProviderAIAdapter.resolve_provider_status()
     result = []
     for aid, meta in AGENT_REGISTRY.items():
         result.append(
@@ -558,10 +633,56 @@ def list_agents(user: User = Depends(get_current_user), db: Session = Depends(ge
                 **meta,
                 "effective_autonomy_level": get_effective_autonomy_level(tenant, aid),
                 "executions_count": counts.get(aid, 0),
-                "active_provider": MultiProviderAIAdapter.resolve_provider_name(),
+                "active_provider": status_info["active_provider"],
+                "ai_audit": AGENT_AI_CAPABILITY_AUDIT.get(aid, {}),
             }
         )
-    return {"agents": result, "provider": MultiProviderAIAdapter.resolve_provider_name()}
+    return {"agents": result, "provider": status_info["active_provider"], "llm_active": status_info["llm_active"]}
+
+
+@router.get("/agents/audit")
+def audit_agents_intelligence(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """ETAPA 3 — auditoria honesta: motor determinístico vs template vs LLM real, com consumo e origem das respostas."""
+    tid = get_active_tenant_id(user)
+    status_info = MultiProviderAIAdapter.resolve_provider_status()
+    logs = db.query(AgentExecutionLog).filter(AgentExecutionLog.tenant_id == tid).all()
+    origin_counts: dict[str, dict[str, int]] = {}
+    for lg in logs:
+        m = re.search(r"origem=(.+)$", lg.provider_used or "")
+        origin = m.group(1) if m else "LEGACY_DETERMINISTIC_ENGINE (anterior à Fase 13)"
+        origin_counts.setdefault(lg.agent_id, {})
+        origin_counts[lg.agent_id][origin] = origin_counts[lg.agent_id].get(origin, 0) + 1
+    agents = []
+    for aid, meta in AGENT_REGISTRY.items():
+        cap = AGENT_AI_CAPABILITY_AUDIT.get(aid, {})
+        agents.append(
+            {
+                "agent_id": aid,
+                "name": meta["name"],
+                "uses_real_llm_now": bool(status_info["llm_active"] and cap.get("llm_narrative_enabled")),
+                "llm_model": status_info["active_provider"] if (status_info["llm_active"] and cap.get("llm_narrative_enabled")) else None,
+                "llm_capable": bool(cap.get("llm_narrative_enabled")),
+                "base_origin": cap.get("base_origin"),
+                "deterministic_rules": cap.get("deterministic_rules"),
+                "templates": cap.get("templates"),
+                "tools_executed": cap.get("tools_executed", []),
+                "outputs": cap.get("outputs"),
+                "limitations": cap.get("limitations"),
+                "responses_by_origin": origin_counts.get(aid, {}),
+            }
+        )
+    real_llm_agents = sum(1 for a in agents if a["uses_real_llm_now"])
+    return {
+        "provider_status": status_info,
+        "usage_today": AIUsageTracker.get_usage_summary(tid),
+        "agents": agents,
+        "verdict": (
+            f"{real_llm_agents} de {len(agents)} agentes usam LLM real agora."
+            if real_llm_agents
+            else "NENHUM agente usa LLM real neste momento: todas as respostas vêm do motor Python determinístico e/ou templates. "
+            "Configure OLLAMA_BASE_URL, GEMINI_API_KEY ou OPENAI_COMPATIBLE_* para ativar a camada de linguagem natural."
+        ),
+    }
 
 
 @router.post("/agents/{agent_id}/execute")
@@ -1037,6 +1158,12 @@ def trigger_social_item_publication(item_id: int, user: User = Depends(get_curre
         raise HTTPException(status_code=404, detail="Item do calendário não encontrado.")
     item.approval_status = "APPROVED"
     db.commit()
+    if item.platform.lower() != "blog":
+        ok_lim, why_lim = check_autonomy_limit(db, tenant, "PUBLISH")
+        if not ok_lim:
+            item.approval_status = "PENDING_REVIEW"
+            db.commit()
+            return {"item_id": item.id, "status": "BLOCKED_BY_LIMIT", "message": why_lim}
     res = validate_and_publish_social_item(db, tenant, item, force_execute=True)
     return {"item_id": item.id, "approval_status": item.approval_status, "publish_status": item.publish_status, **res}
 
@@ -1733,7 +1860,7 @@ def decide_approval_request(
         return {"id": req.id, "status": req.status}
 
     if req.is_high_impact:
-        token = payload.confirmation_token or "CONFIRMED_BY_HUMAN"
+        token = payload.confirmation_token or ""
         if not verify_high_impact_token(user.id, tid, "CRITICAL_ACTION", token):
             raise HTTPException(status_code=400, detail="Token de confirmação de ação de alto impacto inválido.")
 
@@ -1960,3 +2087,195 @@ def trigger_database_backup(
         resource_id=info["backup_file"],
     )
     return info
+
+
+
+# ==============================================================================
+# 18. FASE 13 — AUDITORIA REAL, AUTONOMIA E ATIVAÇÃO COMERCIAL
+# ==============================================================================
+OAUTH_PROVIDER_CONFIG: dict[str, dict[str, str]] = {
+    "instagram": {"token_url": "https://graph.facebook.com/v21.0/oauth/access_token"},
+    "facebook": {"token_url": "https://graph.facebook.com/v21.0/oauth/access_token"},
+    "meta_business": {"token_url": "https://graph.facebook.com/v21.0/oauth/access_token"},
+    "youtube": {"token_url": "https://oauth2.googleapis.com/token"},
+    "google_search_console": {"token_url": "https://oauth2.googleapis.com/token"},
+    "google_analytics_4": {"token_url": "https://oauth2.googleapis.com/token"},
+    "linkedin": {"token_url": "https://www.linkedin.com/oauth/v2/accessToken"},
+    "tiktok": {"token_url": "https://open.tiktokapis.com/v2/oauth/token/"},
+    "pinterest": {"token_url": "https://api.pinterest.com/v5/oauth/token"},
+}
+
+
+def _load_integration_creds(conn: IntegrationConnection) -> dict[str, Any]:
+    from app.core.security import decrypt_secret
+
+    try:
+        return json.loads(decrypt_secret(conn.encrypted_credentials) or "{}") if conn.encrypted_credentials else {}
+    except Exception:
+        return {}
+
+
+@router.get("/social/platforms-audit")
+def social_platforms_audit(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    tid = get_active_tenant_id(user)
+    return audit_social_platforms_detailed(db, tid)
+
+
+@router.get("/integrations/oauth/{provider_key}/start")
+def oauth_start(provider_key: str, user: User = Depends(require_roles("owner", "admin")), db: Session = Depends(get_db)):
+    from datetime import timedelta as _td
+
+    from app.core.config import settings as _settings
+
+    tid = get_active_tenant_id(user)
+    if provider_key not in OAUTH_PROVIDER_CONFIG:
+        raise HTTPException(status_code=404, detail="Provedor sem fluxo OAuth suportado.")
+    ensure_tenant_integrations_seeded(db, tid)
+    conn = db.query(IntegrationConnection).filter(IntegrationConnection.tenant_id == tid, IntegrationConnection.provider_key == provider_key).first()
+    creds = _load_integration_creds(conn) if conn else {}
+    client_id = str(creds.get("client_id", "")).strip()
+    redirect_uri = f"{_settings.PUBLIC_URL.rstrip('/')}/api/v1/integrations/oauth/callback"
+    if not client_id or not creds.get("client_secret"):
+        return {
+            "status": "AGUARDANDO_CREDENCIAIS",
+            "message": "Cadastre client_id e client_secret do app OAuth em /integrations/connect (campos 'client_id' e 'client_secret') para iniciar a autorização.",
+            "redirect_uri_to_register_in_provider_console": redirect_uri,
+            "where_to_obtain": INTEGRATION_CATALOG.get(provider_key, {}).get("where_to_obtain", ""),
+        }
+    state = create_access_token({"sub": str(user.id), "tid": tid, "prov": provider_key, "kind": "oauth_state"}, expires_delta=_td(minutes=15))
+    return {
+        "status": "READY",
+        "authorize_url": build_oauth_authorization_url(provider_key, client_id=client_id, redirect_uri=redirect_uri, state=state),
+        "redirect_uri": redirect_uri,
+    }
+
+
+@router.get("/integrations/oauth/callback")
+def oauth_callback(code: str = "", state: str = "", error: str = "", db: Session = Depends(get_db)):
+    import httpx
+    from fastapi.responses import HTMLResponse
+
+    from app.core.config import settings as _settings
+    from app.core.security import decode_access_token
+
+    def page(msg: str, ok: bool) -> HTMLResponse:
+        color = "#10B981" if ok else "#EF4444"
+        return HTMLResponse(f"<html><body style='font-family:sans-serif;background:#0f172a;color:#fff;padding:40px'><h2 style='color:{color}'>{msg}</h2><a style='color:#818cf8' href='/'>Voltar ao UNION GROWTH OS</a></body></html>")
+
+    if error:
+        return page(f"Autorização negada pela plataforma: {sanitize_text(error)}", False)
+    try:
+        st = decode_access_token(state)
+    except HTTPException:
+        return page("State OAuth inválido ou expirado.", False)
+    if st.get("kind") != "oauth_state" or not code:
+        return page("Requisição OAuth inválida.", False)
+    tid, prov = int(st["tid"]), str(st["prov"])
+    conn = db.query(IntegrationConnection).filter(IntegrationConnection.tenant_id == tid, IntegrationConnection.provider_key == prov).first()
+    creds = _load_integration_creds(conn) if conn else {}
+    cfg = OAUTH_PROVIDER_CONFIG.get(prov)
+    if not conn or not cfg or not creds.get("client_id") or not creds.get("client_secret"):
+        return page("Credenciais do app OAuth ausentes.", False)
+    redirect_uri = f"{_settings.PUBLIC_URL.rstrip('/')}/api/v1/integrations/oauth/callback"
+    try:
+        with httpx.Client(timeout=12.0) as client:
+            r = client.post(cfg["token_url"], data={
+                "grant_type": "authorization_code", "code": code, "redirect_uri": redirect_uri,
+                "client_id": creds["client_id"], "client_secret": creds["client_secret"],
+            })
+        if r.status_code != 200:
+            return page(f"Falha na troca do código por token (HTTP {r.status_code}).", False)
+        tok = r.json()
+    except Exception as exc:
+        return page(f"Erro de rede na troca de token: {type(exc).__name__}", False)
+    access = tok.get("access_token", "")
+    if not access:
+        return page("A plataforma não retornou access_token.", False)
+    merged = {**creds, "access_token": access, "oauth_access_token": access, "page_access_token": access if prov in ("instagram", "facebook") else creds.get("page_access_token", "")}
+    if tok.get("refresh_token"):
+        merged["refresh_token"] = tok["refresh_token"]
+    save_integration_credentials(db=db, tenant_id=tid, provider_key=prov, credentials=merged)
+    record_audit_log(db, tenant_id=tid, user_id=int(st["sub"]), actor="oauth-callback", action=f"OAUTH_TOKEN_STORED:{prov}", resource_type="integration", resource_id=prov)
+    return page(f"{prov} autorizado. Token armazenado com criptografia Fernet. Complete os identificadores restantes em Integrações.", True)
+
+
+@router.post("/onboarding/company", status_code=status.HTTP_201_CREATED)
+def onboarding_company(
+    payload: CompanyOnboardingRequest,
+    user: User = Depends(require_roles("owner", "admin")),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    existing = None if payload.create_new_tenant else _get_tenant_or_404(db, tid)
+    return run_company_onboarding(db, user, payload, existing)
+
+
+@router.get("/autonomy/panel")
+def autonomy_panel(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    tid = get_active_tenant_id(user)
+    return build_autonomy_panel(db, _get_tenant_or_404(db, tid))
+
+
+@router.put("/autonomy/limits")
+def update_autonomy(
+    payload: AutonomyConfigUpdateRequest,
+    user: User = Depends(require_roles("owner", "admin")),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    cfg = save_autonomy_config(db, tenant, payload.autonomy_default_level, payload.agent_autonomy, payload.limits)
+    record_audit_log(db, tenant_id=tid, user_id=user.id, actor=user.email, action="AUTONOMY_CONFIG_UPDATED", details={"level": payload.autonomy_default_level, "limits": cfg["limits"]})
+    return cfg
+
+
+@router.post("/marketing/full-operation-pipeline", status_code=status.HTTP_201_CREATED)
+def marketing_full_pipeline(
+    payload: FullMarketingOperationRequest,
+    user: User = Depends(require_roles("owner", "admin", "manager")),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    return run_full_marketing_pipeline(db, user, tenant, payload)
+
+
+@router.post("/automations/verify-operation")
+def automations_verify(user: User = Depends(require_roles("owner", "admin")), db: Session = Depends(get_db)):
+    tid = get_active_tenant_id(user)
+    return verify_all_automations(db, _get_tenant_or_404(db, tid))
+
+
+@router.get("/automations/operational-log")
+def automations_operational_log(hours: int = 24, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    tid = get_active_tenant_id(user)
+    return build_operational_log(db, _get_tenant_or_404(db, tid), hours=max(1, min(hours, 168)))
+
+
+@router.get("/ai/status")
+def ai_status(user: User = Depends(get_current_user)):
+    tid = get_active_tenant_id(user)
+    return {"providers": MultiProviderAIAdapter.resolve_provider_status(), "usage_today": AIUsageTracker.get_usage_summary(tid)}
+
+
+@router.get("/security/audit")
+def security_self_audit(user: User = Depends(require_roles("owner", "admin")), db: Session = Depends(get_db)):
+    """Auditoria de segurança sem expor segredos."""
+    from app.core.config import settings as _s
+
+    default_secret_in_use = _s.SECRET_KEY.startswith("union-growth-os-default") or _s.JWT_SECRET.startswith("union-growth-os-jwt-secret")
+    users = db.query(User).all()
+    weak = [u.email for u in users if verify_password("UnionGrowth@2026", u.hashed_password)]
+    return {
+        "default_signing_secrets_in_use": default_secret_in_use,
+        "users_with_invalidated_default_password_still_valid": len(weak),
+        "users_requiring_password_change": sum(1 for u in users if user_must_change_password(u)),
+        "password_hash": "bcrypt (rounds=10)",
+        "jwt": f"{_s.JWT_ALGORITHM}, expira em {_s.ACCESS_TOKEN_EXPIRE_MINUTES} min",
+        "credentials_encryption": "Fernet (AES-128-CBC + HMAC)",
+        "cors_allowed_origins": _s.cors_origins_list,
+        "rate_limit_per_minute": _s.RATE_LIMIT_PER_MINUTE,
+        "login_bruteforce_protection": "8 falhas / 5 min por IP+e-mail",
+        "tenant_isolation": "Todas as consultas filtram tenant_id; X-Tenant-Id só aceito para tenants do próprio owner",
+        "environment": _s.ENVIRONMENT,
+    }

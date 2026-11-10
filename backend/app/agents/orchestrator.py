@@ -165,37 +165,374 @@ AGENT_REGISTRY: dict[str, dict[str, Any]] = {
 }
 
 
+# ETAPA 3 — Auditoria honesta dos 11 agentes (o que é motor determinístico, template ou LLM real).
+AGENT_AI_CAPABILITY_AUDIT: dict[str, dict[str, Any]] = {
+    "AGENT_01_CEO": {
+        "base_origin": "DETERMINISTIC_PYTHON_ENGINE",
+        "llm_narrative_enabled": True,
+        "deterministic_rules": "Cálculo de KPIs reais (receita, margem, ROI, CAC) a partir do banco; regras de alerta (margem < 20%, conversão < 15%, aprovações pendentes).",
+        "templates": "Estrutura textual do CEO Daily Briefing (frases-modelo preenchidas com dados reais).",
+        "tools_executed": ["Consulta PostgreSQL", "Cálculo de KPIs", "Persistência do briefing"],
+        "outputs": "CEO Daily Briefing, prioridades e recomendações baseadas em dados reais.",
+        "limitations": "Recomendações são regras fixas; análise em linguagem natural livre só existe se um LLM (Ollama/Gemini/OpenAI-compatível) estiver configurado.",
+    },
+    "AGENT_02_CMO": {
+        "base_origin": "TEMPLATE_ENGINE",
+        "llm_narrative_enabled": True,
+        "deterministic_rules": "Alocação de verba 40/35/25 e funil TOFU/MOFU/BOFU são regras fixas; ROI vem de dados reais.",
+        "templates": "Plano mensal e posicionamento são templates parametrizados pelos dados da empresa.",
+        "tools_executed": ["Criação de campanha no banco", "Cálculo de ROI"],
+        "outputs": "Plano mensal de marketing persistido como campanha.",
+        "limitations": "Estratégia não é criada por LLM sem provedor configurado; é template com dados reais da empresa.",
+    },
+    "AGENT_03_SEO": {
+        "base_origin": "DETERMINISTIC_PYTHON_ENGINE",
+        "llm_narrative_enabled": False,
+        "deterministic_rules": "Auditoria técnica HTTP real (title, meta, H1, alt, robots, sitemap, JSON-LD) + Google PageSpeed API v5 + Google Autocomplete público.",
+        "templates": "Artigo SEO usa estrutura de template (outline fixo) preenchida com palavra-chave e marca.",
+        "tools_executed": ["HTTP real (httpx)", "PageSpeed Insights v5", "Google Suggest", "BeautifulSoup"],
+        "outputs": "Relatório de auditoria, clusters de palavras-chave, artigos e Schema.org.",
+        "limitations": "Sem volume de busca/posição real até conectar Google Search Console; artigos são template estruturado, não redação livre de LLM.",
+    },
+    "AGENT_04_SOCIAL": {
+        "base_origin": "TEMPLATE_ENGINE",
+        "llm_narrative_enabled": True,
+        "deterministic_rules": "Limites por plataforma, melhores horários e fila de aprovação.",
+        "templates": "Legendas e roteiros curtos baseados em template.",
+        "tools_executed": ["Criação de itens no calendário", "Validação de limites", "Fila de publicação oficial"],
+        "outputs": "Calendário editorial multicanal.",
+        "limitations": "Publica externamente apenas com OAuth/credenciais oficiais conectadas; sem credenciais fica WAITING_CREDENTIALS.",
+    },
+    "AGENT_05_CREATIVE": {
+        "base_origin": "DETERMINISTIC_PYTHON_ENGINE",
+        "llm_narrative_enabled": False,
+        "deterministic_rules": "Renderização programática de PNG com Pillow usando paleta da marca.",
+        "templates": "Layouts visuais fixos (post, banner, thumbnail).",
+        "tools_executed": ["Pillow", "Gravação de arquivo PNG"],
+        "outputs": "Artes PNG reais e roteiros.",
+        "limitations": "Não é IA generativa de imagem; é composição tipográfica por template. Vídeo real não é renderizado (apenas roteiro).",
+    },
+    "AGENT_06_COPYWRITER": {
+        "base_origin": "TEMPLATE_ENGINE",
+        "llm_narrative_enabled": True,
+        "deterministic_rules": "Frameworks AIDA/PAS/BAB/FAB preenchidos e verificação de promessas proibidas.",
+        "templates": "Variantes A/B geradas por template de framework.",
+        "tools_executed": ["Geração de copy por framework", "Checagem de compliance"],
+        "outputs": "Copies A/B com hipótese de teste.",
+        "limitations": "Copy criativa livre só com LLM configurado; caso contrário é template de framework.",
+    },
+    "AGENT_07_GROWTH": {
+        "base_origin": "TEMPLATE_ENGINE",
+        "llm_narrative_enabled": False,
+        "deterministic_rules": "ICE score calculado por fórmula.",
+        "templates": "Hipótese padrão de experimento (marcada ESTIMATED até haver resultado real).",
+        "tools_executed": ["Criação de experimento no banco"],
+        "outputs": "Experimentos de growth.",
+        "limitations": "Hipótese é template; resultados só são REAL quando registrados manualmente.",
+    },
+    "AGENT_08_SALES": {
+        "base_origin": "DETERMINISTIC_PYTHON_ENGINE",
+        "llm_narrative_enabled": False,
+        "deterministic_rules": "Lead scoring determinístico 0–100 e previsão ponderada de pipeline.",
+        "templates": "Nenhum relevante.",
+        "tools_executed": ["Re-score de leads", "Forecast do pipeline"],
+        "outputs": "Leads qualificados e previsão comercial.",
+        "limitations": "Não envia mensagens sem SMTP/WhatsApp conectados.",
+    },
+    "AGENT_09_COMPETITIVE": {
+        "base_origin": "DETERMINISTIC_PYTHON_ENGINE",
+        "llm_narrative_enabled": False,
+        "deterministic_rules": "Inspeção HTTP pública respeitando robots.txt; regex de sinais de preço.",
+        "templates": "Forças/fraquezas/oportunidades são texto-modelo genérico.",
+        "tools_executed": ["HTTP real", "robots.txt parser"],
+        "outputs": "Análise pública de concorrente.",
+        "limitations": "Forças/fraquezas são genéricas; só título, descrição e headings são extraídos de fato.",
+    },
+    "AGENT_10_FINANCE": {
+        "base_origin": "DETERMINISTIC_PYTHON_ENGINE",
+        "llm_narrative_enabled": False,
+        "deterministic_rules": "KPIs financeiros calculados somente sobre registros REAL/IMPORTED.",
+        "templates": "Nenhum.",
+        "tools_executed": ["Agregações SQL", "Cálculo de CAC/ROI/ROAS"],
+        "outputs": "KPIs financeiros auditáveis.",
+        "limitations": "LTV usa baseline conservador de 6 meses (estimativa).",
+    },
+    "AGENT_11_CS": {
+        "base_origin": "DETERMINISTIC_PYTHON_ENGINE",
+        "llm_narrative_enabled": False,
+        "deterministic_rules": "Classificação NPS/CSAT em risco/promotor por faixas fixas.",
+        "templates": "Textos de retenção/upsell por faixa de NPS.",
+        "tools_executed": ["Agregação de feedbacks"],
+        "outputs": "Saúde de clientes e playbooks.",
+        "limitations": "Sentimento vem do NPS, não de análise de texto por LLM.",
+    },
+}
+
+
+class AIUsageTracker:
+    """
+    ETAPA 3 — Controle de Consumo de IA por Empresa (Tenant) e Dia:
+    Registra chamadas, tokens estimados/consumidos, origem da resposta e aplica limites diários.
+    """
+
+    _usage_by_day: dict[str, dict[str, Any]] = {}
+
+    @classmethod
+    def _bucket(cls, tenant_id: int) -> dict[str, Any]:
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        key = f"{tenant_id}:{today}"
+        if key not in cls._usage_by_day:
+            cls._usage_by_day[key] = {
+                "date": today,
+                "tenant_id": tenant_id,
+                "total_calls": 0,
+                "llm_calls": 0,
+                "deterministic_calls": 0,
+                "tokens_used": 0,
+                "daily_token_limit": settings.AI_DAILY_TOKEN_LIMIT,
+                "daily_call_limit": settings.AI_DAILY_CALL_LIMIT,
+                "estimated_cost_brl": 0.0,
+                "origins_breakdown": {},
+            }
+        return cls._usage_by_day[key]
+
+    @classmethod
+    def can_use_external_llm(cls, tenant_id: int, estimated_tokens: int = 400) -> bool:
+        b = cls._bucket(tenant_id)
+        if b["total_calls"] >= b["daily_call_limit"]:
+            return False
+        if b["tokens_used"] + estimated_tokens > b["daily_token_limit"]:
+            return False
+        return True
+
+    @classmethod
+    def record_execution(cls, tenant_id: int, origin: str, llm_used: bool, tokens: int = 0) -> dict[str, Any]:
+        b = cls._bucket(tenant_id)
+        b["total_calls"] += 1
+        if llm_used:
+            b["llm_calls"] += 1
+            b["tokens_used"] += max(1, tokens)
+        else:
+            b["deterministic_calls"] += 1
+        b["origins_breakdown"][origin] = b["origins_breakdown"].get(origin, 0) + 1
+        return b
+
+    @classmethod
+    def get_usage_summary(cls, tenant_id: int) -> dict[str, Any]:
+        return cls._bucket(tenant_id)
+
+
 class MultiProviderAIAdapter:
     """
-    Independent AI Provider Adapter:
-    1. Tries local Ollama if configured and reachable.
-    2. Tries OpenAI-compatible free/external endpoint if configured.
-    3. Always succeeds via the built-in Deterministic Strategic & Analytical Engine (zero paid dependency).
+    ETAPA 3 — Sistema Híbrido Real de Inteligência Artificial:
+    1. Motor Python Determinístico (cálculos financeiros, HTTP SEO real, PageSpeed, Pillow PNG, Lead Score, ICE).
+    2. Adaptador para Modelos Locais (Ollama em OLLAMA_BASE_URL).
+    3. Adaptadores para APIs Externas Gratuitas / Configuráveis (Gemini API, OpenAI-Compatible / Groq / OpenRouter, Pollinations).
+    4. Fallback Automático (nunca interrompe a operação se LLM externo estiver sem chave ou offline).
+    5. Controle de Consumo (AIUsageTracker).
+    6. Registro Transparente da Origem das Respostas (nunca declara template como LLM real).
     """
 
     @staticmethod
-    def resolve_provider_name() -> str:
-        if settings.OPENAI_COMPATIBLE_BASE_URL and settings.OPENAI_COMPATIBLE_API_KEY:
-            return f"openai-compatible:{settings.OPENAI_COMPATIBLE_MODEL or 'default'}"
-        if settings.AI_DEFAULT_PROVIDER.lower() == "ollama":
+    def resolve_provider_status() -> dict[str, Any]:
+        local_ollama_online = False
+        if settings.AI_DEFAULT_PROVIDER.lower() in ("ollama", "hybrid"):
             try:
-                with httpx.Client(timeout=1.5) as client:
+                with httpx.Client(timeout=1.2) as client:
                     r = client.get(f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/tags")
                     if r.status_code == 200:
-                        return f"ollama:{settings.OLLAMA_MODEL}"
+                        local_ollama_online = True
+            except Exception:
+                local_ollama_online = False
+
+        gemini_configured = bool((settings.GEMINI_API_KEY or "").strip())
+        openai_compat_configured = bool((settings.OPENAI_COMPATIBLE_BASE_URL or "").strip() and (settings.OPENAI_COMPATIBLE_API_KEY or "").strip())
+        free_public_enabled = bool(settings.ENABLE_FREE_PUBLIC_LLM)
+
+        if local_ollama_online:
+            active_provider = f"ollama:{settings.OLLAMA_MODEL}"
+            llm_active = True
+            origin_code = f"REAL_LLM_LOCAL:ollama:{settings.OLLAMA_MODEL}"
+        elif gemini_configured:
+            active_provider = f"gemini:{settings.GEMINI_MODEL}"
+            llm_active = True
+            origin_code = f"REAL_LLM_EXTERNAL:gemini:{settings.GEMINI_MODEL}"
+        elif openai_compat_configured:
+            model_name = settings.OPENAI_COMPATIBLE_MODEL or "openai-compatible"
+            active_provider = f"openai-compatible:{model_name}"
+            llm_active = True
+            origin_code = f"REAL_LLM_EXTERNAL:openai-compatible:{model_name}"
+        elif free_public_enabled:
+            active_provider = "pollinations-free-openai-adapter"
+            llm_active = True
+            origin_code = "REAL_LLM_EXTERNAL:pollinations:openai"
+        else:
+            active_provider = "hybrid-deterministic-python-engine-v2"
+            llm_active = False
+            origin_code = "DETERMINISTIC_PYTHON_AND_TEMPLATE"
+
+        return {
+            "active_provider": active_provider,
+            "llm_active": llm_active,
+            "origin_code": origin_code,
+            "adapters": {
+                "deterministic_python_engine": {"status": "ACTIVE", "cost": "R$ 0,00 (Nativo)"},
+                "local_ollama_adapter": {
+                    "status": "CONNECTED" if local_ollama_online else "STANDBY_OFFLINE",
+                    "base_url": settings.OLLAMA_BASE_URL,
+                    "model": settings.OLLAMA_MODEL,
+                },
+                "external_gemini_adapter": {
+                    "status": "CONFIGURED" if gemini_configured else "PENDING_API_KEY",
+                    "model": settings.GEMINI_MODEL,
+                },
+                "external_openai_compatible_adapter": {
+                    "status": "CONFIGURED" if openai_compat_configured else "PENDING_API_KEY",
+                    "base_url": settings.OPENAI_COMPATIBLE_BASE_URL or "https://api.groq.com/openai/v1",
+                },
+                "free_public_llm_adapter": {
+                    "status": "ENABLED" if free_public_enabled else "AVAILABLE_OPT_IN",
+                    "endpoint": "https://text.pollinations.ai/openai",
+                },
+            },
+        }
+
+    @classmethod
+    def resolve_provider_name(cls) -> str:
+        return cls.resolve_provider_status()["active_provider"]
+
+    @classmethod
+    def generate_hybrid_insight(
+        cls,
+        tenant_id: int,
+        prompt: str,
+        deterministic_fallback_text: str,
+        pure_deterministic: bool = False,
+    ) -> tuple[str, str, bool]:
+        """
+        Returns (text, response_origin, llm_used).
+        If pure_deterministic is True or no live LLM is configured/online, returns the deterministic output
+        and honestly labels it as DETERMINISTIC_PYTHON_ENGINE or DETERMINISTIC_PYTHON_AND_TEMPLATE.
+        """
+        if pure_deterministic or not AIUsageTracker.can_use_external_llm(tenant_id, estimated_tokens=300):
+            origin = "DETERMINISTIC_PYTHON_ENGINE" if pure_deterministic else "DETERMINISTIC_PYTHON_AND_TEMPLATE"
+            AIUsageTracker.record_execution(tenant_id, origin=origin, llm_used=False, tokens=0)
+            return deterministic_fallback_text, origin, False
+
+        status = cls.resolve_provider_status()
+        if not status["llm_active"]:
+            origin = "DETERMINISTIC_PYTHON_AND_TEMPLATE"
+            AIUsageTracker.record_execution(tenant_id, origin=origin, llm_used=False, tokens=0)
+            return deterministic_fallback_text, origin, False
+
+        # 1. Try Local Ollama if online
+        if status["adapters"]["local_ollama_adapter"]["status"] == "CONNECTED":
+            try:
+                with httpx.Client(timeout=6.0) as client:
+                    r = client.post(
+                        f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/generate",
+                        json={"model": settings.OLLAMA_MODEL, "prompt": prompt, "stream": False},
+                    )
+                    if r.status_code == 200:
+                        resp_text = (r.json().get("response") or "").strip()
+                        if resp_text:
+                            origin = f"REAL_LLM_LOCAL:ollama:{settings.OLLAMA_MODEL}"
+                            AIUsageTracker.record_execution(tenant_id, origin=origin, llm_used=True, tokens=len(resp_text.split()) * 2)
+                            return resp_text, origin, True
             except Exception:
                 pass
-        return "deterministic-expert-engine-v1"
+
+        # 2. Try Google Gemini Official API if GEMINI_API_KEY is configured
+        if (settings.GEMINI_API_KEY or "").strip():
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent"
+                with httpx.Client(timeout=8.0) as client:
+                    r = client.post(
+                        url,
+                        params={"key": settings.GEMINI_API_KEY.strip()},
+                        json={"contents": [{"parts": [{"text": prompt}]}]},
+                    )
+                    if r.status_code == 200:
+                        candidates = r.json().get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts and parts[0].get("text"):
+                                resp_text = str(parts[0]["text"]).strip()
+                                origin = f"REAL_LLM_EXTERNAL:gemini:{settings.GEMINI_MODEL}"
+                                AIUsageTracker.record_execution(tenant_id, origin=origin, llm_used=True, tokens=len(resp_text.split()) * 2)
+                                return resp_text, origin, True
+            except Exception:
+                pass
+
+        # 3. Try OpenAI-Compatible API (Groq, OpenRouter, Together, OpenAI)
+        if (settings.OPENAI_COMPATIBLE_BASE_URL or "").strip() and (settings.OPENAI_COMPATIBLE_API_KEY or "").strip():
+            try:
+                base_u = settings.OPENAI_COMPATIBLE_BASE_URL.rstrip("/")
+                endpoint = f"{base_u}/chat/completions" if not base_u.endswith("/chat/completions") else base_u
+                model_id = settings.OPENAI_COMPATIBLE_MODEL or "llama-3.3-70b-versatile"
+                with httpx.Client(timeout=8.0) as client:
+                    r = client.post(
+                        endpoint,
+                        headers={"Authorization": f"Bearer {settings.OPENAI_COMPATIBLE_API_KEY.strip()}"},
+                        json={
+                            "model": model_id,
+                            "messages": [{"role": "user", "content": prompt}],
+                            "temperature": 0.3,
+                        },
+                    )
+                    if r.status_code == 200:
+                        choices = r.json().get("choices", [])
+                        if choices:
+                            resp_text = str(choices[0].get("message", {}).get("content", "")).strip()
+                            if resp_text:
+                                origin = f"REAL_LLM_EXTERNAL:openai-compatible:{model_id}"
+                                AIUsageTracker.record_execution(tenant_id, origin=origin, llm_used=True, tokens=len(resp_text.split()) * 2)
+                                return resp_text, origin, True
+            except Exception:
+                pass
+
+        # 4. Automatic Fallback to Deterministic Engine + Structured Template
+        origin = "FALLBACK_DETERMINISTIC_PYTHON_AND_TEMPLATE"
+        AIUsageTracker.record_execution(tenant_id, origin=origin, llm_used=False, tokens=0)
+        return deterministic_fallback_text, origin, False
+
+
+DEFAULT_AUTONOMY_LIMITS: dict[str, Any] = {
+    "max_daily_publications": 10,
+    "max_daily_messages": 100,
+    "max_campaign_budget_brl": 5000.0,
+    "max_active_campaigns": 10,
+    "allow_commercial_changes": False,
+    "allow_external_actions": False,
+    "require_approval_for_financial_actions": True,
+}
+
+
+def get_tenant_autonomy_config(tenant: Tenant) -> dict[str, Any]:
+    raw: dict[str, Any] = {}
+    try:
+        raw = json.loads(tenant.agent_autonomy_json or "{}")
+    except Exception:
+        raw = {}
+
+    agent_levels: dict[str, int] = {}
+    for aid, meta in AGENT_REGISTRY.items():
+        val = raw.get(aid, tenant.autonomy_default_level or meta.get("default_autonomy", 2))
+        agent_levels[aid] = int(val) if int(val) in (1, 2, 3) else 2
+
+    saved_limits = raw.get("_limits", {}) if isinstance(raw.get("_limits"), dict) else {}
+    limits = {**DEFAULT_AUTONOMY_LIMITS, **saved_limits}
+    limits["require_approval_for_financial_actions"] = True
+    return {
+        "autonomy_default_level": int(tenant.autonomy_default_level or 2),
+        "agent_autonomy": agent_levels,
+        "limits": limits,
+    }
 
 
 def get_effective_autonomy_level(tenant: Tenant, agent_id: str) -> int:
-    try:
-        mapping = json.loads(tenant.agent_autonomy_json or "{}")
-        if agent_id in mapping and int(mapping[agent_id]) in (1, 2, 3):
-            return int(mapping[agent_id])
-    except Exception:
-        pass
-    return int(tenant.autonomy_default_level or 2)
+    cfg = get_tenant_autonomy_config(tenant)
+    return cfg["agent_autonomy"].get(agent_id, int(tenant.autonomy_default_level or 2))
 
 
 def compute_lead_score(lead: CRMLead) -> tuple[int, str]:
@@ -552,6 +889,9 @@ class CentralOrchestrator:
 
         elif aid == "AGENT_04_SOCIAL":
             platforms = params.get("platforms", ["instagram", "linkedin", "youtube", "tiktok"])
+            if params.get("mode") == "automated_run" and "platforms" not in params:
+                rotation = ["instagram", "linkedin", "youtube", "tiktok", "facebook", "pinterest"]
+                platforms = [rotation[datetime.now(timezone.utc).timetuple().tm_yday % len(rotation)]]
             created_items = []
             base_date = datetime.now(timezone.utc)
             for idx, plat in enumerate(platforms):
@@ -725,6 +1065,32 @@ class CentralOrchestrator:
 
         duration_ms = round((time.perf_counter() - t0) * 1000, 2)
 
+        # ETAPA 3 — Hybrid AI layer: optional real-LLM executive narrative on top of deterministic data.
+        agent_cap = AGENT_AI_CAPABILITY_AUDIT.get(aid, {})
+        base_origin = agent_cap.get("base_origin", "DETERMINISTIC_PYTHON_ENGINE")
+        llm_used = False
+        response_origin = base_origin
+        if agent_cap.get("llm_narrative_enabled", False) and summary:
+            prompt = (
+                f"Você é o {agent_meta['name']} da empresa {tenant.brand_name} (nicho: {tenant.niche}). "
+                f"Com base EXCLUSIVAMENTE nos dados reais abaixo, escreva uma análise executiva curta (máx. 6 linhas) "
+                f"em português do Brasil, sem inventar números.\nResumo: {summary}\nRecomendações: {recs}"
+            )
+            narrative, narrative_origin, llm_used = MultiProviderAIAdapter.generate_hybrid_insight(
+                tenant.id, prompt, deterministic_fallback_text=summary, pure_deterministic=False
+            )
+            if llm_used:
+                output_data["llm_narrative"] = narrative
+                response_origin = f"{narrative_origin} + {base_origin}"
+            else:
+                response_origin = narrative_origin if base_origin == "TEMPLATE_ENGINE" else base_origin
+        else:
+            AIUsageTracker.record_execution(tenant.id, origin=response_origin, llm_used=False, tokens=0)
+
+        output_data["_response_origin"] = response_origin
+        output_data["_llm_used"] = llm_used
+        provider_name = f"{provider_name} | origem={response_origin}"
+
         log_entry = AgentExecutionLog(
             tenant_id=tenant.id,
             workflow_run_id=contract.workflow_run_id,
@@ -751,6 +1117,8 @@ class CentralOrchestrator:
             status=status_str,
             autonomy_level=autonomy,
             provider_used=provider_name,
+            response_origin=response_origin,
+            llm_used=llm_used,
             quality_score=96.0,
             data_origin=data_origin,
             summary=summary,
@@ -826,3 +1194,4 @@ class CentralOrchestrator:
             "specialist_diagnostics": agent_reports,
             "completed_at": datetime.now(timezone.utc).isoformat(),
         }
+

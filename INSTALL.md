@@ -48,3 +48,4 @@ Acesse:
 - Documentação OpenAPI: `http://localhost:8000/docs`
 - Health Check: `http://localhost:8000/health`
 - Readiness Probe: `http://localhost:8000/ready`
+

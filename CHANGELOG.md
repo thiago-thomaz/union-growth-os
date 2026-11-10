@@ -12,3 +12,16 @@
 - **FASE 8 (Integrações Oficiais)**: Catálogo de 16 integrações com guia de ativação, criptografia Fernet e testadores reais de conexão (SMTP, Meta Graph API, Mercado Pago, etc.).
 - **FASE 9 (Segurança & Governança)**: Rate limiting, headers de segurança, sanitização anti-XSS, trava de alto impacto e backup completo JSON/SQLite.
 - **FASE 10, 11 & 12 (Produção Cloud, Validação & Otimização)**: Painel Executivo Next.js 15 TypeScript Tailwind CSS com 20 seções, suíte `pytest` aprovada e deploy automatizado em nuvem com HTTPS no Coolify.
+- **FASE 13 (Auditoria Real, Autonomia & Ativação Comercial)**:
+  - Invalidação da senha inicial fraca padrão e rotação forçada (`must_change_password`).
+  - Proteção contra força bruta em logins (8 falhas / 5 min) e CORS restrito a origens permitidas.
+  - Sistema de IA Híbrido Real com motor Python determinístico, rastreamento honesto de origem (`response_origin`) e controle diário de tokens (`AIUsageTracker`).
+  - Auditoria completa dos 11 agentes e matriz de capacidades (sem fingir LLM onde opera template ou regra determinística).
+  - Pipeline de Operação de Marketing em 10 etapas integradas ponta a ponta (`POST /api/v1/marketing/full-operation-pipeline`).
+  - Auditoria individual e categorização das 6 redes sociais (`GET /api/v1/social/platforms-audit`) e rotas OAuth 2.0 oficiais.
+  - Auditoria técnica de SEO real integrada à API pública Google PageSpeed Insights v5, sitemap.xml e robots.txt dinâmicos.
+  - Scheduler APScheduler 100% nativo em Python sincronizado no PostgreSQL (`scheduler_heartbeats`), idempotência comprovada e recuperação após reinício (`BOOT`/`CATCHUP`).
+  - Assistente de Onboarding da Primeira Empresa (`POST /api/v1/onboarding/company`) sem inventar dados, gerando planos e diagnósticos a partir de informações informadas.
+  - Painel de Autonomia por Agente e limites operacionais estritos (`PUT /api/v1/autonomy/limits`), garantindo aprovação humana obrigatória para ações financeiras.
+  - Suíte de testes automatizados expandida para 25 testes aprovados (`25 passed`).
+

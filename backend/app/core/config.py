@@ -29,14 +29,23 @@ class Settings(BaseSettings):
 
     PUBLIC_URL: str = "https://uniongrowth.72.62.13.62.sslip.io"
     CUSTOM_DOMAIN_URL: str = "https://growth.projetosunion.cloud"
-    CORS_ORIGINS: str = "*"
+    CORS_ORIGINS: str = "https://uniongrowth.72.62.13.62.sslip.io,https://growth.projetosunion.cloud,http://localhost:3000,http://localhost:8000"
 
-    AI_DEFAULT_PROVIDER: str = "deterministic"
+    ADMIN_INITIAL_EMAIL: str = "admin@projetosunion.cloud"
+    ADMIN_INITIAL_PASSWORD: str = ""
+
+    AI_DEFAULT_PROVIDER: str = "hybrid"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "llama3.2"
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.5-flash"
     OPENAI_COMPATIBLE_BASE_URL: str = ""
     OPENAI_COMPATIBLE_API_KEY: str = ""
     OPENAI_COMPATIBLE_MODEL: str = ""
+    ENABLE_FREE_PUBLIC_LLM: bool = False
+    AI_DAILY_TOKEN_LIMIT: int = 250000
+    AI_DAILY_CALL_LIMIT: int = 500
+    PAGESPEED_API_KEY: str = ""
 
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
@@ -63,6 +72,19 @@ class Settings(BaseSettings):
         return url
 
     @property
+    def cors_origins_list(self) -> list[str]:
+        raw = (self.CORS_ORIGINS or "").strip()
+        if not raw or raw == "*":
+            return [
+                self.PUBLIC_URL,
+                self.CUSTOM_DOMAIN_URL,
+                "http://localhost:3000",
+                "http://localhost:8000",
+                "http://127.0.0.1:8000",
+            ]
+        return [o.strip() for o in raw.split(",") if o.strip()]
+
+    @property
     def fernet_key(self) -> bytes:
         if self.ENCRYPTION_KEY and len(self.ENCRYPTION_KEY.strip()) == 44:
             try:
@@ -75,3 +97,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+

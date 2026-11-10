@@ -24,6 +24,35 @@ _fernet = Fernet(settings.fernet_key)
 # In-memory sliding window rate limiter
 _rate_buckets: dict[str, list[float]] = defaultdict(list)
 
+INVALIDATED_WEAK_PASSWORDS = {
+    "uniongrowth@2026",
+    "admin123",
+    "admin123456",
+    "1234567890",
+    "password123",
+    "qwerty1234",
+}
+
+
+def validate_strong_password(password: str) -> tuple[bool, str]:
+    """
+    Validates that a password meets enterprise security requirements and is NOT
+    the invalidated initial default password.
+    """
+    if not password or len(password) < 10:
+        return False, "A senha deve ter no mínimo 10 caracteres."
+    if password.strip().lower() in INVALIDATED_WEAK_PASSWORDS:
+        return False, "Esta senha padrão/fraca foi invalidada por política de segurança. Escolha uma senha forte exclusiva."
+    if not re.search(r"[A-Z]", password):
+        return False, "A senha deve conter pelo menos uma letra maiúscula."
+    if not re.search(r"[a-z]", password):
+        return False, "A senha deve conter pelo menos uma letra minúscula."
+    if not re.search(r"\d", password):
+        return False, "A senha deve conter pelo menos um número."
+    if not re.search(r"[^A-Za-z0-9]", password):
+        return False, "A senha deve conter pelo menos um caractere especial (ex: !@#$%&*)."
+    return True, "Senha forte validada."
+
 
 def hash_password(password: str) -> str:
     pwd_bytes = password.encode("utf-8")[:72]
@@ -101,8 +130,8 @@ def generate_high_impact_token(user_id: int, tenant_id: int, action_type: str) -
 
 
 def verify_high_impact_token(user_id: int, tenant_id: int, action_type: str, token: str) -> bool:
-    if token == "CONFIRMED_BY_HUMAN":
-        return True
+    if not token:
+        return False
     for offset in (0, -1):
         minute_bucket = int(time.time() // 600) + offset
         msg = f"{user_id}:{tenant_id}:{action_type}:{minute_bucket}".encode("utf-8")
@@ -110,6 +139,36 @@ def verify_high_impact_token(user_id: int, tenant_id: int, action_type: str, tok
         if hmac.compare_digest(token, f"CONFIRM-{sig.upper()}"):
             return True
     return False
+
+
+_login_failures: dict[str, list[float]] = defaultdict(list)
+LOGIN_MAX_FAILURES = 8
+LOGIN_WINDOW_SECONDS = 300
+
+
+def _login_key(request: Request, email: str) -> str:
+    ip = request.client.host if request.client else "local"
+    fwd = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    return f"{fwd or ip}|{email.lower()}"
+
+
+def check_login_allowed(request: Request, email: str) -> None:
+    key = _login_key(request, email)
+    now = time.time()
+    _login_failures[key] = [t for t in _login_failures[key] if t > now - LOGIN_WINDOW_SECONDS]
+    if len(_login_failures[key]) >= LOGIN_MAX_FAILURES:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Muitas tentativas de login falhas. Aguarde alguns minutos.",
+        )
+
+
+def register_login_failure(request: Request, email: str) -> None:
+    _login_failures[_login_key(request, email)].append(time.time())
+
+
+def clear_login_failures(request: Request, email: str) -> None:
+    _login_failures.pop(_login_key(request, email), None)
 
 
 def enforce_rate_limit(request: Request) -> None:
@@ -124,6 +183,15 @@ def enforce_rate_limit(request: Request) -> None:
             detail="Limite de requisições excedido (Rate Limit). Aguarde alguns segundos.",
         )
     _rate_buckets[client_ip].append(now)
+
+
+def user_must_change_password(user) -> bool:
+    import json as _json
+
+    try:
+        return bool(_json.loads(user.preferences_json or "{}").get("must_change_password"))
+    except Exception:
+        return False
 
 
 def get_current_user(
@@ -146,6 +214,12 @@ def get_current_user(
     user = db.query(User).filter(User.id == int(user_id), User.is_active == True).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário não encontrado ou inativo.")
+
+    if user_must_change_password(user) and request.url.path not in ("/api/v1/auth/change-password", "/api/v1/auth/me"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="PASSWORD_CHANGE_REQUIRED: defina uma nova senha forte em /api/v1/auth/change-password antes de continuar.",
+        )
 
     header_tenant = request.headers.get("X-Tenant-Id")
     if header_tenant and header_tenant.isdigit():
@@ -172,3 +246,4 @@ def require_roles(*allowed_roles: str):
         return user
 
     return _checker
+

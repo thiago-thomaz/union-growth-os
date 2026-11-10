@@ -322,3 +322,4 @@ def generate_persuasive_copy(
     db.commit()
     db.refresh(item)
     return item
+

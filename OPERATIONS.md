@@ -37,3 +37,4 @@ Acesse o menu **18. Integrações** no Painel Executivo. Para cada uma das 16 pl
 1. Verifique a lista de **Credenciais Necessárias** e o link **Onde Obter**.
 2. Conceda os **Escopos Oficiais** listados no painel do provedor (Google Cloud, Meta for Developers, TikTok Developers, LinkedIn Developers, Pinterest, Mercado Pago ou SMTP).
 3. Insira as credenciais (que serão criptografadas com **Fernet AES-128-CBC + HMAC-SHA256**) e clique em **Testar Conexão**.
+

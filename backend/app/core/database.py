@@ -170,3 +170,4 @@ def create_database_backup(db: Session, tenant_id: int | None = None) -> dict:
         "created_at": payload["metadata"]["created_at"],
         "tenant_id": tenant_id,
     }
+

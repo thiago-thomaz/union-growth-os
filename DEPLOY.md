@@ -28,3 +28,4 @@ Caso uma atualização apresente falha no health check (`/health` ou `/ready`):
 1. O container antigo é mantido pelo Traefik até que o novo container passe no health check.
 2. Para reverter manualmente para um commit anterior no Coolify, acione o deploy do SHA anterior ou execute `git revert HEAD && git push origin main`.
 3. Caso necessário restaurar dados, utilize os snapshots gerados em `/app/data/backups` via endpoint `POST /api/v1/system/backup`.
+

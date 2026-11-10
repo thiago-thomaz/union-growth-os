@@ -24,6 +24,11 @@ class UserLoginRequest(BaseModel):
     password: str
 
 
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=10)
+
+
 class TenantCreateRequest(BaseModel):
     name: str
     brand_name: str
@@ -83,6 +88,8 @@ class AgentResponseContract(BaseModel):
     status: Literal["COMPLETED", "PENDING_APPROVAL", "BLOCKED", "FAILED"]
     autonomy_level: AutonomyLevelType
     provider_used: str
+    response_origin: str = "HYBRID_DETERMINISTIC_AND_TEMPLATE"
+    llm_used: bool = False
     quality_score: float = Field(ge=0.0, le=100.0)
     data_origin: DataOriginType = "REAL"
     summary: str
@@ -303,3 +310,50 @@ class ApprovalDecisionRequest(BaseModel):
     decision: Literal["APPROVE", "REJECT"]
     review_notes: str = ""
     confirmation_token: str | None = None
+
+
+class CompanyOnboardingRequest(BaseModel):
+    name: str
+    segment: str
+    description: str
+    products: list[str] = []
+    services: list[str] = []
+    target_audience: str
+    region: str = "Brasil (Nacional)"
+    competitors: list[dict[str, str]] = []
+    visual_identity: dict[str, str] = {
+        "brand_name": "",
+        "primary_color": "#6366F1",
+        "secondary_color": "#10B981",
+        "tone_of_voice": "Consultivo, Técnico e Orientado a Resultados",
+    }
+    website: str = ""
+    social_networks: dict[str, str] = {}
+    commercial_goals: list[dict[str, Any]] = []
+    create_new_tenant: bool = False
+
+
+class AutonomyConfigUpdateRequest(BaseModel):
+    autonomy_default_level: AutonomyLevelType = 2
+    agent_autonomy: dict[str, int] = {}
+    limits: dict[str, Any] = {
+        "max_daily_publications": 10,
+        "max_daily_messages": 100,
+        "max_campaign_budget_brl": 5000.0,
+        "max_active_campaigns": 10,
+        "allow_commercial_changes": False,
+        "allow_external_actions": False,
+        "require_approval_for_financial_actions": True,
+    }
+
+
+class FullMarketingOperationRequest(BaseModel):
+    campaign_name: str = "Campanha Integrada 360º — Aquisição & Autoridade Digital"
+    product_or_offer: str = ""
+    target_keyword: str = ""
+    platforms: list[str] = ["instagram", "linkedin", "youtube", "blog"]
+    budget_planned_brl: float = 0.0
+    auto_approve_execution: bool = True
+    confirmation_token: str | None = None
+
+

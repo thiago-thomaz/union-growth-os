@@ -5,7 +5,6 @@ __pycache__/
 frontend/node_modules/
 frontend/.next/
 .env
-data/*.db
-data/backups/*.db
-data/backups/*.json
-data/assets/*.png
+data/
+*.log
+

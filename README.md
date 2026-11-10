@@ -37,3 +37,4 @@ Plataforma completa e autônoma de gestão empresarial, marketing digital, SEO, 
 - [SECURITY.md](./SECURITY.md) — Governança LGPD, RBAC, criptografia Fernet, confirmação de alto impacto e backups.
 - [CHANGELOG.md](./CHANGELOG.md) — Histórico de versões e fases implementadas.
 - [UNION_GROWTH_OS_FINAL_REPORT.md](./UNION_GROWTH_OS_FINAL_REPORT.md) — Relatório executivo e técnico final do projeto.
+

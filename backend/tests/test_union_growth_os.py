@@ -1,4 +1,4 @@
-import os
+﻿import os
 import sys
 import uuid
 from pathlib import Path
@@ -6,6 +6,11 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+import tempfile
+
+_TMP_DB = Path(tempfile.mkdtemp(prefix="ugos_test_")) / "test.db"
+os.environ["DATABASE_URL"] = f"sqlite:///{_TMP_DB.as_posix()}"
+os.environ["ADMIN_INITIAL_PASSWORD"] = "Init#Admin2026Test!"
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
@@ -39,13 +44,54 @@ def test_01_health_and_readiness_endpoints(client: TestClient):
     assert r_ready.json()["ready"] is True
 
 
-def test_02_default_seed_login_and_dashboard(client: TestClient):
-    r_login = client.post(
-        "/api/v1/auth/login",
-        json={"email": "admin@projetosunion.cloud", "password": "UnionGrowth@2026"},
+ADMIN_EMAIL = "admin@projetosunion.cloud"
+ADMIN_INITIAL = "Init#Admin2026Test!"
+ADMIN_NEW = "Rotated#Admin2026Strong!"
+
+
+def admin_token(client: TestClient) -> str:
+    """Logs in as admin; completes the mandatory password rotation when required."""
+    r = client.post("/api/v1/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_NEW})
+    if r.status_code == 200:
+        return r.json()["access_token"]
+    r = client.post("/api/v1/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_INITIAL})
+    assert r.status_code == 200, "admin initial password should be valid before rotation"
+    tok = r.json()["access_token"]
+    assert r.json()["must_change_password"] is True
+    rc = client.post(
+        "/api/v1/auth/change-password",
+        headers=_auth_headers(tok),
+        json={"current_password": ADMIN_INITIAL, "new_password": ADMIN_NEW},
     )
-    assert r_login.status_code == 200
-    token = r_login.json()["access_token"]
+    assert rc.status_code == 200
+    r2 = client.post("/api/v1/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_NEW})
+    assert r2.status_code == 200
+    return r2.json()["access_token"]
+
+
+def test_02a_old_default_password_is_invalidated_and_rotation_enforced(client: TestClient):
+    r_old = client.post("/api/v1/auth/login", json={"email": ADMIN_EMAIL, "password": "UnionGrowth@2026"})
+    assert r_old.status_code == 401
+    weak = client.post(
+        "/api/v1/auth/register",
+        json={"email": f"weak_{RUN_SUFFIX}@x.com.br", "password": "UnionGrowth@2026", "full_name": "W", "company_name": "W Ltda"},
+    )
+    assert weak.status_code == 400
+    weak2 = client.post(
+        "/api/v1/auth/register",
+        json={"email": f"weak2_{RUN_SUFFIX}@x.com.br", "password": "senhafraca1", "full_name": "W", "company_name": "W Ltda"},
+    )
+    assert weak2.status_code == 400
+    # Fresh DB only: must_change_password blocks other endpoints until rotated.
+    r_init = client.post("/api/v1/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_INITIAL})
+    if r_init.status_code == 200:
+        blocked = client.get("/api/v1/dashboard/overview", headers=_auth_headers(r_init.json()["access_token"]))
+        assert blocked.status_code == 403
+        assert "PASSWORD_CHANGE_REQUIRED" in blocked.json()["detail"]
+
+
+def test_02_default_seed_login_and_dashboard(client: TestClient):
+    token = admin_token(client)
 
     r_dash = client.get("/api/v1/dashboard/overview", headers=_auth_headers(token))
     assert r_dash.status_code == 200
@@ -60,7 +106,7 @@ def test_03_register_and_multitenant_strict_isolation(client: TestClient):
         "/api/v1/auth/register",
         json={
             "email": f"ceoa_{RUN_SUFFIX}@empresaa.com.br",
-            "password": "PasswordA@123",
+            "password": "PasswordA@123456",
             "full_name": "CEO Empresa A",
             "company_name": f"Empresa Alpha {RUN_SUFFIX} Ltda",
             "brand_name": "Alpha Growth",
@@ -77,7 +123,7 @@ def test_03_register_and_multitenant_strict_isolation(client: TestClient):
         "/api/v1/auth/register",
         json={
             "email": f"ceob_{RUN_SUFFIX}@empresab.com.br",
-            "password": "PasswordB@123",
+            "password": "PasswordB@123456",
             "full_name": "CEO Empresa B",
             "company_name": f"Empresa Beta {RUN_SUFFIX} S/A",
             "brand_name": "Beta Corp",
@@ -115,11 +161,7 @@ def test_03_register_and_multitenant_strict_isolation(client: TestClient):
 
 
 def test_04_ceo_briefing_and_strategic_goals(client: TestClient):
-    r_login = client.post(
-        "/api/v1/auth/login",
-        json={"email": "admin@projetosunion.cloud", "password": "UnionGrowth@2026"},
-    )
-    token = r_login.json()["access_token"]
+    token = admin_token(client)
 
     r_goal = client.post(
         "/api/v1/ceo/goals",
@@ -145,11 +187,7 @@ def test_04_ceo_briefing_and_strategic_goals(client: TestClient):
 
 
 def test_05_seo_audit_keywords_and_content_factory(client: TestClient):
-    r_login = client.post(
-        "/api/v1/auth/login",
-        json={"email": "admin@projetosunion.cloud", "password": "UnionGrowth@2026"},
-    )
-    token = r_login.json()["access_token"]
+    token = admin_token(client)
 
     r_kw = client.post(
         "/api/v1/seo/keywords",
@@ -177,11 +215,7 @@ def test_05_seo_audit_keywords_and_content_factory(client: TestClient):
 
 
 def test_06_creative_studio_and_copywriter_ab_testing(client: TestClient):
-    r_login = client.post(
-        "/api/v1/auth/login",
-        json={"email": "admin@projetosunion.cloud", "password": "UnionGrowth@2026"},
-    )
-    token = r_login.json()["access_token"]
+    token = admin_token(client)
 
     r_asset = client.post(
         "/api/v1/creative/assets/generate",
@@ -219,11 +253,7 @@ def test_06_creative_studio_and_copywriter_ab_testing(client: TestClient):
 
 
 def test_07_social_editorial_calendar_and_approval_flow(client: TestClient):
-    r_login = client.post(
-        "/api/v1/auth/login",
-        json={"email": "admin@projetosunion.cloud", "password": "UnionGrowth@2026"},
-    )
-    token = r_login.json()["access_token"]
+    token = admin_token(client)
 
     r_cal = client.post(
         "/api/v1/social/calendar",
@@ -242,11 +272,7 @@ def test_07_social_editorial_calendar_and_approval_flow(client: TestClient):
 
 
 def test_08_crm_lgpd_enforcement_pipeline_and_finance(client: TestClient):
-    r_login = client.post(
-        "/api/v1/auth/login",
-        json={"email": "admin@projetosunion.cloud", "password": "UnionGrowth@2026"},
-    )
-    token = r_login.json()["access_token"]
+    token = admin_token(client)
 
     # Reject lead without LGPD consent
     r_bad = client.post(
@@ -295,11 +321,7 @@ def test_08_crm_lgpd_enforcement_pipeline_and_finance(client: TestClient):
 
 
 def test_09_automations_retry_backoff_and_idempotency(client: TestClient):
-    r_login = client.post(
-        "/api/v1/auth/login",
-        json={"email": "admin@projetosunion.cloud", "password": "UnionGrowth@2026"},
-    )
-    token = r_login.json()["access_token"]
+    token = admin_token(client)
 
     r_list = client.get("/api/v1/automations", headers=_auth_headers(token))
     assert r_list.status_code == 200
@@ -320,11 +342,7 @@ def test_09_automations_retry_backoff_and_idempotency(client: TestClient):
 
 
 def test_10_orchestrator_inter_agent_diagnosis_and_integrations_and_backup(client: TestClient):
-    r_login = client.post(
-        "/api/v1/auth/login",
-        json={"email": "admin@projetosunion.cloud", "password": "UnionGrowth@2026"},
-    )
-    token = r_login.json()["access_token"]
+    token = admin_token(client)
 
     r_diag = client.post(
         "/api/v1/orchestrator/diagnose",
@@ -338,7 +356,7 @@ def test_10_orchestrator_inter_agent_diagnosis_and_integrations_and_backup(clien
 
     r_int = client.get("/api/v1/integrations", headers=_auth_headers(token))
     assert r_int.status_code == 200
-    assert len(r_int.json()) == 16
+    assert len(r_int.json()) == 18
 
     r_bkp = client.post("/api/v1/system/backup", headers=_auth_headers(token))
     assert r_bkp.status_code == 201
@@ -346,11 +364,7 @@ def test_10_orchestrator_inter_agent_diagnosis_and_integrations_and_backup(clien
 
 
 def test_11_competitor_intelligence_growth_and_customer_success(client: TestClient):
-    r_login = client.post(
-        "/api/v1/auth/login",
-        json={"email": "admin@projetosunion.cloud", "password": "UnionGrowth@2026"},
-    )
-    token = r_login.json()["access_token"]
+    token = admin_token(client)
 
     r_comp = client.post(
         "/api/v1/competitors",
@@ -407,11 +421,7 @@ def test_11_competitor_intelligence_growth_and_customer_success(client: TestClie
 
 
 def test_12_security_xss_sanitization_and_high_impact_approval_gate(client: TestClient):
-    r_login = client.post(
-        "/api/v1/auth/login",
-        json={"email": "admin@projetosunion.cloud", "password": "UnionGrowth@2026"},
-    )
-    token = r_login.json()["access_token"]
+    token = admin_token(client)
 
     # XSS payload sanitization test
     r_persona = client.post(
@@ -447,7 +457,7 @@ def test_12_security_xss_sanitization_and_high_impact_approval_gate(client: Test
     r_decide = client.post(
         f"/api/v1/approvals/{req_id}/decide",
         headers=_auth_headers(token),
-        json={"decision": "APPROVE", "confirmation_token": "CONFIRMED_BY_HUMAN"},
+        json={"decision": "APPROVE", "confirmation_token": client.get("/api/v1/auth/me", headers=_auth_headers(token)).json()["high_impact_confirmation_token"]},
     )
     assert r_decide.status_code == 200
     assert r_decide.json()["status"] == "EXECUTED"
@@ -458,4 +468,156 @@ def test_13_frontend_static_ui_served(client: TestClient):
     assert r_home.status_code == 200
     assert "UNION GROWTH OS" in r_home.text
 
+
+
+
+
+
+# ===================== FASE 13 =====================
+def test_14_agents_audit_is_honest_about_llm(client: TestClient):
+    token = admin_token(client)
+    r = client.get("/api/v1/agents/audit", headers=_auth_headers(token))
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data["agents"]) == 11
+    assert all(a["limitations"] for a in data["agents"])
+    # Without any LLM configured, no agent may claim to use a real LLM.
+    if not data["provider_status"]["llm_active"]:
+        assert all(a["uses_real_llm_now"] is False for a in data["agents"])
+        assert "NENHUM agente usa LLM real" in data["verdict"]
+    assert "usage_today" in data
+
+
+def test_15_agent_response_origin_is_tracked(client: TestClient):
+    token = admin_token(client)
+    r = client.post("/api/v1/agents/AGENT_10_FINANCE/execute", headers=_auth_headers(token), json={})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["response_origin"].startswith("DETERMINISTIC_PYTHON_ENGINE")
+    assert body["llm_used"] is False
+
+
+def test_16_social_platforms_audit_classification(client: TestClient):
+    token = admin_token(client)
+    r = client.get("/api/v1/social/platforms-audit", headers=_auth_headers(token))
+    assert r.status_code == 200
+    plats = {p["platform"]: p for p in r.json()["platforms"]}
+    assert set(plats) == {"instagram", "facebook", "tiktok", "youtube", "linkedin", "pinterest"}
+    for p in plats.values():
+        assert set(p["status_matrix"]) == {"FUNCIONANDO", "AGUARDANDO_CREDENCIAIS", "AGUARDANDO_APROVACAO_PLATAFORMA", "BLOQUEADO_LIMITACAO_TECNICA"}
+        assert p["connection_status"] != "CONNECTED"  # no credentials were provided in tests
+
+
+def test_17_oauth_start_requires_app_credentials(client: TestClient):
+    token = admin_token(client)
+    r = client.get("/api/v1/integrations/oauth/instagram/start", headers=_auth_headers(token))
+    assert r.status_code == 200
+    assert r.json()["status"] == "AGUARDANDO_CREDENCIAIS"
+    bad = client.get("/api/v1/integrations/oauth/callback", params={"code": "x", "state": "invalid"})
+    assert bad.status_code == 200 and "inválido" in bad.text
+
+
+def test_18_sitemap_and_robots_dynamic(client: TestClient):
+    r = client.get("/robots.txt")
+    assert r.status_code == 200 and "Sitemap:" in r.text
+    s = client.get("/sitemap.xml")
+    assert s.status_code == 200 and "<urlset" in s.text
+
+
+def test_19_onboarding_wizard_does_not_invent_data(client: TestClient):
+    token = admin_token(client)
+    r = client.post(
+        "/api/v1/onboarding/company",
+        headers=_auth_headers(token),
+        json={
+            "name": f"Padaria Teste {RUN_SUFFIX}",
+            "segment": "Padaria artesanal",
+            "description": "Padaria de bairro com pães de fermentação natural.",
+            "products": ["Pão de fermentação natural"],
+            "services": ["Encomendas para eventos"],
+            "target_audience": "Moradores do bairro e escritórios próximos",
+            "region": "Campinas-SP",
+            "create_new_tenant": True,
+        },
+    )
+    assert r.status_code == 201
+    d = r.json()
+    assert d["metas"] == []  # no goals informed => none invented
+    assert any("Site não informado" in g for g in d["lacunas_de_informacao"])
+    assert any("Metas comerciais não informadas" in g for g in d["lacunas_de_informacao"])
+    assert d["plano_de_seo"]["volume_de_busca"].startswith("NÃO DISPONÍVEL")
+    assert len(d["primeiras_campanhas"]) == 2
+    assert d["diagnostico_empresarial"]["presenca_digital"]["site"] == "NÃO INFORMADO"
+
+
+def test_20_autonomy_limits_and_financial_always_requires_approval(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+    r = client.put(
+        "/api/v1/autonomy/limits",
+        headers=h,
+        json={
+            "autonomy_default_level": 3,
+            "agent_autonomy": {"AGENT_04_SOCIAL": 3},
+            "limits": {"max_daily_publications": 2, "require_approval_for_financial_actions": False},
+        },
+    )
+    assert r.status_code == 200
+    assert r.json()["limits"]["require_approval_for_financial_actions"] is True  # immutable
+    panel = client.get("/api/v1/autonomy/panel", headers=h)
+    assert panel.status_code == 200
+    assert len(panel.json()["agents"]) == 11
+    # restore safe defaults
+    client.put("/api/v1/autonomy/limits", headers=h, json={"autonomy_default_level": 2, "agent_autonomy": {}, "limits": {}})
+
+
+def test_21_full_marketing_pipeline_10_steps(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+    r = client.post(
+        "/api/v1/marketing/full-operation-pipeline",
+        headers=h,
+        json={"campaign_name": f"Campanha E2E {RUN_SUFFIX}", "target_keyword": "automação de marketing", "platforms": ["instagram", "blog"], "budget_planned_brl": 1000.0},
+    )
+    assert r.status_code == 201
+    d = r.json()
+    assert [s["step"] for s in d["steps"]] == list(range(1, 11))
+    step2 = d["steps"][1]["detail"]
+    assert "PENDENTE de aprovação" in step2["verba"]  # money never spent autonomously
+    step9 = d["steps"][8]["detail"]
+    # Instagram has no credentials => must not be published.
+    assert all(p["platform"] != "instagram" for p in step9["publicadas"])
+    assert "NÃO DISPONÍVEL" in d["steps"][9]["detail"]["metricas_de_engajamento"]
+
+
+def test_22_verify_automations_idempotency_and_scheduler(client: TestClient):
+    token = admin_token(client)
+    r = client.post("/api/v1/automations/verify-operation", headers=_auth_headers(token))
+    assert r.status_code == 200
+    d = r.json()
+    assert d["total_rules"] >= 12
+    assert d["all_idempotent"] is True
+    assert d["retry_test"]["status"] == "RETRIED"
+    cron_rows = [x for x in d["rules"] if x["trigger"] == "CRON"]
+    assert len(cron_rows) == 8
+    log = client.get("/api/v1/automations/operational-log", headers=_auth_headers(token))
+    assert log.status_code == 200
+    assert log.json()["duplicate_success_executions"] == 0
+
+
+def test_23_security_audit_endpoint_does_not_leak_secrets(client: TestClient):
+    token = admin_token(client)
+    r = client.get("/api/v1/security/audit", headers=_auth_headers(token))
+    assert r.status_code == 200
+    assert r.json()["users_with_invalidated_default_password_still_valid"] == 0
+    assert "*" not in r.json()["cors_allowed_origins"]
+    assert ADMIN_NEW not in r.text and ADMIN_INITIAL not in r.text
+
+
+def test_24_login_bruteforce_is_rate_limited(client: TestClient):
+    codes = [
+        client.post("/api/v1/auth/login", json={"email": f"nobody_{RUN_SUFFIX}@x.com", "password": "wrong-password-1A!"}).status_code
+        for _ in range(10)
+    ]
+    assert 429 in codes
 
