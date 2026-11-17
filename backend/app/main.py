@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -77,6 +78,7 @@ def health_endpoint():
         "status": "ok" if db_info["status"] == "healthy" else "degraded",
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
+        "git_commit": os.getenv("SOURCE_COMMIT", "local"),
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "database": db_info,
         "scheduler": sched_info,
@@ -92,6 +94,7 @@ def readiness_endpoint():
         "ready": True,
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
+        "git_commit": os.getenv("SOURCE_COMMIT", "local"),
         "database": db_info,
         "scheduler": get_scheduler_status(),
     }

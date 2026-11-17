@@ -85,3 +85,4 @@ O teste `test_42_phase18_1_full_20_step_commercial_cycle_and_5_bucket_panel` val
 2. **Ativação do Mercado Pago Live**: Quando desejar receber pagamentos reais fora do modo Sandbox, inserir o `access_token` de produção na Central de Integrações.
 3. **Aprovação de Propostas e Abordagens**: Toda proposta gerada aguarda seu clique em **Aprovar & Fechar** antes de assumir caráter vinculante.
 4. **Custos Adicionais**: **R$ 0,00** (operação 100% nativa em Python na VPS existente).
+
