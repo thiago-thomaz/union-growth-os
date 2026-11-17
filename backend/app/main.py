@@ -116,7 +116,10 @@ if FRONTEND_OUT_DIR.exists():
             return FileResponse(str(target))
         index_html = FRONTEND_OUT_DIR / "index.html"
         if index_html.exists():
-            return FileResponse(str(index_html))
+            return FileResponse(
+                str(index_html),
+                headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"},
+            )
         return JSONResponse({"service": settings.APP_NAME, "status": "running"})
 else:
     @app.get("/", include_in_schema=False)

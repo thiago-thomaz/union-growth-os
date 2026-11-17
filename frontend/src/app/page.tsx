@@ -246,6 +246,14 @@ export default function UnionGrowthOSPortal() {
       const res = await fetch(path, { ...options, headers });
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({ detail: res.statusText }));
+        if (res.status === 401) {
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("ug_token");
+          }
+          setToken("");
+          setMeData(null);
+          setAuthError("Sua sessão anterior expirou. Clique em 'Acessar Central Executiva' para entrar novamente.");
+        }
         throw new Error(errBody.detail || `Erro HTTP ${res.status}`);
       }
       return res.json();
