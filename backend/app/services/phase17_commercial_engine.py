@@ -998,7 +998,10 @@ def update_product_service_pricing(
     service_id: int,
     payload: Any,
 ) -> dict[str, Any]:
-    """Atualiza os parâmetros de custo/margem de um serviço e permite aprovação pelo proprietário."""
+    """
+    Atualiza os parâmetros de custo/margem de um serviço e permite aprovação pelo proprietário.
+    Protege preços já aprovados anteriormente: não sobrescreve sem autorização explícita (owner_approve_pricing ou force_owner_override).
+    """
     svc = (
         db.query(ProductService)
         .filter(ProductService.tenant_id == tenant_id, ProductService.id == service_id)
@@ -1006,6 +1009,14 @@ def update_product_service_pricing(
     )
     if not svc:
         raise ValueError(f"Serviço #{service_id} não encontrado para este tenant.")
+
+    if svc.pricing_approved_by_owner and not (
+        payload.owner_approve_pricing or getattr(payload, "force_owner_override", False)
+    ):
+        raise PermissionError(
+            "Governança de Preços: Este serviço já possui preço aprovado pelo proprietário. "
+            "Para alterar um preço já aprovado, informe owner_approve_pricing=True ou force_owner_override=True."
+        )
 
     if payload.dev_hours_estimated is not None:
         svc.dev_hours_estimated = payload.dev_hours_estimated
@@ -1069,6 +1080,11 @@ def serialize_product_service(svc: ProductService) -> dict[str, Any]:
         ]
     direct_cost = getattr(svc, "direct_cost_brl", 0.0) or svc.estimated_cost_brl
     indirect_cost = getattr(svc, "indirect_cost_brl", 0.0) or round(svc.support_cost_brl * 0.5, 2)
+    scope_inc = json.loads(getattr(svc, "scope_included_json", "[]") or "[]") or json.loads(svc.deliverables_json or "[]")
+    scope_exc = json.loads(getattr(svc, "scope_excluded_json", "[]") or "[]") or [
+        "Custos de APIs pagas de terceiros ou verba de tráfego pago",
+        "Desenvolvimento de módulos fora da especificação técnica aprovada",
+    ]
     return {
         "id": svc.id,
         "business_unit_code": svc.business_unit_code,
@@ -1080,6 +1096,8 @@ def serialize_product_service(svc: ProductService) -> dict[str, Any]:
         "target_audience": svc.target_audience,
         "benefits": json.loads(svc.benefits_json or "[]"),
         "scope_summary": svc.scope_summary,
+        "scope_included": scope_inc,
+        "scope_excluded": scope_exc,
         "deliverables": json.loads(svc.deliverables_json or "[]"),
         "estimated_timeline_days": svc.estimated_timeline_days,
         "client_requirements": reqs,
@@ -1089,6 +1107,11 @@ def serialize_product_service(svc: ProductService) -> dict[str, Any]:
             svc,
             "scope_limits",
             "Escopo restrito aos entregáveis listados; integrações ou módulos adicionais sob orçamento complementar.",
+        ),
+        "approval_criteria": getattr(
+            svc,
+            "approval_criteria",
+            "Validação de escopo técnico, margem mínima >= 30% e aprovação expressa do proprietário.",
         ),
         "pricing_calculator": {
             "dev_hours_estimated": svc.dev_hours_estimated,
@@ -1104,6 +1127,7 @@ def serialize_product_service(svc: ProductService) -> dict[str, Any]:
             "target_margin_pct": svc.target_margin_pct,
             "estimated_cost_brl": svc.estimated_cost_brl,
             "suggested_price_brl": svc.suggested_price_brl,
+            "price_recommendation_label": "SUGESTÃO DA CALCULADORA — SUJEITO A REVISÃO E APROVAÇÃO DO PROPRIETÁRIO",
             "configured_price_brl": svc.configured_price_brl,
             "recurring_monthly_brl": svc.recurring_monthly_brl,
             "estimated_margin_pct": svc.estimated_margin_pct,
@@ -2261,6 +2285,7 @@ def build_multibusiness_executive_dashboard(
             .all()
         ],
         "commercial_alerts": generate_commercial_alerts(db, tenant.id),
+        "phase18_1_executive_panel": build_phase18_1_executive_panel(db, tenant.id),
     }
 
 
@@ -2574,6 +2599,10 @@ def process_payment_webhook_service(
 
     elif target_status in ("REFUNDED", "CANCELLED", "REJECTED", "DISPUTED"):
         tx.reconciled_in_finance = False
+        if tx.financial_record_id:
+            fin_rec = db.query(FinancialRecord).filter(FinancialRecord.id == tx.financial_record_id).first()
+            if fin_rec:
+                fin_rec.revenue_status = target_status
 
     db.commit()
     db.refresh(tx)
@@ -2694,6 +2723,8 @@ def update_service_delivery_project_service(
                 d["status"] = "DELIVERED"
         proj.deliverables_json = json.dumps(delivs, ensure_ascii=False)
 
+    if payload.execution_evidence is not None:
+        proj.execution_evidence = payload.execution_evidence.strip()
     if payload.progress_pct is not None:
         proj.progress_pct = payload.progress_pct
     if payload.client_validation_status is not None:
@@ -2701,14 +2732,37 @@ def update_service_delivery_project_service(
     if payload.client_validation_notes is not None:
         proj.client_validation_notes = payload.client_validation_notes
     if payload.status is not None:
-        proj.status = payload.status
         if payload.status in ("DELIVERED", "COMPLETED"):
+            has_evidence = bool(
+                getattr(proj, "execution_evidence", "")
+                or payload.execution_evidence
+                or payload.deliverable_submitted
+                or payload.client_validation_notes
+                or proj.client_validation_notes
+            )
+            if not has_evidence:
+                raise ValueError(
+                    "Governança de Entrega: Não é permitido marcar projeto como DELIVERED ou COMPLETED sem registrar evidência técnica de execução."
+                )
             proj.progress_pct = 100.0
             proj.completed_at = datetime.now(timezone.utc)
             if proj.lead_id:
                 lead = db.query(CRMLead).filter(CRMLead.id == proj.lead_id).first()
                 if lead:
                     lead.funnel_stage = "POS_VENDA" if payload.status == "COMPLETED" else "ENTREGA"
+            if payload.status == "COMPLETED":
+                db.add(
+                    CRMActivity(
+                        tenant_id=tenant_id,
+                        lead_id=proj.lead_id,
+                        activity_type="FOLLOW_UP",
+                        subject=f"[PÓS-VENDA] Acompanhamento de Satisfação e Expansão — {proj.project_code} ({proj.client_company})",
+                        description=f"Entrega concluída com evidência registrada. Agendar revisão de resultados e oportunidade de recorrência.",
+                        due_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                        completed=False,
+                    )
+                )
+        proj.status = payload.status
 
     db.commit()
     db.refresh(proj)
@@ -2737,6 +2791,7 @@ def serialize_delivery_project(proj: ServiceDeliveryProject) -> dict[str, Any]:
         "deliverables": json.loads(proj.deliverables_json or "[]"),
         "client_validation_status": proj.client_validation_status,
         "client_validation_notes": proj.client_validation_notes,
+        "execution_evidence": getattr(proj, "execution_evidence", ""),
         "status": proj.status,
         "progress_pct": proj.progress_pct,
         "due_date": proj.due_date,
@@ -2836,4 +2891,191 @@ def erase_lead_lgpd_data_service(db: Session, tenant_id: int, user_id: int, user
     db.delete(lead)
     db.commit()
     return {"status": "LGPD_ERASED", "lead_id": lead_id}
+
+
+# ==============================================================================
+# FASE 18.1 — ABORDAGEM COMERCIAL COM COOLDOWN & PAINEL EXECUTIVO (5 BUCKETS)
+# ==============================================================================
+def prepare_lead_outreach_service(
+    db: Session,
+    tenant_id: int,
+    lead_id: int,
+    payload: Any,
+) -> dict[str, Any]:
+    """
+    Prepara abordagem comercial personalizada para revisão do proprietário:
+    - Respeita LGPD (bloqueia opt_out ou sem consentimento).
+    - Aplica controle de frequência de contato (cooldown mínimo de 24 horas entre abordagens).
+    - NUNCA dispara mensagem externa automaticamente sem aprovação do proprietário.
+    """
+    lead = db.query(CRMLead).filter(CRMLead.tenant_id == tenant_id, CRMLead.id == lead_id).first()
+    if not lead:
+        raise ValueError("Lead não encontrado.")
+    if lead.opt_out or getattr(lead, "contact_blocked", False) or not lead.consent_lgpd:
+        raise PermissionError("Conformidade LGPD: Contato bloqueado ou sem consentimento válido para abordagem comercial.")
+
+    now = datetime.now(timezone.utc)
+    last_out = getattr(lead, "last_outreach_at", None)
+    if last_out:
+        if last_out.tzinfo is None:
+            last_out = last_out.replace(tzinfo=timezone.utc)
+        hours_since = (now - last_out).total_seconds() / 3600.0
+        if hours_since < 24.0 and not payload.owner_approve_outreach:
+            raise ValueError(
+                f"Controle de Frequência Comercial: Última abordagem preparada há {hours_since:.1f}h (mínimo 24h para evitar spam)."
+            )
+
+    svc = (
+        db.query(ProductService)
+        .filter(ProductService.tenant_id == tenant_id, ProductService.service_code == payload.service_code)
+        .first()
+    )
+    svc_name = svc.name if svc else payload.service_code
+    draft = (
+        f"Olá {lead.full_name}, tudo bem? Aqui é da diretoria técnica da UNION TECH.\n"
+        f"Analisamos o perfil da {lead.company_name or 'sua operação'} e preparamos uma sugestão prática via {svc_name} "
+        f"({payload.custom_angle or 'redução de trabalho manual e automação em Python'}).\n"
+        f"Podemos agendar um diagnóstico técnico de 15 minutos? (Caso não deseje receber comunicações, responda SAIR para opt-out imediato)."
+    )
+    lead.outreach_draft_message = draft
+    lead.outreach_approved_by_owner = bool(payload.owner_approve_outreach)
+    lead.last_outreach_at = now
+    db.commit()
+    db.refresh(lead)
+    return {
+        "lead_id": lead.id,
+        "full_name": lead.full_name,
+        "company_name": lead.company_name,
+        "service_code": payload.service_code,
+        "outreach_draft_message": lead.outreach_draft_message,
+        "outreach_approved_by_owner": lead.outreach_approved_by_owner,
+        "external_message_sent": False,
+        "governance_note": "Abordagem preparada no CRM. Nenhum disparo externo ocorre sem aprovação do proprietário e canal conectado.",
+    }
+
+
+def build_phase18_1_executive_panel(db: Session, tenant_id: int) -> dict[str, Any]:
+    """
+    Painel Executivo da Fase 18.1 separando estritamente:
+    - REAL (apenas registros com data_origin == 'REAL' e pagamentos em PRODUCTION_API confirmados; exibe 0 quando não houver evidência real)
+    - ESTIMATIVA (custos e margens estimadas pela calculadora)
+    - PROJECAO (pipeline aberto ponderado)
+    - META (objetivos mensais das 3 unidades)
+    - SIMULACAO (registros Sandbox, TEST, DEMO e IMPORTED)
+    Inclui também os 12 alertas de transição do funil comercial.
+    """
+    leads = db.query(CRMLead).filter(CRMLead.tenant_id == tenant_id).all()
+    opps = db.query(MarketOpportunity).filter(MarketOpportunity.tenant_id == tenant_id).all()
+    props = db.query(CommercialProposal).filter(CommercialProposal.tenant_id == tenant_id).all()
+    payments = db.query(PaymentTransaction).filter(PaymentTransaction.tenant_id == tenant_id).all()
+    projects = db.query(ServiceDeliveryProject).filter(ServiceDeliveryProject.tenant_id == tenant_id).all()
+    fin_records = db.query(FinancialRecord).filter(FinancialRecord.tenant_id == tenant_id).all()
+    deals = db.query(CRMDeal).filter(CRMDeal.tenant_id == tenant_id).all()
+    units = db.query(BusinessUnit).filter(BusinessUnit.tenant_id == tenant_id).all()
+    svcs = db.query(ProductService).filter(ProductService.tenant_id == tenant_id).all()
+
+    # 1. Separar REAL estrito (excluindo IMPORTED, TEST, DEMO, SIMULATION e SANDBOX)
+    real_leads = [l for l in leads if l.data_origin == "REAL"]
+    real_qualified_leads = [l for l in real_leads if l.qualification_status == "QUALIFIED" or l.lead_score >= 65]
+    real_props = [p for p in props if p.data_origin == "REAL"]
+    real_props_approved = [p for p in real_props if p.owner_approved]
+    real_props_sent = [p for p in real_props if p.status in ("SENT", "VIEWED", "NEGOTIATION", "ACCEPTED")]
+    real_contracts_signed = [p for p in real_props if getattr(p, "contract_status", "") == "ACCEPTED_WITH_EVIDENCE"]
+
+    real_live_payments_pending = [
+        pt for pt in payments if pt.data_origin == "REAL" and pt.execution_mode == "PRODUCTION_API" and pt.status == "PENDING"
+    ]
+    real_live_payments_confirmed = [
+        pt for pt in payments if pt.data_origin == "REAL" and pt.execution_mode == "PRODUCTION_API" and pt.status == "APPROVED" and pt.reconciled_in_finance
+    ]
+    real_received_revenue = round(sum(pt.amount_brl for pt in real_live_payments_confirmed), 2)
+    real_costs = round(
+        sum(r.amount for r in fin_records if r.data_origin == "REAL" and r.record_type in ("EXPENSE", "AD_SPEND")),
+        2,
+    )
+    real_margin_pct = round(((real_received_revenue - real_costs) / real_received_revenue) * 100.0, 2) if real_received_revenue > 0 else 0.0
+
+    real_projects = [pr for pr in projects if pr.data_origin == "REAL"]
+    real_projects_running = [pr for pr in real_projects if pr.status in ("ONBOARDING", "IN_PROGRESS", "WAITING_CLIENT")]
+    real_projects_completed = [pr for pr in real_projects if pr.status in ("DELIVERED", "COMPLETED") and getattr(pr, "execution_evidence", "")]
+    real_conv_rate = round((len(real_contracts_signed) / len(real_leads)) * 100.0, 2) if real_leads else 0.0
+
+    # 2. Separar SIMULAÇÃO / SANDBOX / HISTÓRICO IMPORTADO
+    sim_leads = [l for l in leads if l.data_origin in ("TEST", "DEMO", "SIMULATION", "IMPORTED")]
+    sim_payments = [pt for pt in payments if pt.execution_mode == "SANDBOX" or pt.data_origin in ("TEST", "DEMO", "SIMULATION")]
+    sim_payments_confirmed = [pt for pt in sim_payments if pt.status == "APPROVED"]
+    sim_projects = [pr for pr in projects if pr.data_origin in ("TEST", "DEMO", "SIMULATION")]
+    imported_revenue = round(
+        sum(r.amount for r in fin_records if r.data_origin == "IMPORTED" and r.record_type == "REVENUE"),
+        2,
+    )
+
+    # 3. Alertas das 12 etapas do funil (ETAPA 4)
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    overdue_projects = [
+        pr for pr in projects if pr.status not in ("DELIVERED", "COMPLETED") and pr.due_date and pr.due_date < today_str
+    ]
+    funnel_12_alerts = {
+        "01_novo_lead": sum(1 for l in leads if l.funnel_stage in ("VISITANTE", "LEAD")),
+        "02_lead_qualificado": sum(1 for l in leads if l.funnel_stage in ("QUALIFICACAO", "QUALIFICADO")),
+        "03_oportunidade_prioritaria": sum(1 for o in opps if o.priority in ("HIGH", "URGENT")),
+        "04_diagnostico_pendente": sum(1 for l in leads if l.funnel_stage == "DIAGNOSTICO"),
+        "05_proposta_aguardando_aprovacao": sum(1 for p in props if p.status in ("DRAFT", "PENDING_APPROVAL") and not p.owner_approved),
+        "06_proposta_enviada": sum(1 for p in props if p.status in ("SENT", "VIEWED", "NEGOTIATION")),
+        "07_contrato_aguardando_assinatura": sum(1 for p in props if p.owner_approved and getattr(p, "contract_status", "") != "ACCEPTED_WITH_EVIDENCE"),
+        "08_pagamento_pendente": sum(1 for pt in payments if pt.status == "PENDING"),
+        "09_pagamento_confirmado": sum(1 for pt in payments if pt.status == "APPROVED"),
+        "10_onboarding_iniciado": sum(1 for pr in projects if pr.status in ("ONBOARDING", "IN_PROGRESS")),
+        "11_entrega_atrasada": len(overdue_projects),
+        "12_pos_venda": sum(1 for pr in projects if pr.status == "COMPLETED"),
+    }
+
+    open_deals = [d for d in deals if d.status == "OPEN"]
+    avg_est_margin = round(sum(s.estimated_margin_pct for s in svcs) / max(1, len(svcs)), 2)
+
+    return {
+        "REAL": {
+            "leads_reais": len(real_leads),
+            "leads_qualificados": len(real_qualified_leads),
+            "oportunidades_mapeadas": len(opps),
+            "propostas_aprovadas": len(real_props_approved),
+            "propostas_enviadas": len(real_props_sent),
+            "contratos_assinados_com_evidencia": len(real_contracts_signed),
+            "cobrancas_pendentes_producao": len(real_live_payments_pending),
+            "pagamentos_confirmados_producao": len(real_live_payments_confirmed),
+            "receita_recebida_confirmada_brl": real_received_revenue,
+            "custos_reais_brl": real_costs,
+            "margem_real_pct": real_margin_pct,
+            "projetos_em_execucao": len(real_projects_running),
+            "entregas_concluidas_com_evidencia": len(real_projects_completed),
+            "taxa_conversao_real_pct": real_conv_rate,
+            "first_real_paid_customer_verified": len(real_live_payments_confirmed) > 0,
+        },
+        "ESTIMATIVA": {
+            "custo_medio_servico_brl": round(sum(s.estimated_cost_brl for s in svcs) / max(1, len(svcs)), 2),
+            "margem_estimada_catalogo_pct": avg_est_margin,
+        },
+        "PROJECAO": {
+            "pipeline_ponderado_aberto_brl": round(sum(d.value * (d.probability_pct / 100.0) for d in open_deals), 2),
+            "negociacoes_abertas_count": len(open_deals),
+        },
+        "META": {
+            "meta_mensal_total_brl": round(sum(u.monthly_revenue_goal_brl for u in units), 2),
+        },
+        "SIMULACAO": {
+            "leads_teste_e_importados": len(sim_leads),
+            "cobrancas_sandbox_total": len(sim_payments),
+            "pagamentos_sandbox_aprovados": len(sim_payments_confirmed),
+            "valor_transacionado_sandbox_brl": round(sum(pt.amount_brl for pt in sim_payments_confirmed), 2),
+            "projetos_entrega_sandbox": len(sim_projects),
+            "historico_importado_seed_brl": imported_revenue,
+        },
+        "funnel_12_stage_alerts": funnel_12_alerts,
+        "honesty_statement": (
+            "Transparência Estrita Fase 18.1: O bloco REAL exibe 0.00 para receita recebida enquanto não houver "
+            "pagamento liquidado via PRODUCTION_API (Mercado Pago Live). Transações Sandbox e dados de seed ficam "
+            "isolados no bloco SIMULACAO."
+        ),
+    }
+
 

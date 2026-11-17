@@ -2,7 +2,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, EmailStr, Field
 
 
-DataOriginType = Literal["REAL", "IMPORTED", "ESTIMATED", "GOAL", "PROJECTION", "TEST", "DEMO"]
+DataOriginType = Literal["REAL", "IMPORTED", "ESTIMATED", "GOAL", "PROJECTION", "SIMULATION", "TEST", "DEMO"]
 BusinessUnitCodeType = Literal["UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS", "ALL"]
 AutonomyLevelType = Literal[1, 2, 3]
 PlanTierType = Literal["STARTER", "PRO", "BUSINESS", "ENTERPRISE"]
@@ -554,6 +554,7 @@ class ProductServicePricingUpdateRequest(BaseModel):
     configured_price_brl: float | None = None
     recurring_monthly_brl: float | None = None
     owner_approve_pricing: bool = False
+    force_owner_override: bool = False
     commercial_terms: str | None = None
 
 
@@ -755,6 +756,7 @@ class ServiceDeliveryUpdateRequest(BaseModel):
     progress_pct: float | None = None
     client_validation_status: Literal["PENDING", "REQUESTED", "APPROVED_BY_CLIENT"] | None = None
     client_validation_notes: str | None = None
+    execution_evidence: str | None = None
     completed_checklist_step: str | None = None
     deliverable_submitted: str | None = None
 
@@ -762,6 +764,13 @@ class ServiceDeliveryUpdateRequest(BaseModel):
 class LeadReactivationRequest(BaseModel):
     authorization_basis: str = "Opt-in prévio válido e ausência de opt-out (LGPD)"
     custom_message_notes: str = ""
+
+
+class LeadOutreachPrepRequest(BaseModel):
+    service_code: str = "SRV_01_DIAGNOSTICO"
+    custom_angle: str = ""
+    owner_approve_outreach: bool = False
+
 
 
 

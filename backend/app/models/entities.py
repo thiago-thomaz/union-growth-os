@@ -318,6 +318,9 @@ class CRMLead(Base):
     contact_blocked = Column(Boolean, default=False)
     lost_reason = Column(String(255), default="")
     reactivation_count = Column(Integer, default=0)
+    outreach_draft_message = Column(Text, default="")
+    outreach_approved_by_owner = Column(Boolean, default=False)
+    last_outreach_at = Column(DateTime, nullable=True)
     last_contact_at = Column(DateTime, default=utcnow)
     notes = Column(Text, default="")
     created_at = Column(DateTime, default=utcnow)
@@ -706,6 +709,9 @@ class ProductService(Base):
     billing_model = Column(String(50), default="SETUP_PLUS_MRR")  # SETUP_ONLY, SETUP_PLUS_MRR, MONTHLY_RETAINER, MILESTONE_BASED
     recurrence_eligible = Column(Boolean, default=True)
     scope_limits = Column(Text, default="Escopo restrito aos entregáveis listados; integrações ou módulos adicionais sob orçamento complementar.")
+    scope_included_json = Column(Text, default="[]")
+    scope_excluded_json = Column(Text, default="[]")
+    approval_criteria = Column(Text, default="Validação de escopo técnico, margem mínima >= 30% e aprovação expressa do proprietário.")
     commercial_terms = Column(Text, default="50% na assinatura e 50% na entrega homologada; ou assinatura recorrente mensal.")
     availability_status = Column(String(40), default="AVAILABLE")  # AVAILABLE, CUSTOM_QUOTE, PAUSED
     data_origin = Column(String(30), default="REAL")
@@ -1017,6 +1023,7 @@ class ServiceDeliveryProject(Base):
     deliverables_json = Column(Text, default="[]")
     client_validation_status = Column(String(40), default="PENDING")  # PENDING, REQUESTED, APPROVED_BY_CLIENT
     client_validation_notes = Column(Text, default="")
+    execution_evidence = Column(Text, default="")
     status = Column(String(40), default="ONBOARDING")  # ONBOARDING, IN_PROGRESS, WAITING_CLIENT, DELIVERED, COMPLETED
     progress_pct = Column(Float, default=15.0)
     due_date = Column(String(40), default="")

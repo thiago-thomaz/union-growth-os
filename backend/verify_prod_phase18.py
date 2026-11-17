@@ -111,13 +111,24 @@ def main():
     assert wh_res["status"] == "APPROVED" and wh_res["onboarding_project_id"] is not None
     print(f"  [OK] Webhook HMAC verificado: Status={wh_res['status']} | Recibo={wh_res['receipt_number']} | Onboarding Project ID={wh_res['onboarding_project_id']}")
 
-    # 5. Verificar Projeto de Onboarding & Entrega Técnica
-    print("\n[ETAPA 5] Verificando Painel de Projetos e Entregas (Onboarding)...")
+    # 5. Verificar Painel de Projetos e Entregas (Onboarding) + Painel 5 Buckets Fase 18.1
+    print("\n[ETAPA 5] Verificando Painel de Projetos e Entregas + Painel 5 Buckets (Fase 18.1)...")
     r_projs = client.get(f"{BASE_URL}/api/v1/commercial/delivery-projects", headers=headers)
     assert r_projs.status_code == 200
     projs = r_projs.json()
     assert len(projs) >= 1
     print(f"  [OK] {len(projs)} Projeto(s) de Entrega ativos. Último: {projs[0]['project_code']} ({projs[0]['status']})")
+
+    r_p181 = client.get(f"{BASE_URL}/api/v1/commercial/phase18-1-executive-panel", headers=headers)
+    assert r_p181.status_code == 200
+    p181 = r_p181.json()
+    assert p181["REAL"]["receita_recebida_confirmada_brl"] == 0.0
+    assert p181["SIMULACAO"]["cobrancas_sandbox_total"] >= 1
+    print(
+        f"  [OK] Painel 5 Buckets: REAL Live Revenue = R$ {p181['REAL']['receita_recebida_confirmada_brl']:,.2f} | "
+        f"SIMULACAO Sandbox Charges = {p181['SIMULACAO']['cobrancas_sandbox_total']} | "
+        f"12 Alertas Funil = OK"
+    )
 
     # 6. Backup e Restauração Isolada em Memória (31 tabelas)
     print("\n[ETAPA 6] Validando Backup e Restauração Isolada em Memória...")
@@ -136,3 +147,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

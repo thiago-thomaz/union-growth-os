@@ -1404,6 +1404,241 @@ def test_41_phase18_onboarding_delivery_lifecycle_and_lgpd_subject_rights(client
     assert r_del.json()["status"] == "LGPD_ERASED"
 
 
+# ===================== FASE 18.1 — CICLO COMERCIAL COMPLETO (20 ETAPAS) & PAINEL 5 BUCKETS =====================
+def test_42_phase18_1_full_20_step_commercial_cycle_and_5_bucket_panel(client: TestClient):
+    from app.services.phase17_commercial_engine import compute_payment_webhook_signature
+
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # Proteção de preços aprovados: serviço 1 já foi aprovado em test_33; tentar alterar sem autorização deve retornar 403
+    svcs = client.get("/api/v1/commercial/services?unit=UNION_TECH", headers=h).json()
+    approved_svc = next((s for s in svcs if s["pricing_calculator"]["pricing_approved_by_owner"]), svcs[0])
+    assert "scope_included" in approved_svc and "scope_excluded" in approved_svc and "approval_criteria" in approved_svc
+    if approved_svc["pricing_calculator"]["pricing_approved_by_owner"]:
+        r_block_price = client.put(
+            f"/api/v1/commercial/services/{approved_svc['id']}/pricing",
+            headers=h,
+            json={"configured_price_brl": 999.0, "owner_approve_pricing": False, "force_owner_override": False},
+        )
+        assert r_block_price.status_code == 403
+
+    # 1 & 2. Cadastro de Lead + Deduplicação
+    cycle_email = f"ciclo181.{RUN_SUFFIX}@clientevalidacao.com.br"
+    r_l1 = client.post(
+        "/api/v1/commercial/landing-pages/capture-lead",
+        headers=h,
+        json={
+            "landing_page_slug": "union-tech",
+            "full_name": "Eduardo Ciclo Completo",
+            "email": cycle_email,
+            "phone": "+5511955554444",
+            "company_name": f"Eduardo Tech {RUN_SUFFIX} Ltda",
+            "buy_intent": "URGENT",
+            "estimated_value": 15000.0,
+            "consent_lgpd": True,
+            "data_origin": "SIMULATION",
+        },
+    )
+    assert r_l1.status_code == 201
+    lead_id = r_l1.json()["lead_id"]
+
+    r_l2 = client.post(
+        "/api/v1/commercial/landing-pages/capture-lead",
+        headers=h,
+        json={
+            "landing_page_slug": "union-tech",
+            "full_name": "Eduardo Ciclo Duplicado",
+            "email": cycle_email,
+            "phone": "+5511955554444",
+            "company_name": f"Eduardo Tech {RUN_SUFFIX} Ltda",
+            "buy_intent": "URGENT",
+            "estimated_value": 15000.0,
+            "consent_lgpd": True,
+            "data_origin": "SIMULATION",
+        },
+    )
+    assert r_l2.status_code == 201 and r_l2.json()["deduplicated"] is True
+
+    # 3, 4 & 5. Qualificação, Preparação de Abordagem (com cooldown de frequência), Diagnóstico e Oportunidade
+    r_out1 = client.post(
+        f"/api/v1/crm/leads/{lead_id}/prepare-outreach",
+        headers=h,
+        json={"service_code": "SRV_03_AUTOMACAO_PROCESSOS", "custom_angle": "Eliminação de planilhas", "owner_approve_outreach": False},
+    )
+    assert r_out1.status_code == 200
+    assert r_out1.json()["external_message_sent"] is False
+
+    # Tentar disparar segunda abordagem em menos de 24h sem override do proprietário -> bloqueio anti-spam 429
+    r_out_spam = client.post(
+        f"/api/v1/crm/leads/{lead_id}/prepare-outreach",
+        headers=h,
+        json={"service_code": "SRV_03_AUTOMACAO_PROCESSOS", "owner_approve_outreach": False},
+    )
+    assert r_out_spam.status_code == 429
+
+    for stg in ("QUALIFICACAO", "DIAGNOSTICO", "OPORTUNIDADE"):
+        r_s = client.put(f"/api/v1/crm/leads/{lead_id}/funnel-stage", headers=h, json={"funnel_stage": stg})
+        assert r_s.status_code == 200 and r_s.json()["funnel_stage"] == stg
+
+    # 6, 7, 8 & 9. Proposta, Bloqueio sem Aprovação, Aprovação e Contrato
+    r_prop = client.post(
+        "/api/v1/commercial/proposals",
+        headers=h,
+        json={
+            "business_unit_code": "UNION_TECH",
+            "lead_id": lead_id,
+            "service_code": "SRV_03_AUTOMACAO_PROCESSOS",
+            "client_name": "Eduardo Ciclo Completo",
+            "client_company": f"Eduardo Tech {RUN_SUFFIX} Ltda",
+            "client_email": cycle_email,
+            "identified_problem": "Retrabalho manual entre vendas e financeiro.",
+            "setup_price_brl": 6200.0,
+            "monthly_price_brl": 590.0,
+            "data_origin": "SIMULATION",
+        },
+    )
+    assert r_prop.status_code == 201
+    prop_id = r_prop.json()["id"]
+
+    # Bloqueio sem aprovação (7)
+    r_blk = client.put(f"/api/v1/commercial/proposals/{prop_id}/status", headers=h, json={"status": "SENT", "owner_approve": False})
+    assert r_blk.status_code == 403
+
+    # Aprovação e Contrato com evidência (8 & 9)
+    r_app = client.put(
+        f"/api/v1/commercial/proposals/{prop_id}/status",
+        headers=h,
+        json={"status": "SENT", "owner_approve": True, "acceptance_evidence": "Aprovado para envio formal"},
+    )
+    assert r_app.status_code == 200 and r_app.json()["owner_approved"] is True
+
+    # 10, 11, 12, 13 & 14. Cobrança Sandbox, Webhook Inválido, Webhook Válido, Evento Duplicado e Estados (REFUNDED)
+    r_chg = client.post(
+        "/api/v1/commercial/payments/charge",
+        headers=h,
+        json={
+            "proposal_id": prop_id,
+            "lead_id": lead_id,
+            "business_unit_code": "UNION_TECH",
+            "client_name": "Eduardo Ciclo Completo",
+            "client_company": f"Eduardo Tech {RUN_SUFFIX} Ltda",
+            "client_email": cycle_email,
+            "amount_brl": 6200.0,
+            "payment_method": "PIX",
+            "idempotency_key": f"idem-181-{RUN_SUFFIX}",
+            "sandbox_mode": True,
+            "owner_approved": True,
+            "data_origin": "SIMULATION",
+        },
+    )
+    assert r_chg.status_code == 201
+    chg = r_chg.json()
+
+    # Webhook inválido (12)
+    r_wh_inv = client.post(
+        "/api/v1/commercial/payments/webhook",
+        headers=h,
+        json={"external_reference": chg["external_reference"], "provider_payment_id": chg["provider_payment_id"], "new_status": "APPROVED", "signature": "bad"},
+    )
+    assert r_wh_inv.status_code == 401
+
+    # Webhook válido -> Pagamento Aprovado + Criação do Projeto de Entrega (11, 14 & 15)
+    r_wh_val = client.post(
+        "/api/v1/commercial/payments/webhook",
+        headers=h,
+        json={
+            "external_reference": chg["external_reference"],
+            "provider_payment_id": chg["provider_payment_id"],
+            "new_status": "APPROVED",
+            "signature": chg["webhook_test_signature_for_approved"],
+        },
+    )
+    assert r_wh_val.status_code == 200
+    proj_id = r_wh_val.json()["onboarding_project_id"]
+    assert proj_id is not None
+
+    # Evento duplicado (13)
+    r_wh_dup = client.post(
+        "/api/v1/commercial/payments/webhook",
+        headers=h,
+        json={
+            "external_reference": chg["external_reference"],
+            "provider_payment_id": chg["provider_payment_id"],
+            "new_status": "APPROVED",
+            "signature": chg["webhook_test_signature_for_approved"],
+        },
+    )
+    assert r_wh_dup.status_code == 200 and r_wh_dup.json()["idempotent_duplicate"] is True
+
+    # 16, 17 & 18. Checklist, Bloqueio de Conclusão sem Evidência, Conclusão com Evidência e Pós-Venda
+    r_no_ev = client.put(
+        f"/api/v1/commercial/delivery-projects/{proj_id}",
+        headers=h,
+        json={"status": "COMPLETED"},
+    )
+    assert r_no_ev.status_code == 400  # Exige evidência!
+
+    r_done = client.put(
+        f"/api/v1/commercial/delivery-projects/{proj_id}",
+        headers=h,
+        json={
+            "completed_checklist_step": "Testes de qualidade",
+            "execution_evidence": "Deploy homologado em produção e ata de aceite assinada pelo cliente.",
+            "status": "COMPLETED",
+            "client_validation_status": "APPROVED_BY_CLIENT",
+        },
+    )
+    assert r_done.status_code == 200 and r_done.json()["status"] == "COMPLETED"
+
+    # Testar estorno (REFUNDED) em uma segunda cobrança para validar reversão de reconciliação
+    r_chg2 = client.post(
+        "/api/v1/commercial/payments/charge",
+        headers=h,
+        json={
+            "business_unit_code": "UNION_TECH",
+            "client_name": "Cliente Estorno Teste",
+            "client_company": "Estorno Ltda",
+            "client_email": f"estorno.{RUN_SUFFIX}@teste.com.br",
+            "amount_brl": 1500.0,
+            "payment_method": "PIX",
+            "sandbox_mode": True,
+            "owner_approved": True,
+            "data_origin": "SIMULATION",
+        },
+    ).json()
+    sig_refund = compute_payment_webhook_signature(r_chg2["external_reference"], r_chg2["provider_payment_id"], "REFUNDED")
+    r_wh_ref = client.post(
+        "/api/v1/commercial/payments/webhook",
+        headers=h,
+        json={
+            "external_reference": r_chg2["external_reference"],
+            "provider_payment_id": r_chg2["provider_payment_id"],
+            "new_status": "REFUNDED",
+            "signature": sig_refund,
+        },
+    )
+    assert r_wh_ref.status_code == 200 and r_wh_ref.json()["reconciled_in_finance"] is False
+
+    # Validar Painel Executivo de 5 Buckets (REAL, ESTIMATIVA, PROJECAO, META, SIMULACAO)
+    r_panel = client.get("/api/v1/commercial/phase18-1-executive-panel", headers=h)
+    assert r_panel.status_code == 200
+    panel = r_panel.json()
+    for bucket in ("REAL", "ESTIMATIVA", "PROJECAO", "META", "SIMULACAO", "funnel_12_stage_alerts"):
+        assert bucket in panel
+    # Como nenhuma transação foi feita via PRODUCTION_API real do Mercado Pago, receita live REAL deve ser 0.0
+    assert panel["REAL"]["receita_recebida_confirmada_brl"] == 0.0
+    assert panel["REAL"]["first_real_paid_customer_verified"] is False
+    assert panel["SIMULACAO"]["cobrancas_sandbox_total"] >= 2
+
+    # 19 & 20. Exportação LGPD e Eliminação LGPD
+    r_exp = client.get(f"/api/v1/crm/leads/{lead_id}/lgpd-export", headers=h)
+    assert r_exp.status_code == 200
+    r_eras = client.delete(f"/api/v1/crm/leads/{lead_id}/lgpd-erasure", headers=h)
+    assert r_eras.status_code == 200 and r_eras.json()["status"] == "LGPD_ERASED"
+
+
+
 
 
 

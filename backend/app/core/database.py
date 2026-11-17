@@ -135,6 +135,14 @@ def run_automatic_schema_migrations(engine_instance=None):
         ("commercial_proposals", "contract_terms", "TEXT DEFAULT 'Cláusulas padrão de prestação de serviços B2B.'"),
         ("commercial_proposals", "contract_status", "VARCHAR(50) DEFAULT 'DRAFT'"),
         ("commercial_proposals", "acceptance_evidence", "VARCHAR(300) DEFAULT ''"),
+        # Fase 18.1 — Primeiro Cliente Real & Validação Financeira
+        ("crm_leads", "outreach_draft_message", "TEXT DEFAULT ''"),
+        ("crm_leads", "outreach_approved_by_owner", "BOOLEAN DEFAULT FALSE"),
+        ("crm_leads", "last_outreach_at", "TIMESTAMP"),
+        ("product_services", "scope_included_json", "TEXT DEFAULT '[]'"),
+        ("product_services", "scope_excluded_json", "TEXT DEFAULT '[]'"),
+        ("product_services", "approval_criteria", "TEXT DEFAULT 'Validação de escopo técnico, margem mínima >= 30% e aprovação expressa do proprietário.'"),
+        ("service_delivery_projects", "execution_evidence", "TEXT DEFAULT ''"),
     ]
 
     with eng.connect() as conn:

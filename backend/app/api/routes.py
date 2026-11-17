@@ -131,12 +131,14 @@ from app.schemas.contracts import (
     ServiceDeliveryProjectCreateRequest,
     ServiceDeliveryUpdateRequest,
     LeadReactivationRequest,
+    LeadOutreachPrepRequest,
 )
 from app.services.phase17_commercial_engine import (
     AGENCY_PLAN_LIMITS,
     FUNNEL_STAGES_ORDER,
     build_multibusiness_executive_dashboard,
     build_multibusiness_financial_summary,
+    build_phase18_1_executive_panel,
     capture_lead_from_landing_page,
     compute_payment_webhook_signature,
     create_commercial_proposal_service,
@@ -146,6 +148,7 @@ from app.services.phase17_commercial_engine import (
     erase_lead_lgpd_data_service,
     export_lead_lgpd_data_service,
     generate_multibusiness_ceo_daily_report,
+    prepare_lead_outreach_service,
     process_payment_webhook_service,
     reactivate_crm_lead_service,
     reconcile_affiliate_commission_service,
@@ -2817,6 +2820,8 @@ def commercial_update_service_pricing(
             resource_id=str(service_id),
         )
         return res
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
@@ -3547,7 +3552,9 @@ def commercial_update_delivery_project(
     try:
         return update_service_delivery_project_service(db, tenant_id=tid, project_id=project_id, payload=payload)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        msg = str(e)
+        code = 404 if "não encontrado" in msg.lower() else 400
+        raise HTTPException(status_code=code, detail=msg)
 
 
 @router.post("/crm/leads/{lead_id}/reactivate")
@@ -3590,6 +3597,36 @@ def crm_erase_lead_lgpd(
         return erase_lead_lgpd_data_service(db, tenant_id=tid, user_id=user.id, user_email=user.email, lead_id=lead_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/crm/leads/{lead_id}/prepare-outreach")
+def crm_prepare_lead_outreach(
+    lead_id: int,
+    payload: LeadOutreachPrepRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    try:
+        return prepare_lead_outreach_service(db, tenant_id=tid, lead_id=lead_id, payload=payload)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        msg = str(e)
+        code = 429 if "frequência" in msg.lower() else 404
+        raise HTTPException(status_code=code, detail=msg)
+
+
+@router.get("/commercial/phase18-1-executive-panel")
+def commercial_phase18_1_executive_panel(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    ensure_phase17_multibusiness_seeded(db, tenant)
+    return build_phase18_1_executive_panel(db, tenant_id=tid)
+
 
 
 

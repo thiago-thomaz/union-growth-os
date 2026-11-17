@@ -3078,6 +3078,51 @@ export default function UnionGrowthOSPortal() {
                 </div>
               )}
 
+              {/* FASE 18.1 — SEPARAÇÃO OBRIGATÓRIA: REAL vs ESTIMATIVA vs PROJEÇÃO vs META vs SIMULAÇÃO */}
+              {mbDashboard.phase18_1_executive_panel && (
+                <div className="bg-[#0f1629] border border-emerald-500/30 rounded-xl p-5 space-y-3">
+                  <div className="flex flex-wrap justify-between items-center gap-2">
+                    <h3 className="text-sm font-bold text-white">
+                      Painel de Validação Comercial Fase 18.1 — Separação Estrita (REAL • ESTIMATIVA • PROJEÇÃO • META • SIMULAÇÃO)
+                    </h3>
+                    <span className="text-[11px] text-emerald-300 font-semibold">
+                      Primeiro Cliente Pago em Produção (API Live):{" "}
+                      {mbDashboard.phase18_1_executive_panel.REAL.first_real_paid_customer_verified ? "CONFIRMADO" : "AGUARDANDO 1º PAGAMENTO LIVE (R$ 0,00)"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs">
+                    <div className="p-3 rounded-lg bg-slate-900 border border-emerald-500/40 space-y-1">
+                      <div className="font-bold text-emerald-400">1. REAL (Verificado Live)</div>
+                      <div className="text-slate-300">Receita Live: <strong>R$ {mbDashboard.phase18_1_executive_panel.REAL.receita_recebida_confirmada_brl}</strong></div>
+                      <div className="text-slate-400">Leads Reais: {mbDashboard.phase18_1_executive_panel.REAL.leads_reais} • Qualif: {mbDashboard.phase18_1_executive_panel.REAL.leads_qualificados}</div>
+                      <div className="text-slate-400">Contratos c/ Evidência: {mbDashboard.phase18_1_executive_panel.REAL.contratos_assinados_com_evidencia}</div>
+                      <div className="text-slate-400">Entregas c/ Evidência: {mbDashboard.phase18_1_executive_panel.REAL.entregas_concluidas_com_evidencia}</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-900 border border-amber-500/30 space-y-1">
+                      <div className="font-bold text-amber-300">2. ESTIMATIVA (Calculadora)</div>
+                      <div className="text-slate-300">Custo Médio Serviço: R$ {mbDashboard.phase18_1_executive_panel.ESTIMATIVA.custo_medio_servico_brl}</div>
+                      <div className="text-slate-400">Margem Estimada: {mbDashboard.phase18_1_executive_panel.ESTIMATIVA.margem_estimada_catalogo_pct}%</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-900 border border-sky-500/30 space-y-1">
+                      <div className="font-bold text-sky-300">3. PROJEÇÃO (Pipeline)</div>
+                      <div className="text-slate-300">Pipeline Ponderado: R$ {mbDashboard.phase18_1_executive_panel.PROJECAO.pipeline_ponderado_aberto_brl}</div>
+                      <div className="text-slate-400">Deals Abertos: {mbDashboard.phase18_1_executive_panel.PROJECAO.negociacoes_abertas_count}</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-900 border border-purple-500/30 space-y-1">
+                      <div className="font-bold text-purple-300">4. META (Objetivos)</div>
+                      <div className="text-slate-300">Meta Mensal (3 Unidades): R$ {mbDashboard.phase18_1_executive_panel.META.meta_mensal_total_brl}</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-slate-900 border border-slate-700 space-y-1">
+                      <div className="font-bold text-slate-300">5. SIMULAÇÃO & SANDBOX</div>
+                      <div className="text-slate-300">Cobranças Sandbox: {mbDashboard.phase18_1_executive_panel.SIMULACAO.cobrancas_sandbox_total} ({mbDashboard.phase18_1_executive_panel.SIMULACAO.pagamentos_sandbox_aprovados} aprov.)</div>
+                      <div className="text-slate-400">Volume Sandbox: R$ {mbDashboard.phase18_1_executive_panel.SIMULACAO.valor_transacionado_sandbox_brl}</div>
+                      <div className="text-slate-400">Seed Importado: R$ {mbDashboard.phase18_1_executive_panel.SIMULACAO.historico_importado_seed_brl}</div>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-400">{mbDashboard.phase18_1_executive_panel.honesty_statement}</p>
+                </div>
+              )}
+
               {/* Funil Comercial de 10 Etapas */}
               {mbDashboard.sales_funnel_10_stages && (
                 <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5">

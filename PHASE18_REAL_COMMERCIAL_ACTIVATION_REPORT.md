@@ -85,3 +85,4 @@ Cada um dos 7 serviços da unidade **UNION TECH** (`SRV_01_DIAGNOSTICO`, `SRV_02
   - *Duplicidade de cobrança ou webhook*: Mitigado por chaves únicas de idempotência (`idempotency_key`).
   - *Envio de proposta ou cobrança sem aval humano*: Mitigado por travas `HTTP 403` no backend.
   - *Violação LGPD*: Mitigado por exigência de consentimento, bloqueio automático de opt-out e endpoints de portabilidade e eliminação.
+
