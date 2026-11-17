@@ -593,14 +593,22 @@ class LeadFunnelStageUpdateRequest(BaseModel):
         "VISITANTE",
         "INTERESSADO",
         "LEAD",
+        "QUALIFICACAO",
         "QUALIFICADO",
         "DIAGNOSTICO",
+        "OPORTUNIDADE",
         "PROPOSTA",
+        "APROVACAO",
         "NEGOCIACAO",
+        "CONTRATO",
+        "PAGAMENTO",
+        "ONBOARDING",
+        "ENTREGA",
         "GANHO",
         "PERDIDO",
         "POS_VENDA",
     ]
+    lost_reason: str = ""
     notes: str = ""
 
 
@@ -612,6 +620,7 @@ class CommercialProposalCreateRequest(BaseModel):
     client_company: str
     client_email: str
     identified_problem: str
+    diagnosis_summary: str = ""
     proposed_solution: str = ""
     scope_details: str = ""
     deliverables: list[str] = []
@@ -620,6 +629,7 @@ class CommercialProposalCreateRequest(BaseModel):
     monthly_price_brl: float = 0.0
     validity_days: int = 10
     payment_terms: str = "50% na assinatura e 50% na entrega homologada + recorrência mensal."
+    contract_terms: str = ""
     data_origin: DataOriginType = "REAL"
 
 
@@ -635,6 +645,7 @@ class CommercialProposalStatusUpdateRequest(BaseModel):
         "EXPIRED",
     ]
     owner_approve: bool = False
+    acceptance_evidence: str = ""
     confirmation_token: str | None = None
 
 
@@ -696,6 +707,62 @@ class MarketOpportunityResearchRequest(BaseModel):
     segment: str = "Varejo"
     business_unit_code: Literal["UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS"] = "UNION_TECH"
     custom_focus: str = ""
+
+
+# ==============================================================================
+# FASE 18 — SCHEMAS: PAGAMENTOS (MERCADO PAGO & SANDBOX), WEBHOOKS & ONBOARDING
+# ==============================================================================
+class PaymentChargeCreateRequest(BaseModel):
+    proposal_id: int | None = None
+    lead_id: int | None = None
+    business_unit_code: Literal["UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS"] = "UNION_TECH"
+    client_name: str
+    client_company: str = ""
+    client_email: str
+    amount_brl: float = Field(gt=0.0)
+    payment_method: Literal["PIX", "BOLETO", "CHECKOUT_PRO"] = "PIX"
+    idempotency_key: str = ""
+    sandbox_mode: bool = True
+    owner_approved: bool = False
+    data_origin: DataOriginType = "REAL"
+
+
+class PaymentWebhookNotificationRequest(BaseModel):
+    external_reference: str
+    provider_payment_id: str
+    new_status: Literal["PENDING", "APPROVED", "REJECTED", "CANCELLED", "REFUNDED", "DISPUTED"]
+    amount_brl: float | None = None
+    event_id: str = ""
+    signature: str = ""
+
+
+class ServiceDeliveryProjectCreateRequest(BaseModel):
+    proposal_id: int | None = None
+    payment_id: int | None = None
+    lead_id: int | None = None
+    business_unit_code: Literal["UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS"] = "UNION_TECH"
+    client_name: str
+    client_company: str
+    client_email: str
+    service_code: str = "SRV_01_DIAGNOSTICO"
+    contracted_scope: str = ""
+    due_date: str = ""
+    data_origin: DataOriginType = "REAL"
+
+
+class ServiceDeliveryUpdateRequest(BaseModel):
+    status: Literal["ONBOARDING", "IN_PROGRESS", "WAITING_CLIENT", "DELIVERED", "COMPLETED"] | None = None
+    progress_pct: float | None = None
+    client_validation_status: Literal["PENDING", "REQUESTED", "APPROVED_BY_CLIENT"] | None = None
+    client_validation_notes: str | None = None
+    completed_checklist_step: str | None = None
+    deliverable_submitted: str | None = None
+
+
+class LeadReactivationRequest(BaseModel):
+    authorization_basis: str = "Opt-in prévio válido e ausência de opt-out (LGPD)"
+    custom_message_notes: str = ""
+
 
 
 

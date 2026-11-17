@@ -117,6 +117,24 @@ def run_automatic_schema_migrations(engine_instance=None):
         ("financial_records", "revenue_status", "VARCHAR(40) DEFAULT 'RECEIVED'"),
         ("financial_records", "is_recurring", "BOOLEAN DEFAULT FALSE"),
         ("automation_rules", "business_unit_code", "VARCHAR(50) DEFAULT 'ALL'"),
+        # Fase 18 — Ativação Comercial Real
+        ("crm_leads", "lost_reason", "VARCHAR(255) DEFAULT ''"),
+        ("crm_leads", "reactivation_count", "INTEGER DEFAULT 0"),
+        ("product_services", "client_requirements_json", "TEXT DEFAULT '[]'"),
+        ("product_services", "direct_cost_brl", "FLOAT DEFAULT 0.0"),
+        ("product_services", "indirect_cost_brl", "FLOAT DEFAULT 0.0"),
+        ("product_services", "minimum_margin_pct", "FLOAT DEFAULT 30.0"),
+        ("product_services", "billing_model", "VARCHAR(50) DEFAULT 'SETUP_PLUS_MRR'"),
+        ("product_services", "recurrence_eligible", "BOOLEAN DEFAULT TRUE"),
+        ("product_services", "scope_limits", "TEXT DEFAULT 'Escopo restrito aos entregáveis listados.'"),
+        ("market_opportunities", "opportunity_score", "INTEGER DEFAULT 85"),
+        ("market_opportunities", "problem_campaign_theme", "VARCHAR(160) DEFAULT 'Automação de Atendimento & IA'"),
+        ("commercial_proposals", "diagnosis_summary", "TEXT DEFAULT ''"),
+        ("commercial_proposals", "version_number", "INTEGER DEFAULT 1"),
+        ("commercial_proposals", "version_history_json", "TEXT DEFAULT '[]'"),
+        ("commercial_proposals", "contract_terms", "TEXT DEFAULT 'Cláusulas padrão de prestação de serviços B2B.'"),
+        ("commercial_proposals", "contract_status", "VARCHAR(50) DEFAULT 'DRAFT'"),
+        ("commercial_proposals", "acceptance_evidence", "VARCHAR(300) DEFAULT ''"),
     ]
 
     with eng.connect() as conn:
@@ -168,6 +186,8 @@ def create_database_backup(db: Session, tenant_id: int | None = None) -> dict:
         AffiliateProduct,
         AffiliateClick,
         AffiliateConversion,
+        PaymentTransaction,
+        ServiceDeliveryProject,
     )
 
     backup_dir = Path(settings.BACKUP_DIR)
@@ -231,6 +251,8 @@ def create_database_backup(db: Session, tenant_id: int | None = None) -> dict:
             "affiliate_products": _serialize_rows(AffiliateProduct),
             "affiliate_clicks": _serialize_rows(AffiliateClick),
             "affiliate_conversions": _serialize_rows(AffiliateConversion),
+            "payment_transactions": _serialize_rows(PaymentTransaction),
+            "service_delivery_projects": _serialize_rows(ServiceDeliveryProject),
             "integrations_count": len(_serialize_rows(IntegrationConnection)),
         },
     }
@@ -338,6 +360,8 @@ def restore_database_from_backup(
         AffiliateProduct,
         AffiliateClick,
         AffiliateConversion,
+        PaymentTransaction,
+        ServiceDeliveryProject,
     )
 
     path = Path(backup_path)
@@ -399,6 +423,8 @@ def restore_database_from_backup(
             ("affiliate_products", AffiliateProduct),
             ("affiliate_clicks", AffiliateClick),
             ("affiliate_conversions", AffiliateConversion),
+            ("payment_transactions", PaymentTransaction),
+            ("service_delivery_projects", ServiceDeliveryProject),
         ]
 
         for key, model_cls in model_map:

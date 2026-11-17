@@ -126,6 +126,11 @@ from app.schemas.contracts import (
     AffiliateConversionRecordRequest,
     AffiliateCommissionReconcileRequest,
     MarketOpportunityResearchRequest,
+    PaymentChargeCreateRequest,
+    PaymentWebhookNotificationRequest,
+    ServiceDeliveryProjectCreateRequest,
+    ServiceDeliveryUpdateRequest,
+    LeadReactivationRequest,
 )
 from app.services.phase17_commercial_engine import (
     AGENCY_PLAN_LIMITS,
@@ -133,17 +138,27 @@ from app.services.phase17_commercial_engine import (
     build_multibusiness_executive_dashboard,
     build_multibusiness_financial_summary,
     capture_lead_from_landing_page,
+    compute_payment_webhook_signature,
     create_commercial_proposal_service,
+    create_payment_charge_service,
+    create_service_delivery_project_internal,
     ensure_phase17_multibusiness_seeded,
+    erase_lead_lgpd_data_service,
+    export_lead_lgpd_data_service,
     generate_multibusiness_ceo_daily_report,
+    process_payment_webhook_service,
+    reactivate_crm_lead_service,
     reconcile_affiliate_commission_service,
     record_affiliate_click_service,
     record_affiliate_conversion_service,
     render_proposal_printable_html,
+    serialize_delivery_project,
+    serialize_payment_transaction,
     serialize_product_service,
     serialize_proposal,
     update_product_service_pricing,
     update_proposal_status_service,
+    update_service_delivery_project_service,
 )
 from app.services.phase14_automation_factory import (
     generate_30_day_content_batch_service,
@@ -3409,5 +3424,172 @@ def ceo_generate_multibusiness_briefing(
     tid = get_active_tenant_id(user)
     tenant = _get_tenant_or_404(db, tid)
     return generate_multibusiness_ceo_daily_report(db, tenant)
+
+
+# ==============================================================================
+# 22. FASE 18 — PAGAMENTOS (MERCADO PAGO & SANDBOX), WEBHOOKS, ONBOARDING & LGPD
+# ==============================================================================
+@router.get("/commercial/payments")
+def commercial_list_payments(
+    unit: str = "ALL",
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.models.entities import PaymentTransaction as _PT
+
+    tid = get_active_tenant_id(user)
+    q = db.query(_PT).filter(_PT.tenant_id == tid)
+    if unit.upper() in ("UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS"):
+        q = q.filter(_PT.business_unit_code == unit.upper())
+    return [serialize_payment_transaction(pt) for pt in q.order_by(_PT.id.desc()).all()]
+
+
+@router.post("/commercial/payments/charge", status_code=status.HTTP_201_CREATED)
+def commercial_create_payment_charge(
+    payload: PaymentChargeCreateRequest,
+    user: User = Depends(require_roles("owner", "admin", "manager")),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    try:
+        res = create_payment_charge_service(db, tenant_id=tid, payload=payload)
+        record_audit_log(
+            db,
+            tenant_id=tid,
+            user_id=user.id,
+            actor=user.email,
+            action=f"PAYMENT_CHARGE_CREATED:{res['execution_mode']}",
+            resource_type="payment_transaction",
+            resource_id=res["external_reference"],
+        )
+        return res
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/commercial/payments/webhook")
+def commercial_payment_webhook(
+    payload: PaymentWebhookNotificationRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    try:
+        res = process_payment_webhook_service(db, tenant_id=tid, payload=payload)
+        record_audit_log(
+            db,
+            tenant_id=tid,
+            user_id=user.id,
+            actor="webhook-mercado-pago",
+            action=f"PAYMENT_WEBHOOK_{res['status']}",
+            resource_type="payment_transaction",
+            resource_id=res["external_reference"],
+        )
+        return res
+    except PermissionError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/commercial/delivery-projects")
+def commercial_list_delivery_projects(
+    unit: str = "ALL",
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.models.entities import ServiceDeliveryProject as _SDP
+
+    tid = get_active_tenant_id(user)
+    q = db.query(_SDP).filter(_SDP.tenant_id == tid)
+    if unit.upper() in ("UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS"):
+        q = q.filter(_SDP.business_unit_code == unit.upper())
+    return [serialize_delivery_project(p) for p in q.order_by(_SDP.id.desc()).all()]
+
+
+@router.post("/commercial/delivery-projects", status_code=status.HTTP_201_CREATED)
+def commercial_create_delivery_project(
+    payload: ServiceDeliveryProjectCreateRequest,
+    user: User = Depends(require_roles("owner", "admin", "manager")),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    proj = create_service_delivery_project_internal(
+        db=db,
+        tenant_id=tid,
+        business_unit_code=payload.business_unit_code,
+        proposal_id=payload.proposal_id,
+        payment_id=payload.payment_id,
+        lead_id=payload.lead_id,
+        client_name=sanitize_text(payload.client_name),
+        client_company=sanitize_text(payload.client_company),
+        client_email=payload.client_email.strip().lower(),
+        service_code=payload.service_code,
+        contracted_scope=sanitize_text(payload.contracted_scope),
+        due_date=payload.due_date,
+        data_origin=payload.data_origin,
+    )
+    db.commit()
+    db.refresh(proj)
+    return serialize_delivery_project(proj)
+
+
+@router.put("/commercial/delivery-projects/{project_id}")
+def commercial_update_delivery_project(
+    project_id: int,
+    payload: ServiceDeliveryUpdateRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    try:
+        return update_service_delivery_project_service(db, tenant_id=tid, project_id=project_id, payload=payload)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/crm/leads/{lead_id}/reactivate")
+def crm_reactivate_lead(
+    lead_id: int,
+    payload: LeadReactivationRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    try:
+        return reactivate_crm_lead_service(db, tenant_id=tid, lead_id=lead_id, payload=payload)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/crm/leads/{lead_id}/lgpd-export")
+def crm_export_lead_lgpd(
+    lead_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    try:
+        return export_lead_lgpd_data_service(db, tenant_id=tid, lead_id=lead_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.delete("/crm/leads/{lead_id}/lgpd-erasure")
+def crm_erase_lead_lgpd(
+    lead_id: int,
+    user: User = Depends(require_roles("owner", "admin")),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    try:
+        return erase_lead_lgpd_data_service(db, tenant_id=tid, user_id=user.id, user_email=user.email, lead_id=lead_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
 
 

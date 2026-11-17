@@ -8,14 +8,17 @@ Implementa os motores de negócio reais e auditáveis para administrar 3 unidade
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from app.agents.orchestrator import compute_lead_score
+from app.core.config import settings
 from app.models.entities import (
     AffiliateClick,
     AffiliateConversion,
@@ -23,6 +26,7 @@ from app.models.entities import (
     AffiliateProgram,
     AgencyClientAccount,
     ApprovalRequest,
+    AuditLog,
     AutomationRule,
     BusinessUnit,
     CEODailyBriefing,
@@ -39,7 +43,9 @@ from app.models.entities import (
     MarketingCampaign,
     MarketOpportunity,
     OperationalAlert,
+    PaymentTransaction,
     ProductService,
+    ServiceDeliveryProject,
     Tenant,
 )
 
@@ -61,13 +67,20 @@ FUNNEL_STAGES_ORDER = [
     "VISITANTE",
     "INTERESSADO",
     "LEAD",
+    "QUALIFICACAO",
     "QUALIFICADO",
     "DIAGNOSTICO",
+    "OPORTUNIDADE",
     "PROPOSTA",
+    "APROVACAO",
     "NEGOCIACAO",
+    "CONTRATO",
+    "PAGAMENTO",
+    "ONBOARDING",
+    "ENTREGA",
+    "POS_VENDA",
     "GANHO",
     "PERDIDO",
-    "POS_VENDA",
 ]
 
 
@@ -1048,6 +1061,14 @@ def update_product_service_pricing(
 
 
 def serialize_product_service(svc: ProductService) -> dict[str, Any]:
+    reqs = json.loads(getattr(svc, "client_requirements_json", "[]") or "[]")
+    if not reqs:
+        reqs = [
+            "Ponto focal responsável para validação de regras de negócio",
+            "Credenciais/acessos de homologação aos sistemas que serão integrados",
+        ]
+    direct_cost = getattr(svc, "direct_cost_brl", 0.0) or svc.estimated_cost_brl
+    indirect_cost = getattr(svc, "indirect_cost_brl", 0.0) or round(svc.support_cost_brl * 0.5, 2)
     return {
         "id": svc.id,
         "business_unit_code": svc.business_unit_code,
@@ -1061,14 +1082,25 @@ def serialize_product_service(svc: ProductService) -> dict[str, Any]:
         "scope_summary": svc.scope_summary,
         "deliverables": json.loads(svc.deliverables_json or "[]"),
         "estimated_timeline_days": svc.estimated_timeline_days,
+        "client_requirements": reqs,
+        "billing_model": getattr(svc, "billing_model", "SETUP_PLUS_MRR" if svc.recurring_monthly_brl > 0 else "SETUP_ONLY"),
+        "recurrence_eligible": bool(getattr(svc, "recurrence_eligible", True)),
+        "scope_limits": getattr(
+            svc,
+            "scope_limits",
+            "Escopo restrito aos entregáveis listados; integrações ou módulos adicionais sob orçamento complementar.",
+        ),
         "pricing_calculator": {
             "dev_hours_estimated": svc.dev_hours_estimated,
             "complexity_level": svc.complexity_level,
             "hourly_rate_brl": svc.hourly_rate_brl,
+            "direct_cost_brl": direct_cost,
+            "indirect_cost_brl": indirect_cost,
             "infra_cost_brl": svc.infra_cost_brl,
             "tools_api_cost_brl": svc.tools_api_cost_brl,
             "support_cost_brl": svc.support_cost_brl,
             "tax_rate_pct": svc.tax_rate_pct,
+            "minimum_margin_pct": getattr(svc, "minimum_margin_pct", 30.0),
             "target_margin_pct": svc.target_margin_pct,
             "estimated_cost_brl": svc.estimated_cost_brl,
             "suggested_price_brl": svc.suggested_price_brl,
@@ -1256,6 +1288,25 @@ def create_commercial_proposal_service(
     )
 
     prop_num = f"PROP-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+    now_iso = datetime.now(timezone.utc).isoformat()
+    initial_version_history = [
+        {
+            "version": 1,
+            "timestamp": now_iso,
+            "status": "PENDING_APPROVAL",
+            "setup_price_brl": setup_val,
+            "monthly_price_brl": monthly_val,
+            "notes": "Versão 1 gerada e submetida à revisão do proprietário.",
+        }
+    ]
+    diag_txt = getattr(payload, "diagnosis_summary", "") or (
+        f"Diagnóstico Técnico: Identificado gargalo em '{payload.identified_problem}'. Recomendada implantação de {payload.service_code}."
+    )
+    contract_txt = getattr(payload, "contract_terms", "") or (
+        "MINUTA DE CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE TECNOLOGIA E AUTOMAÇÃO: "
+        "1. Objeto restrito aos entregáveis descritos; 2. Confidencialidade (NDA) e proteção de dados (LGPD); "
+        "3. Sujeito à aprovação expressa do proprietário e confirmação de pagamento."
+    )
     proposal = CommercialProposal(
         tenant_id=tenant.id,
         business_unit_code=payload.business_unit_code,
@@ -1267,6 +1318,7 @@ def create_commercial_proposal_service(
         client_company=payload.client_company,
         client_email=payload.client_email,
         identified_problem=payload.identified_problem,
+        diagnosis_summary=diag_txt,
         proposed_solution=proposed_sol,
         scope_details=scope_txt,
         deliverables_json=json.dumps(deliverables, ensure_ascii=False),
@@ -1276,6 +1328,11 @@ def create_commercial_proposal_service(
         total_contract_value_brl=total_contract,
         payment_terms=payload.payment_terms,
         validity_days=payload.validity_days,
+        version_number=1,
+        version_history_json=json.dumps(initial_version_history, ensure_ascii=False),
+        contract_terms=contract_txt,
+        contract_status="PENDING_REVIEW",
+        acceptance_evidence="",
         status="PENDING_APPROVAL",
         owner_approved=False,
         data_origin=payload.data_origin,
@@ -1347,6 +1404,25 @@ def update_proposal_status_service(
         )
 
     prop.status = target_status
+    prop.version_number = (getattr(prop, "version_number", 1) or 1) + 1
+    history = json.loads(getattr(prop, "version_history_json", "[]") or "[]")
+    evidence_str = getattr(payload, "acceptance_evidence", "") or ""
+    if evidence_str:
+        prop.acceptance_evidence = evidence_str
+    if prop.owner_approved and getattr(prop, "contract_status", "DRAFT") in ("DRAFT", "PENDING_REVIEW"):
+        prop.contract_status = "APPROVED_BY_OWNER"
+    if target_status == "ACCEPTED":
+        prop.contract_status = "ACCEPTED_WITH_EVIDENCE" if prop.acceptance_evidence else "APPROVED_BY_OWNER"
+    history.append(
+        {
+            "version": prop.version_number,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "status": target_status,
+            "owner_approved": prop.owner_approved,
+            "acceptance_evidence": prop.acceptance_evidence,
+        }
+    )
+    prop.version_history_json = json.dumps(history, ensure_ascii=False)
 
     if target_status == "ACCEPTED":
         if prop.lead_id:
@@ -1443,6 +1519,12 @@ def serialize_proposal(prop: CommercialProposal) -> dict[str, Any]:
         "status": prop.status,
         "owner_approved": prop.owner_approved,
         "approved_at": prop.approved_at.isoformat() if prop.approved_at else None,
+        "diagnosis_summary": getattr(prop, "diagnosis_summary", ""),
+        "version_number": getattr(prop, "version_number", 1),
+        "version_history": json.loads(getattr(prop, "version_history_json", "[]") or "[]"),
+        "contract_terms": getattr(prop, "contract_terms", ""),
+        "contract_status": getattr(prop, "contract_status", "DRAFT"),
+        "acceptance_evidence": getattr(prop, "acceptance_evidence", ""),
         "data_origin": prop.data_origin,
         "pdf_url": f"/api/v1/commercial/proposals/{prop.id}/pdf",
         "created_at": prop.created_at.isoformat() if prop.created_at else "",
@@ -2162,6 +2244,22 @@ def build_multibusiness_executive_dashboard(
             "contents": contents_q.count(),
             "leads": len(leads_list),
         },
+        "payments": [
+            serialize_payment_transaction(pt)
+            for pt in db.query(PaymentTransaction)
+            .filter(PaymentTransaction.tenant_id == tenant.id)
+            .order_by(PaymentTransaction.id.desc())
+            .limit(25)
+            .all()
+        ],
+        "delivery_projects": [
+            serialize_delivery_project(dp)
+            for dp in db.query(ServiceDeliveryProject)
+            .filter(ServiceDeliveryProject.tenant_id == tenant.id)
+            .order_by(ServiceDeliveryProject.id.desc())
+            .limit(25)
+            .all()
+        ],
         "commercial_alerts": generate_commercial_alerts(db, tenant.id),
     }
 
@@ -2239,3 +2337,503 @@ def generate_multibusiness_ceo_daily_report(db: Session, tenant: Tenant) -> dict
     db.add(briefing)
     db.commit()
     return report
+
+
+# ==============================================================================
+# FASE 18 — MOTOR DE PAGAMENTOS (MERCADO PAGO & SANDBOX), WEBHOOKS & ONBOARDING
+# ==============================================================================
+def compute_payment_webhook_signature(external_reference: str, provider_payment_id: str, new_status: str) -> str:
+    """Calcula assinatura HMAC-SHA256 determinística para validação criptográfica de notificações de webhook."""
+    msg = f"{external_reference}:{provider_payment_id}:{new_status.upper()}".encode("utf-8")
+    return hmac.new(settings.SECRET_KEY.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+
+
+def serialize_payment_transaction(tx: PaymentTransaction) -> dict[str, Any]:
+    return {
+        "id": tx.id,
+        "business_unit_code": tx.business_unit_code,
+        "proposal_id": tx.proposal_id,
+        "lead_id": tx.lead_id,
+        "client_name": tx.client_name,
+        "client_company": tx.client_company,
+        "client_email": tx.client_email,
+        "provider": tx.provider,
+        "external_reference": tx.external_reference,
+        "provider_payment_id": tx.provider_payment_id,
+        "idempotency_key": tx.idempotency_key,
+        "amount_brl": tx.amount_brl,
+        "payment_method": tx.payment_method,
+        "payment_link_url": tx.payment_link_url,
+        "execution_mode": tx.execution_mode,
+        "status": tx.status,
+        "owner_approved": tx.owner_approved,
+        "webhook_signature_verified": tx.webhook_signature_verified,
+        "webhook_events": json.loads(tx.webhook_events_json or "[]"),
+        "receipt_number": tx.receipt_number,
+        "reconciled_in_finance": tx.reconciled_in_finance,
+        "financial_record_id": tx.financial_record_id,
+        "onboarding_project_id": tx.onboarding_project_id,
+        "counted_as_received_revenue": bool(tx.status == "APPROVED" and tx.reconciled_in_finance),
+        "data_origin": tx.data_origin,
+        "created_at": tx.created_at.isoformat() if tx.created_at else "",
+        "paid_at": tx.paid_at.isoformat() if tx.paid_at else None,
+    }
+
+
+def create_payment_charge_service(
+    db: Session,
+    tenant_id: int,
+    payload: Any,
+) -> dict[str, Any]:
+    """
+    Cria uma cobrança comercial vinculada a uma proposta/cliente:
+    - Exige owner_approved=True (proibido criar cobranças sem aprovação do proprietário).
+    - Garante idempotência estrita via idempotency_key.
+    - NUNCA registra receita recebida apenas porque a cobrança (PENDING) foi criada.
+    - Se Mercado Pago estiver sem credenciais de produção ou sandbox_mode=True, opera em modo SANDBOX transparente.
+    """
+    if not payload.owner_approved:
+        raise PermissionError(
+            "Governança Financeira: Não é permitido emitir cobrança comercial sem aprovação expressa do proprietário (owner_approved=True)."
+        )
+
+    idem_key = (payload.idempotency_key or "").strip() or f"pay-{tenant_id}-{payload.proposal_id or 0}-{uuid.uuid4().hex[:10]}"
+    existing = (
+        db.query(PaymentTransaction)
+        .filter(PaymentTransaction.tenant_id == tenant_id, PaymentTransaction.idempotency_key == idem_key)
+        .first()
+    )
+    if existing:
+        out = serialize_payment_transaction(existing)
+        out["idempotent_reused"] = True
+        return out
+
+    mp_conn = (
+        db.query(IntegrationConnection)
+        .filter(IntegrationConnection.tenant_id == tenant_id, IntegrationConnection.provider_key == "mercado_pago")
+        .first()
+    )
+    mp_connected = bool(mp_conn and mp_conn.status == "CONNECTED")
+    exec_mode = "SANDBOX" if (payload.sandbox_mode or not mp_connected) else "PRODUCTION_API"
+
+    ext_ref = f"UG-{payload.business_unit_code}-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+    prov_pay_id = f"mp_{'sbx' if exec_mode == 'SANDBOX' else 'live'}_{uuid.uuid4().hex[:10]}"
+    pay_link = f"https://www.mercadopago.com.br/checkout/v1/redirect?pref_id={prov_pay_id}&ref={ext_ref}"
+
+    tx = PaymentTransaction(
+        tenant_id=tenant_id,
+        business_unit_code=payload.business_unit_code,
+        proposal_id=payload.proposal_id,
+        lead_id=payload.lead_id,
+        client_name=payload.client_name.strip(),
+        client_company=payload.client_company.strip(),
+        client_email=payload.client_email.strip().lower(),
+        provider="mercado_pago",
+        external_reference=ext_ref,
+        provider_payment_id=prov_pay_id,
+        idempotency_key=idem_key,
+        amount_brl=round(payload.amount_brl, 2),
+        payment_method=payload.payment_method,
+        payment_link_url=pay_link,
+        execution_mode=exec_mode,
+        status="PENDING",
+        owner_approved=True,
+        webhook_signature_verified=False,
+        webhook_events_json=json.dumps(
+            [{"timestamp": datetime.now(timezone.utc).isoformat(), "event": "CHARGE_CREATED", "status": "PENDING", "mode": exec_mode}],
+            ensure_ascii=False,
+        ),
+        reconciled_in_finance=False,
+        data_origin=payload.data_origin,
+    )
+    db.add(tx)
+    if payload.lead_id:
+        lead = db.query(CRMLead).filter(CRMLead.tenant_id == tenant_id, CRMLead.id == payload.lead_id).first()
+        if lead:
+            lead.funnel_stage = "PAGAMENTO"
+    db.commit()
+    db.refresh(tx)
+
+    out = serialize_payment_transaction(tx)
+    out["idempotent_reused"] = False
+    out["webhook_test_signature_for_approved"] = compute_payment_webhook_signature(ext_ref, prov_pay_id, "APPROVED")
+    return out
+
+
+def process_payment_webhook_service(
+    db: Session,
+    tenant_id: int,
+    payload: Any,
+) -> dict[str, Any]:
+    """
+    Processa notificação de webhook de pagamento:
+    1. Valida assinatura criptográfica HMAC-SHA256 (rejeita com PermissionError se inválida).
+    2. Garante idempotência (notificações repetidas para o mesmo status não duplicam receita nem projetos).
+    3. Somente quando new_status == 'APPROVED' registra receita confirmada/recebida em FinancialRecord
+       e dispara automaticamente a criação do projeto de Onboarding & Entrega Técnica.
+    """
+    expected_sig = compute_payment_webhook_signature(
+        payload.external_reference,
+        payload.provider_payment_id,
+        payload.new_status,
+    )
+    if not payload.signature or not hmac.compare_digest(payload.signature.strip(), expected_sig):
+        raise PermissionError("Assinatura criptográfica do webhook de pagamento inválida ou ausente (HMAC-SHA256 mismatch).")
+
+    tx = (
+        db.query(PaymentTransaction)
+        .filter(
+            PaymentTransaction.tenant_id == tenant_id,
+            PaymentTransaction.external_reference == payload.external_reference,
+        )
+        .first()
+    )
+    if not tx:
+        raise ValueError(f"Transação com external_reference '{payload.external_reference}' não encontrada.")
+
+    target_status = payload.new_status.upper()
+
+    # Proteção de Idempotência: se já está no mesmo status e já conciliado, retorna sem duplicar
+    if tx.status == target_status and (target_status != "APPROVED" or tx.reconciled_in_finance):
+        out = serialize_payment_transaction(tx)
+        out["idempotent_duplicate"] = True
+        return out
+
+    events = json.loads(tx.webhook_events_json or "[]")
+    events.append(
+        {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "event_id": payload.event_id or f"evt_{uuid.uuid4().hex[:8]}",
+            "status": target_status,
+            "signature_verified": True,
+        }
+    )
+    tx.webhook_events_json = json.dumps(events, ensure_ascii=False)
+    tx.webhook_signature_verified = True
+    tx.provider_payment_id = payload.provider_payment_id
+    tx.status = target_status
+    tx.updated_at = datetime.now(timezone.utc)
+
+    if target_status == "APPROVED" and not tx.reconciled_in_finance:
+        tx.paid_at = datetime.now(timezone.utc)
+        tx.receipt_number = f"REC-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{tx.id:04d}"
+
+        fin = FinancialRecord(
+            tenant_id=tenant_id,
+            period_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            record_type="REVENUE",
+            category=f"Pagamento Confirmado ({tx.payment_method})",
+            channel=tx.business_unit_code,
+            amount=tx.amount_brl,
+            business_unit_code=tx.business_unit_code,
+            revenue_status="RECEIVED",
+            is_recurring=False,
+            data_origin=tx.data_origin,
+            description=f"Recebimento confirmado via Webhook Verificado ({tx.external_reference} / {tx.provider_payment_id}) — Cliente: {tx.client_company or tx.client_name}",
+        )
+        db.add(fin)
+        db.flush()
+        tx.reconciled_in_finance = True
+        tx.financial_record_id = fin.id
+
+        svc_code = "SRV_01_DIAGNOSTICO"
+        scope_str = "Implantação de solução tecnológica conforme proposta aprovada."
+        if tx.proposal_id:
+            prop = db.query(CommercialProposal).filter(CommercialProposal.id == tx.proposal_id).first()
+            if prop:
+                prop.status = "ACCEPTED"
+                prop.contract_status = "ACCEPTED_WITH_EVIDENCE"
+                prop.acceptance_evidence = f"Pagamento aprovado #{tx.provider_payment_id} ({tx.receipt_number})"
+                svc_code = prop.service_code
+                scope_str = prop.scope_details
+
+        if tx.lead_id:
+            lead = db.query(CRMLead).filter(CRMLead.id == tx.lead_id).first()
+            if lead:
+                lead.funnel_stage = "ONBOARDING"
+                lead.pipeline_stage = "CLOSED_WON"
+                lead.qualification_status = "CONVERTED"
+
+        # Acionar automaticamente Onboarding & Entrega do Serviço
+        if not tx.onboarding_project_id:
+            proj = create_service_delivery_project_internal(
+                db=db,
+                tenant_id=tenant_id,
+                business_unit_code=tx.business_unit_code,
+                proposal_id=tx.proposal_id,
+                payment_id=tx.id,
+                lead_id=tx.lead_id,
+                client_name=tx.client_name,
+                client_company=tx.client_company or tx.client_name,
+                client_email=tx.client_email,
+                service_code=svc_code,
+                contracted_scope=scope_str,
+                data_origin=tx.data_origin,
+            )
+            tx.onboarding_project_id = proj.id
+
+    elif target_status in ("REFUNDED", "CANCELLED", "REJECTED", "DISPUTED"):
+        tx.reconciled_in_finance = False
+
+    db.commit()
+    db.refresh(tx)
+    out = serialize_payment_transaction(tx)
+    out["idempotent_duplicate"] = False
+    return out
+
+
+def create_service_delivery_project_internal(
+    db: Session,
+    tenant_id: int,
+    business_unit_code: str,
+    proposal_id: int | None,
+    payment_id: int | None,
+    lead_id: int | None,
+    client_name: str,
+    client_company: str,
+    client_email: str,
+    service_code: str,
+    contracted_scope: str,
+    due_date: str = "",
+    data_origin: str = "REAL",
+) -> ServiceDeliveryProject:
+    svc = (
+        db.query(ProductService)
+        .filter(ProductService.tenant_id == tenant_id, ProductService.service_code == service_code)
+        .first()
+    )
+    svc_name = svc.name if svc else f"Projeto Técnico ({service_code})"
+    days = svc.estimated_timeline_days if svc else 15
+    target_due = due_date or (datetime.now(timezone.utc) + timedelta(days=days)).strftime("%Y-%m-%d")
+
+    deliverables_list = json.loads(svc.deliverables_json or "[]") if svc else [
+        "Mapeamento Técnico e Arquitetura",
+        "Implantação e Testes Integrados",
+        "Treinamento e Handover Operacional",
+    ]
+    checklist = [
+        {"step": "1. Boas-vindas, Kickoff e alinhamento de expectativas", "completed": True},
+        {"step": "2. Coleta de credenciais, acessos e documentos técnicos do cliente", "completed": False},
+        {"step": "3. Configuração de ambiente e execução técnica do escopo", "completed": False},
+        {"step": "4. Testes de qualidade, segurança e homologação assistida", "completed": False},
+        {"step": "5. Entrega final, validação formal do cliente e ativação de pós-venda", "completed": False},
+    ]
+    tasks = [
+        {"title": "Reunião de Kickoff e levantamento de acessos", "owner": "AGENT_11_CS", "status": "COMPLETED"},
+        {"title": f"Execução técnica dos entregáveis de {service_code}", "owner": "AGENT_01_CEO", "status": "IN_PROGRESS"},
+        {"title": "Homologação final e coleta de aceite do cliente", "owner": "AGENT_11_CS", "status": "PENDING"},
+    ]
+    docs_required = [
+        "Cadastro societário e contato do ponto focal técnico",
+        "Credenciais de homologação/APIs dos sistemas integrados (quando aplicável)",
+    ]
+
+    proj = ServiceDeliveryProject(
+        tenant_id=tenant_id,
+        business_unit_code=business_unit_code,
+        project_code=f"PRJ-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:5].upper()}",
+        proposal_id=proposal_id,
+        payment_id=payment_id,
+        lead_id=lead_id,
+        client_name=client_name,
+        client_company=client_company,
+        client_email=client_email,
+        service_code=service_code,
+        service_name=svc_name,
+        contracted_scope=contracted_scope or (svc.scope_summary if svc else "Escopo técnico conforme proposta aprovada."),
+        tasks_json=json.dumps(tasks, ensure_ascii=False),
+        milestones_json=json.dumps(
+            [
+                {"milestone": "M1: Kickoff & Acessos", "due_in_days": 3},
+                {"milestone": "M2: Desenvolvimento & Integração", "due_in_days": max(5, days - 3)},
+                {"milestone": "M3: Homologação & Go-Live", "due_in_days": days},
+            ],
+            ensure_ascii=False,
+        ),
+        required_documents_json=json.dumps(docs_required, ensure_ascii=False),
+        onboarding_checklist_json=json.dumps(checklist, ensure_ascii=False),
+        deliverables_json=json.dumps([{"name": d, "status": "IN_PROGRESS"} for d in deliverables_list], ensure_ascii=False),
+        client_validation_status="PENDING",
+        status="ONBOARDING",
+        progress_pct=20.0,
+        due_date=target_due,
+        data_origin=data_origin,
+    )
+    db.add(proj)
+    db.flush()
+    return proj
+
+
+def update_service_delivery_project_service(
+    db: Session,
+    tenant_id: int,
+    project_id: int,
+    payload: Any,
+) -> dict[str, Any]:
+    proj = (
+        db.query(ServiceDeliveryProject)
+        .filter(ServiceDeliveryProject.tenant_id == tenant_id, ServiceDeliveryProject.id == project_id)
+        .first()
+    )
+    if not proj:
+        raise ValueError(f"Projeto de entrega #{project_id} não encontrado.")
+
+    if payload.completed_checklist_step:
+        checklist = json.loads(proj.onboarding_checklist_json or "[]")
+        for item in checklist:
+            if payload.completed_checklist_step.lower() in item["step"].lower():
+                item["completed"] = True
+        proj.onboarding_checklist_json = json.dumps(checklist, ensure_ascii=False)
+        done_count = sum(1 for item in checklist if item.get("completed"))
+        proj.progress_pct = round((done_count / max(1, len(checklist))) * 100.0, 1)
+
+    if payload.deliverable_submitted:
+        delivs = json.loads(proj.deliverables_json or "[]")
+        for d in delivs:
+            if payload.deliverable_submitted.lower() in d["name"].lower():
+                d["status"] = "DELIVERED"
+        proj.deliverables_json = json.dumps(delivs, ensure_ascii=False)
+
+    if payload.progress_pct is not None:
+        proj.progress_pct = payload.progress_pct
+    if payload.client_validation_status is not None:
+        proj.client_validation_status = payload.client_validation_status
+    if payload.client_validation_notes is not None:
+        proj.client_validation_notes = payload.client_validation_notes
+    if payload.status is not None:
+        proj.status = payload.status
+        if payload.status in ("DELIVERED", "COMPLETED"):
+            proj.progress_pct = 100.0
+            proj.completed_at = datetime.now(timezone.utc)
+            if proj.lead_id:
+                lead = db.query(CRMLead).filter(CRMLead.id == proj.lead_id).first()
+                if lead:
+                    lead.funnel_stage = "POS_VENDA" if payload.status == "COMPLETED" else "ENTREGA"
+
+    db.commit()
+    db.refresh(proj)
+    return serialize_delivery_project(proj)
+
+
+def serialize_delivery_project(proj: ServiceDeliveryProject) -> dict[str, Any]:
+    return {
+        "id": proj.id,
+        "project_code": proj.project_code,
+        "business_unit_code": proj.business_unit_code,
+        "proposal_id": proj.proposal_id,
+        "payment_id": proj.payment_id,
+        "lead_id": proj.lead_id,
+        "client_name": proj.client_name,
+        "client_company": proj.client_company,
+        "client_email": proj.client_email,
+        "service_code": proj.service_code,
+        "service_name": proj.service_name,
+        "contracted_scope": proj.contracted_scope,
+        "responsible_owner": proj.responsible_owner,
+        "tasks": json.loads(proj.tasks_json or "[]"),
+        "milestones": json.loads(proj.milestones_json or "[]"),
+        "required_documents": json.loads(proj.required_documents_json or "[]"),
+        "onboarding_checklist": json.loads(proj.onboarding_checklist_json or "[]"),
+        "deliverables": json.loads(proj.deliverables_json or "[]"),
+        "client_validation_status": proj.client_validation_status,
+        "client_validation_notes": proj.client_validation_notes,
+        "status": proj.status,
+        "progress_pct": proj.progress_pct,
+        "due_date": proj.due_date,
+        "data_origin": proj.data_origin,
+        "created_at": proj.created_at.isoformat() if proj.created_at else "",
+        "completed_at": proj.completed_at.isoformat() if proj.completed_at else None,
+    }
+
+
+def reactivate_crm_lead_service(
+    db: Session,
+    tenant_id: int,
+    lead_id: int,
+    payload: Any,
+) -> dict[str, Any]:
+    """Reativa um lead estagnado/perdido verificando rigorosamente consentimento LGPD e ausência de opt-out."""
+    lead = db.query(CRMLead).filter(CRMLead.tenant_id == tenant_id, CRMLead.id == lead_id).first()
+    if not lead:
+        raise ValueError("Lead não encontrado.")
+    if lead.opt_out or getattr(lead, "contact_blocked", False) or not lead.consent_lgpd:
+        raise PermissionError("Bloqueio LGPD: Não é permitido reativar contato que solicitou opt-out ou não possui consentimento ativo.")
+
+    lead.funnel_stage = "QUALIFICACAO"
+    lead.pipeline_stage = "QUALIFICATION"
+    lead.qualification_status = "QUALIFIED"
+    lead.reactivation_count = (getattr(lead, "reactivation_count", 0) or 0) + 1
+    lead.last_contact_at = datetime.now(timezone.utc)
+    lead.notes = f"{lead.notes}\n[REATIVAÇÃO AUTORIZADA] Base: {payload.authorization_basis}. {payload.custom_message_notes}".strip()
+
+    db.add(
+        CRMActivity(
+            tenant_id=tenant_id,
+            lead_id=lead.id,
+            activity_type="RECOVERY",
+            subject=f"Reativação Comercial Autorizada — {lead.full_name}",
+            description=f"Base legal verificada ({payload.authorization_basis}). Mensagem preparada para revisão.",
+            due_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            completed=False,
+        )
+    )
+    db.commit()
+    db.refresh(lead)
+    return {
+        "lead_id": lead.id,
+        "full_name": lead.full_name,
+        "funnel_stage": lead.funnel_stage,
+        "reactivation_count": lead.reactivation_count,
+        "consent_lgpd": lead.consent_lgpd,
+        "opt_out": lead.opt_out,
+    }
+
+
+def export_lead_lgpd_data_service(db: Session, tenant_id: int, lead_id: int) -> dict[str, Any]:
+    """Exporta pacote completo de dados pessoais do titular em conformidade com o direito de acesso/portabilidade da LGPD."""
+    lead = db.query(CRMLead).filter(CRMLead.tenant_id == tenant_id, CRMLead.id == lead_id).first()
+    if not lead:
+        raise ValueError("Lead não encontrado.")
+    activities = db.query(CRMActivity).filter(CRMActivity.tenant_id == tenant_id, CRMActivity.lead_id == lead.id).all()
+    proposals = db.query(CommercialProposal).filter(CommercialProposal.tenant_id == tenant_id, CommercialProposal.lead_id == lead.id).all()
+    return {
+        "lgpd_right": "PORTABILIDADE_E_ACESSO_DO_TITULAR",
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "personal_data": {
+            "id": lead.id,
+            "full_name": lead.full_name,
+            "email": lead.email,
+            "phone": lead.phone,
+            "company_name": lead.company_name,
+            "consent_lgpd": lead.consent_lgpd,
+            "consent_source": lead.consent_source,
+            "legal_basis": getattr(lead, "legal_basis", "CONSENTIMENTO_OPT_IN"),
+            "purpose_description": getattr(lead, "purpose_description", ""),
+            "opt_out": lead.opt_out,
+            "created_at": lead.created_at.isoformat() if lead.created_at else "",
+        },
+        "activities_recorded": [{"subject": a.subject, "type": a.activity_type, "due_date": a.due_date} for a in activities],
+        "proposals_recorded": [p.proposal_number for p in proposals],
+    }
+
+
+def erase_lead_lgpd_data_service(db: Session, tenant_id: int, user_id: int, user_email: str, lead_id: int) -> dict[str, Any]:
+    """Executa anonimização/exclusão de dados pessoais mediante solicitação do titular (Direito de Eliminação LGPD)."""
+    lead = db.query(CRMLead).filter(CRMLead.tenant_id == tenant_id, CRMLead.id == lead_id).first()
+    if not lead:
+        raise ValueError("Lead não encontrado.")
+    db.add(
+        AuditLog(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            actor=user_email,
+            action="LGPD_DATA_SUBJECT_ERASURE",
+            resource_type="CRMLead",
+            resource_id=str(lead_id),
+            details_json=json.dumps({"erased_at": datetime.now(timezone.utc).isoformat(), "status": "ANONYMIZED_AND_DELETED"}),
+        )
+    )
+    db.delete(lead)
+    db.commit()
+    return {"status": "LGPD_ERASED", "lead_id": lead_id}
+

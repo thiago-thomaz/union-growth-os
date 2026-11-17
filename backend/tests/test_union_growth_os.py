@@ -1218,5 +1218,192 @@ def test_39_phase17_multibusiness_dashboard_finance_and_ceo_briefing(client: Tes
     assert "sales_funnel_10_stages" in dash
 
 
+# ===================== FASE 18 — ATIVAÇÃO COMERCIAL REAL, PAGAMENTOS & ONBOARDING =====================
+def test_40_phase18_payments_sandbox_charge_webhook_hmac_idempotency_and_onboarding(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # 1. Trava de Governança: proibir criação de cobrança sem aprovação do proprietário
+    r_unauth = client.post(
+        "/api/v1/commercial/payments/charge",
+        headers=h,
+        json={
+            "business_unit_code": "UNION_TECH",
+            "client_name": "Cliente Sem Aprovação",
+            "client_company": "Empresa X Ltda",
+            "client_email": f"x.{RUN_SUFFIX}@empresa.com.br",
+            "amount_brl": 5200.0,
+            "payment_method": "PIX",
+            "sandbox_mode": True,
+            "owner_approved": False,
+            "data_origin": "TEST",
+        },
+    )
+    assert r_unauth.status_code == 403
+
+    # 2. Emitir cobrança em Sandbox com aprovação do proprietário e chave de idempotência
+    idem_key = f"idem-charge-{RUN_SUFFIX}"
+    r_charge = client.post(
+        "/api/v1/commercial/payments/charge",
+        headers=h,
+        json={
+            "business_unit_code": "UNION_TECH",
+            "client_name": "Diretor Financeiro",
+            "client_company": f"Grupo Industrial {RUN_SUFFIX} S.A.",
+            "client_email": f"fin.{RUN_SUFFIX}@grupoind.com.br",
+            "amount_brl": 7800.0,
+            "payment_method": "PIX",
+            "idempotency_key": idem_key,
+            "sandbox_mode": True,
+            "owner_approved": True,
+            "data_origin": "TEST",
+        },
+    )
+    assert r_charge.status_code == 201
+    charge = r_charge.json()
+    assert charge["status"] == "PENDING"
+    assert charge["execution_mode"] == "SANDBOX"
+    assert charge["reconciled_in_finance"] is False
+    assert charge["counted_as_received_revenue"] is False
+    assert charge["idempotent_reused"] is False
+
+    # 3. Idempotência de criação de cobrança: mesma idempotency_key retorna a mesma transação
+    r_charge_dup = client.post(
+        "/api/v1/commercial/payments/charge",
+        headers=h,
+        json={
+            "business_unit_code": "UNION_TECH",
+            "client_name": "Diretor Financeiro",
+            "client_company": f"Grupo Industrial {RUN_SUFFIX} S.A.",
+            "client_email": f"fin.{RUN_SUFFIX}@grupoind.com.br",
+            "amount_brl": 7800.0,
+            "payment_method": "PIX",
+            "idempotency_key": idem_key,
+            "sandbox_mode": True,
+            "owner_approved": True,
+            "data_origin": "TEST",
+        },
+    )
+    assert r_charge_dup.status_code == 201
+    assert r_charge_dup.json()["idempotent_reused"] is True
+    assert r_charge_dup.json()["id"] == charge["id"]
+
+    # 4. Webhook com assinatura criptográfica inválida deve ser rejeitado (HTTP 401)
+    r_wh_bad = client.post(
+        "/api/v1/commercial/payments/webhook",
+        headers=h,
+        json={
+            "external_reference": charge["external_reference"],
+            "provider_payment_id": charge["provider_payment_id"],
+            "new_status": "APPROVED",
+            "signature": "invalid_forged_signature_12345",
+        },
+    )
+    assert r_wh_bad.status_code == 401
+
+    # 5. Webhook com assinatura HMAC-SHA256 válida confirma pagamento, concilia financeiro e cria projeto de Onboarding
+    valid_sig = charge["webhook_test_signature_for_approved"]
+    r_wh_ok = client.post(
+        "/api/v1/commercial/payments/webhook",
+        headers=h,
+        json={
+            "external_reference": charge["external_reference"],
+            "provider_payment_id": charge["provider_payment_id"],
+            "new_status": "APPROVED",
+            "signature": valid_sig,
+        },
+    )
+    assert r_wh_ok.status_code == 200
+    wh_data = r_wh_ok.json()
+    assert wh_data["status"] == "APPROVED"
+    assert wh_data["webhook_signature_verified"] is True
+    assert wh_data["reconciled_in_finance"] is True
+    assert wh_data["counted_as_received_revenue"] is True
+    assert wh_data["financial_record_id"] is not None
+    assert wh_data["onboarding_project_id"] is not None
+    assert wh_data["idempotent_duplicate"] is False
+
+    # 6. Idempotência de Webhook: reenviar o mesmo evento APPROVED não duplica receita nem projeto
+    r_wh_dup = client.post(
+        "/api/v1/commercial/payments/webhook",
+        headers=h,
+        json={
+            "external_reference": charge["external_reference"],
+            "provider_payment_id": charge["provider_payment_id"],
+            "new_status": "APPROVED",
+            "signature": valid_sig,
+        },
+    )
+    assert r_wh_dup.status_code == 200
+    assert r_wh_dup.json()["idempotent_duplicate"] is True
+    assert r_wh_dup.json()["financial_record_id"] == wh_data["financial_record_id"]
+
+
+def test_41_phase18_onboarding_delivery_lifecycle_and_lgpd_subject_rights(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # 1. Verificar projeto de entrega criado e avançar checklist / conclusão
+    r_projs = client.get("/api/v1/commercial/delivery-projects", headers=h)
+    assert r_projs.status_code == 200
+    projs = r_projs.json()
+    assert len(projs) >= 1
+    proj_id = projs[0]["id"]
+
+    r_upd = client.put(
+        f"/api/v1/commercial/delivery-projects/{proj_id}",
+        headers=h,
+        json={
+            "completed_checklist_step": "Coleta de credenciais",
+            "deliverable_submitted": "Mapeamento",
+            "status": "COMPLETED",
+            "client_validation_status": "APPROVED_BY_CLIENT",
+            "client_validation_notes": "Entrega validada com sucesso pelo cliente.",
+        },
+    )
+    assert r_upd.status_code == 200
+    assert r_upd.json()["status"] == "COMPLETED"
+    assert r_upd.json()["progress_pct"] == 100.0
+    assert r_upd.json()["client_validation_status"] == "APPROVED_BY_CLIENT"
+
+    # 2. Criar lead para testar reativação autorizada, exportação LGPD e eliminação LGPD
+    r_lead = client.post(
+        "/api/v1/crm/leads",
+        headers=h,
+        json={
+            "full_name": " Helena Titular LGPD",
+            "email": f"helena.lgpd.{RUN_SUFFIX}@titular.com.br",
+            "phone": "+5511966665555",
+            "company_name": "Helena Consultoria Ltda",
+            "buy_intent": "HIGH",
+            "estimated_value": 9000.0,
+            "consent_lgpd": True,
+            "data_origin": "TEST",
+        },
+    )
+    assert r_lead.status_code == 201
+    lead_id = r_lead.json()["id"]
+
+    # Reativação com consentimento válido
+    r_react = client.post(
+        f"/api/v1/crm/leads/{lead_id}/reactivate",
+        headers=h,
+        json={"authorization_basis": "Consentimento opt-in ativo", "custom_message_notes": "Retomada de diagnóstico"},
+    )
+    assert r_react.status_code == 200
+    assert r_react.json()["reactivation_count"] == 1
+
+    # Exportação de portabilidade LGPD
+    r_exp = client.get(f"/api/v1/crm/leads/{lead_id}/lgpd-export", headers=h)
+    assert r_exp.status_code == 200
+    assert r_exp.json()["personal_data"]["id"] == lead_id
+
+    # Direito de eliminação LGPD
+    r_del = client.delete(f"/api/v1/crm/leads/{lead_id}/lgpd-erasure", headers=h)
+    assert r_del.status_code == 200
+    assert r_del.json()["status"] == "LGPD_ERASED"
+
+
+
 
 

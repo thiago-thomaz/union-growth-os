@@ -140,3 +140,4 @@ A suíte de testes (`backend/tests/test_union_growth_os.py`) foi expandida de 33
 2. **Credenciais de Afiliados (`UNION_PARTNERS`)**: Cadastrar os IDs/Tags de afiliado aprovados no Mercado Livre, Amazon Associados e Shopee Afiliados para substituir os links de referência pelos links com tag de comissão ativa.
 3. **Credenciais OAuth de Redes Sociais e Analytics**: Vincular App ID / Client Secret na Central de Integrações quando desejar disparo externo automático (até lá, o modo de **Publicação Assistida** permanece 100% operacional).
 4. **Custos Adicionais**: **R$ 0,00** (nenhum serviço pago externo, API paga ou tráfego pago foi contratado).
+

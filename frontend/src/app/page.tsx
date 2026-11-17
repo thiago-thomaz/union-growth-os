@@ -3351,6 +3351,113 @@ export default function UnionGrowthOSPortal() {
                   </div>
                 </div>
               </div>
+
+              {/* FASE 18 — PAGAMENTOS (MERCADO PAGO & SANDBOX) + PROJETOS & ENTREGAS (ONBOARDING) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-bold text-white">
+                      8. Pagamentos & Recebimentos (Mercado Pago / Sandbox Verificado)
+                    </h3>
+                    <button
+                      onClick={async () => {
+                        const created = await apiFetch("/api/v1/commercial/payments/charge", {
+                          method: "POST",
+                          body: JSON.stringify({
+                            business_unit_code: "UNION_TECH",
+                            client_name: "Cliente Sandbox Executivo",
+                            client_company: "Empresa Homologação Ltda",
+                            client_email: "financeiro@homologacao.com.br",
+                            amount_brl: 4800.0,
+                            payment_method: "PIX",
+                            sandbox_mode: true,
+                            owner_approved: true,
+                            data_origin: "TEST",
+                          }),
+                        });
+                        const res = await apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`);
+                        setMbDashboard(res);
+                        showNotice(`Cobrança ${created.external_reference} criada em modo ${created.execution_mode} (PENDING)!`);
+                      }}
+                      className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                    >
+                      + Emitir Cobrança Sandbox Aprovada
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Regra Estrita: Cobrança PENDING jamais conta como receita recebida. Somente confirmação via Webhook HMAC-SHA256 reconcilia no Financeiro e dispara o Onboarding.
+                  </p>
+                  <div className="space-y-2 max-h-56 overflow-y-auto">
+                    {(mbDashboard.payments || []).map((pt: any) => (
+                      <div key={pt.id} className="p-3 rounded bg-slate-900 border border-slate-800 text-xs flex justify-between items-center gap-2">
+                        <div>
+                          <div className="font-bold text-white">
+                            {pt.external_reference} • {pt.client_company || pt.client_name}
+                          </div>
+                          <div className="text-slate-400">
+                            R$ {pt.amount_brl} ({pt.payment_method} • {pt.execution_mode}) • Status:{" "}
+                            <span className={pt.status === "APPROVED" ? "text-emerald-400 font-bold" : "text-amber-300 font-semibold"}>
+                              {pt.status}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300">
+                          {pt.reconciled_in_finance ? "Conciliado" : "Aguardando Webhook"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-bold text-white">
+                      9. Projetos, Onboarding & Entregas Técnicas
+                    </h3>
+                    <span className="text-xs text-slate-400">
+                      {(mbDashboard.delivery_projects || []).length} projetos ativos
+                    </span>
+                  </div>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {(mbDashboard.delivery_projects || []).map((dp: any) => (
+                      <div key={dp.id} className="p-3 rounded bg-slate-900 border border-slate-800 text-xs space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold text-indigo-300">
+                            {dp.project_code} • {dp.client_company} ({dp.service_code})
+                          </span>
+                          <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 text-[10px] font-semibold">
+                            {dp.status} ({dp.progress_pct}%)
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-400">{dp.contracted_scope}</div>
+                        <div className="flex justify-between items-center pt-1">
+                          <span className="text-[10px] text-slate-500">Prazo: {dp.due_date} • Validação Cliente: {dp.client_validation_status}</span>
+                          {dp.status !== "COMPLETED" && (
+                            <button
+                              onClick={async () => {
+                                await apiFetch(`/api/v1/commercial/delivery-projects/${dp.id}`, {
+                                  method: "PUT",
+                                  body: JSON.stringify({
+                                    status: "COMPLETED",
+                                    client_validation_status: "APPROVED_BY_CLIENT",
+                                    client_validation_notes: "Homologado pela diretoria do cliente.",
+                                  }),
+                                });
+                                const res = await apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`);
+                                setMbDashboard(res);
+                                showNotice(`Projeto ${dp.project_code} concluído e validado pelo cliente!`);
+                              }}
+                              className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+                            >
+                              Concluir Entrega
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 

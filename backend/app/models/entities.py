@@ -316,6 +316,8 @@ class CRMLead(Base):
     purpose_description = Column(String(255), default="Atendimento comercial e envio de proposta solicitada")
     campaign_attribution = Column(String(120), default="")
     contact_blocked = Column(Boolean, default=False)
+    lost_reason = Column(String(255), default="")
+    reactivation_count = Column(Integer, default=0)
     last_contact_at = Column(DateTime, default=utcnow)
     notes = Column(Text, default="")
     created_at = Column(DateTime, default=utcnow)
@@ -697,6 +699,13 @@ class ProductService(Base):
     recurring_monthly_brl = Column(Float, default=0.0)
     estimated_margin_pct = Column(Float, default=45.0)
     pricing_approved_by_owner = Column(Boolean, default=False)
+    client_requirements_json = Column(Text, default="[]")
+    direct_cost_brl = Column(Float, default=0.0)
+    indirect_cost_brl = Column(Float, default=0.0)
+    minimum_margin_pct = Column(Float, default=30.0)
+    billing_model = Column(String(50), default="SETUP_PLUS_MRR")  # SETUP_ONLY, SETUP_PLUS_MRR, MONTHLY_RETAINER, MILESTONE_BASED
+    recurrence_eligible = Column(Boolean, default=True)
+    scope_limits = Column(Text, default="Escopo restrito aos entregáveis listados; integrações ou módulos adicionais sob orçamento complementar.")
     commercial_terms = Column(Text, default="50% na assinatura e 50% na entrega homologada; ou assinatura recorrente mensal.")
     availability_status = Column(String(40), default="AVAILABLE")  # AVAILABLE, CUSTOM_QUOTE, PAUSED
     data_origin = Column(String(30), default="REAL")
@@ -745,6 +754,8 @@ class MarketOpportunity(Base):
     priority = Column(String(30), default="HIGH")  # MEDIUM, HIGH, URGENT
     justification = Column(Text, nullable=False)
     information_source = Column(String(255), default="Mapeamento Setorial Determinístico + Sinais Públicos")
+    opportunity_score = Column(Integer, default=85)
+    problem_campaign_theme = Column(String(160), default="Automação de Atendimento & IA")
     researched_at = Column(String(40), nullable=False)
     data_origin = Column(String(30), default="REAL")
     created_at = Column(DateTime, default=utcnow)
@@ -807,6 +818,12 @@ class CommercialProposal(Base):
     owner_approved = Column(Boolean, default=False)
     approved_by_user_id = Column(Integer, nullable=True)
     approved_at = Column(DateTime, nullable=True)
+    diagnosis_summary = Column(Text, default="")
+    version_number = Column(Integer, default=1)
+    version_history_json = Column(Text, default="[]")
+    contract_terms = Column(Text, default="Cláusulas padrão de prestação de serviços de tecnologia, confidencialidade (NDA), LGPD e SLA de suporte.")
+    contract_status = Column(String(50), default="DRAFT")  # DRAFT, PENDING_REVIEW, APPROVED_BY_OWNER, ACCEPTED_WITH_EVIDENCE
+    acceptance_evidence = Column(String(300), default="")
     data_origin = Column(String(30), default="REAL")
     created_at = Column(DateTime, default=utcnow)
 
@@ -930,5 +947,82 @@ class AffiliateConversion(Base):
     data_origin = Column(String(30), default="REAL")
     converted_at = Column(DateTime, default=utcnow)
     reconciled_at = Column(DateTime, nullable=True)
+
+
+# ==============================================================================
+# FASE 18 — PAGAMENTOS (MERCADO PAGO & SANDBOX), WEBHOOKS & ONBOARDING/ENTREGA
+# ==============================================================================
+class PaymentTransaction(Base):
+    """
+    Transações de cobrança e recebimento comercial (Mercado Pago API / Sandbox).
+    REGRA DE OURO: Nunca marcar como receita recebida sem confirmação verificável (APPROVED).
+    Nunca armazenar dados completos de cartão (PCI Safety).
+    """
+
+    __tablename__ = "payment_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    business_unit_code = Column(String(50), default="UNION_TECH", index=True)
+    proposal_id = Column(Integer, ForeignKey("commercial_proposals.id", ondelete="SET NULL"), nullable=True)
+    lead_id = Column(Integer, ForeignKey("crm_leads.id", ondelete="SET NULL"), nullable=True)
+    client_name = Column(String(180), nullable=False)
+    client_company = Column(String(200), default="")
+    client_email = Column(String(255), nullable=False)
+    provider = Column(String(60), default="mercado_pago")
+    external_reference = Column(String(120), index=True, nullable=False)
+    provider_payment_id = Column(String(120), index=True, default="")
+    idempotency_key = Column(String(160), unique=True, index=True, nullable=False)
+    amount_brl = Column(Float, nullable=False)
+    payment_method = Column(String(50), default="PIX")  # PIX, BOLETO, CHECKOUT_PRO
+    payment_link_url = Column(String(500), default="")
+    execution_mode = Column(String(40), default="SANDBOX")  # SANDBOX, PRODUCTION_API, PENDING_CREDENTIALS
+    status = Column(String(40), default="PENDING")  # PENDING, APPROVED, REJECTED, CANCELLED, REFUNDED, DISPUTED
+    owner_approved = Column(Boolean, default=False)
+    webhook_signature_verified = Column(Boolean, default=False)
+    webhook_events_json = Column(Text, default="[]")
+    receipt_number = Column(String(80), default="")
+    reconciled_in_finance = Column(Boolean, default=False)
+    financial_record_id = Column(Integer, nullable=True)
+    onboarding_project_id = Column(Integer, nullable=True)
+    data_origin = Column(String(30), default="REAL")
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow)
+    paid_at = Column(DateTime, nullable=True)
+
+
+class ServiceDeliveryProject(Base):
+    """Projetos de Onboarding e Entrega Técnica acionados após confirmação de pagamento/contrato."""
+
+    __tablename__ = "service_delivery_projects"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    business_unit_code = Column(String(50), default="UNION_TECH", index=True)
+    project_code = Column(String(60), index=True, nullable=False)
+    proposal_id = Column(Integer, ForeignKey("commercial_proposals.id", ondelete="SET NULL"), nullable=True)
+    payment_id = Column(Integer, ForeignKey("payment_transactions.id", ondelete="SET NULL"), nullable=True)
+    lead_id = Column(Integer, ForeignKey("crm_leads.id", ondelete="SET NULL"), nullable=True)
+    client_name = Column(String(180), nullable=False)
+    client_company = Column(String(200), nullable=False)
+    client_email = Column(String(255), nullable=False)
+    service_code = Column(String(60), nullable=False)
+    service_name = Column(String(220), nullable=False)
+    contracted_scope = Column(Text, nullable=False)
+    responsible_owner = Column(String(120), default="Diretoria de Engenharia & IA (UNION TECH)")
+    tasks_json = Column(Text, default="[]")
+    milestones_json = Column(Text, default="[]")
+    required_documents_json = Column(Text, default="[]")
+    onboarding_checklist_json = Column(Text, default="[]")
+    deliverables_json = Column(Text, default="[]")
+    client_validation_status = Column(String(40), default="PENDING")  # PENDING, REQUESTED, APPROVED_BY_CLIENT
+    client_validation_notes = Column(Text, default="")
+    status = Column(String(40), default="ONBOARDING")  # ONBOARDING, IN_PROGRESS, WAITING_CLIENT, DELIVERED, COMPLETED
+    progress_pct = Column(Float, default=15.0)
+    due_date = Column(String(40), default="")
+    data_origin = Column(String(30), default="REAL")
+    created_at = Column(DateTime, default=utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
 
 
