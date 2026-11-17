@@ -72,3 +72,4 @@ if logs_resp.status_code == 200:
     print(f"Total persisted logs fetched: {len(logs)}")
     for l in logs[:5]:
         print(f" - {l.get('created_at')} | {l.get('agent_name')} | Status: {l.get('status')} | Engine: {l.get('processing_type')} | Model: {l.get('model_used')} | Cost: R$ {l.get('estimated_cost_brl')}")
+

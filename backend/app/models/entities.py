@@ -123,6 +123,7 @@ class MarketingCampaign(Base):
     conversions = Column(Integer, default=0)
     data_origin = Column(String(30), default="REAL")  # REAL, IMPORTED, ESTIMATED, GOAL
     status = Column(String(40), default="ACTIVE")
+    business_unit_code = Column(String(50), default="UNION_TECH", index=True)  # UNION_TECH, UNION_AGENCY, UNION_PARTNERS
     monthly_plan_json = Column(Text, default="{}")
     start_date = Column(String(40), default="")
     end_date = Column(String(40), default="")
@@ -214,6 +215,7 @@ class EditorialCalendarItem(Base):
     last_error = Column(Text, default="")
     external_post_id = Column(String(120), default="")
     metrics_json = Column(Text, default="{}")
+    business_unit_code = Column(String(50), default="UNION_TECH", index=True)
     data_origin = Column(String(30), default="REAL")
     created_at = Column(DateTime, default=utcnow)
 
@@ -308,6 +310,12 @@ class CRMLead(Base):
     consent_lgpd = Column(Boolean, default=True)
     consent_source = Column(String(120), default="Opt-in Formulário / Cadastro Direto")
     opt_out = Column(Boolean, default=False)
+    business_unit_code = Column(String(50), default="UNION_TECH", index=True)
+    funnel_stage = Column(String(50), default="LEAD")  # VISITANTE, INTERESSADO, LEAD, QUALIFICADO, DIAGNOSTICO, PROPOSTA, NEGOCIACAO, GANHO, PERDIDO, POS_VENDA
+    legal_basis = Column(String(80), default="CONSENTIMENTO_OPT_IN")
+    purpose_description = Column(String(255), default="Atendimento comercial e envio de proposta solicitada")
+    campaign_attribution = Column(String(120), default="")
+    contact_blocked = Column(Boolean, default=False)
     last_contact_at = Column(DateTime, default=utcnow)
     notes = Column(Text, default="")
     created_at = Column(DateTime, default=utcnow)
@@ -326,6 +334,11 @@ class CRMDeal(Base):
     expected_close_date = Column(String(40), default="")
     status = Column(String(40), default="OPEN")  # OPEN, WON, LOST
     follow_up_plan_json = Column(Text, default="[]")
+    business_unit_code = Column(String(50), default="UNION_TECH", index=True)
+    offer_id = Column(Integer, nullable=True)
+    proposal_id = Column(Integer, nullable=True)
+    recurring_mrr_brl = Column(Float, default=0.0)
+    one_time_setup_brl = Column(Float, default=0.0)
     data_origin = Column(String(30), default="REAL")
     created_at = Column(DateTime, default=utcnow)
 
@@ -375,7 +388,10 @@ class FinancialRecord(Base):
     category = Column(String(100), default="Operacional")
     channel = Column(String(80), default="Direct")
     amount = Column(Float, nullable=False)
-    data_origin = Column(String(30), default="REAL")  # REAL, IMPORTED, ESTIMATED, GOAL
+    data_origin = Column(String(30), default="REAL")  # REAL, IMPORTED, ESTIMATED, GOAL, PROJECTION
+    business_unit_code = Column(String(50), default="UNION_TECH", index=True)
+    revenue_status = Column(String(40), default="RECEIVED")  # RECEIVED, CONFIRMED, PENDING_RECONCILIATION, PROJECTED
+    is_recurring = Column(Boolean, default=False)
     description = Column(String(300), default="")
     created_at = Column(DateTime, default=utcnow)
 
@@ -416,6 +432,7 @@ class AutomationRule(Base):
     scheduled_time = Column(String(30), default="08:00")
     priority = Column(String(30), default="HIGH")  # LOW, MEDIUM, HIGH, CRITICAL
     owner_role = Column(String(60), default="AI Orchestrator")
+    business_unit_code = Column(String(50), default="ALL", index=True)
     is_active = Column(Boolean, default=True)
     max_retries = Column(Integer, default=3)
     timeout_seconds = Column(Integer, default=60)
@@ -561,6 +578,9 @@ class ContentFactoryItem(Base):
     responsible_agent = Column(String(80), default="AGENT_04_SOCIAL")
     change_history_json = Column(Text, default="[]")
     published_post_id = Column(String(120), default="")
+    business_unit_code = Column(String(50), default="UNION_TECH", index=True)
+    utm_campaign = Column(String(120), default="")
+    approval_status = Column(String(40), default="PENDING_REVIEW")
     data_origin = Column(String(30), default="GOAL")
     created_at = Column(DateTime, default=utcnow)
 
@@ -615,4 +635,300 @@ class PilotOperationalRun(Base):
     metrics_summary_json = Column(Text, default="{}")
     errors_json = Column(Text, default="[]")
     created_at = Column(DateTime, default=utcnow)
+
+
+# ==============================================================================
+# FASE 17 — OPERAÇÃO COMERCIAL MULTINEGÓCIO (UNION TECH, AGENCY, PARTNERS)
+# ==============================================================================
+class BusinessUnit(Base):
+    """Unidades comerciais independentes integradas ao mesmo AI CEO."""
+
+    __tablename__ = "business_units"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    code = Column(String(50), index=True, nullable=False)  # UNION_TECH, UNION_AGENCY, UNION_PARTNERS
+    name = Column(String(180), nullable=False)
+    business_type = Column(String(120), nullable=False)
+    description = Column(Text, nullable=False)
+    target_audience = Column(Text, default="")
+    value_proposition = Column(Text, default="")
+    products_services_json = Column(Text, default="[]")
+    acquisition_channels_json = Column(Text, default="[]")
+    revenue_streams_json = Column(Text, default="[]")
+    monthly_revenue_goal_brl = Column(Float, default=0.0)
+    monthly_budget_brl = Column(Float, default=0.0)
+    status = Column(String(40), default="ACTIVE")
+    data_origin = Column(String(30), default="REAL")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class ProductService(Base):
+    """Catálogo comercial de produtos e serviços com calculadora dinâmica de custos e preços."""
+
+    __tablename__ = "product_services"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    business_unit_code = Column(String(50), index=True, nullable=False)  # UNION_TECH, UNION_AGENCY, UNION_PARTNERS
+    service_code = Column(String(60), index=True, nullable=False)  # SRV_01_DIAGNOSTICO, etc.
+    name = Column(String(220), nullable=False)
+    category = Column(String(120), default="IA & Automação")
+    description = Column(Text, nullable=False)
+    problem_solved = Column(Text, nullable=False)
+    target_audience = Column(Text, nullable=False)
+    benefits_json = Column(Text, default="[]")
+    scope_summary = Column(Text, default="")
+    deliverables_json = Column(Text, default="[]")
+    estimated_timeline_days = Column(Integer, default=15)
+    # Parâmetros da Calculadora Dinâmica de Precificação
+    dev_hours_estimated = Column(Float, default=20.0)
+    complexity_level = Column(String(40), default="MEDIUM")  # LOW, MEDIUM, HIGH, ENTERPRISE
+    hourly_rate_brl = Column(Float, default=150.0)
+    infra_cost_brl = Column(Float, default=0.0)
+    tools_api_cost_brl = Column(Float, default=0.0)
+    support_cost_brl = Column(Float, default=0.0)
+    tax_rate_pct = Column(Float, default=12.0)
+    target_margin_pct = Column(Float, default=45.0)
+    # Resultados Calculados e Preço Configurável pelo Proprietário
+    estimated_cost_brl = Column(Float, default=0.0)
+    suggested_price_brl = Column(Float, default=0.0)
+    configured_price_brl = Column(Float, default=0.0)
+    recurring_monthly_brl = Column(Float, default=0.0)
+    estimated_margin_pct = Column(Float, default=45.0)
+    pricing_approved_by_owner = Column(Boolean, default=False)
+    commercial_terms = Column(Text, default="50% na assinatura e 50% na entrega homologada; ou assinatura recorrente mensal.")
+    availability_status = Column(String(40), default="AVAILABLE")  # AVAILABLE, CUSTOM_QUOTE, PAUSED
+    data_origin = Column(String(30), default="REAL")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class CommercialOffer(Base):
+    """Ofertas comerciais e pacotes estruturados por unidade de negócio."""
+
+    __tablename__ = "commercial_offers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    business_unit_code = Column(String(50), index=True, nullable=False)
+    product_service_id = Column(Integer, ForeignKey("product_services.id", ondelete="SET NULL"), nullable=True)
+    name = Column(String(220), nullable=False)
+    headline = Column(String(300), default="")
+    offer_type = Column(String(50), default="HYBRID_SETUP_PLUS_MRR")  # ONE_TIME, RECURRING_PLAN, HYBRID_SETUP_PLUS_MRR
+    plan_tier = Column(String(40), default="PRO")  # STARTER, PRO, BUSINESS, ENTERPRISE, CUSTOM
+    setup_fee_brl = Column(Float, default=0.0)
+    monthly_fee_brl = Column(Float, default=0.0)
+    included_items_json = Column(Text, default="[]")
+    limits_json = Column(Text, default="{}")
+    payment_conditions = Column(String(255), default="PIX, Boleto Corporativo ou Cartão Empresarial")
+    owner_approved = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True)
+    data_origin = Column(String(30), default="REAL")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class MarketOpportunity(Base):
+    """Inteligência comercial e pesquisa de oportunidades por segmento de mercado."""
+
+    __tablename__ = "market_opportunities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    business_unit_code = Column(String(50), default="UNION_TECH", index=True)
+    segment = Column(String(120), index=True, nullable=False)  # Varejo, Restaurantes, Distribuidores, Clínicas, PMEs, E-commerce, etc.
+    identified_problem = Column(Text, nullable=False)
+    recommended_service_code = Column(String(60), nullable=False)
+    recommended_service_name = Column(String(220), nullable=False)
+    ideal_customer_profile = Column(Text, nullable=False)
+    commercial_potential = Column(String(40), default="HIGH")  # MEDIUM, HIGH, VERY_HIGH
+    implementation_difficulty = Column(String(40), default="MEDIUM")  # LOW, MEDIUM, HIGH
+    priority = Column(String(30), default="HIGH")  # MEDIUM, HIGH, URGENT
+    justification = Column(Text, nullable=False)
+    information_source = Column(String(255), default="Mapeamento Setorial Determinístico + Sinais Públicos")
+    researched_at = Column(String(40), nullable=False)
+    data_origin = Column(String(30), default="REAL")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class LandingPage(Base):
+    """Landing pages comerciais independentes por unidade e serviço."""
+
+    __tablename__ = "landing_pages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    business_unit_code = Column(String(50), index=True, nullable=False)
+    slug = Column(String(120), index=True, nullable=False)
+    title = Column(String(255), nullable=False)
+    value_proposition = Column(Text, nullable=False)
+    problem_statement = Column(Text, nullable=False)
+    solution_summary = Column(Text, nullable=False)
+    benefits_json = Column(Text, default="[]")
+    real_example_description = Column(Text, default="")
+    differentials_json = Column(Text, default="[]")
+    cta_text = Column(String(180), default="Solicitar Diagnóstico Comercial")
+    privacy_policy_summary = Column(Text, default="Seus dados são protegidos sob a LGPD (Lei 13.709/2018) e utilizados exclusivamente para retorno comercial autorizado, com opt-out imediato.")
+    views_count = Column(Integer, default=0)
+    leads_captured_count = Column(Integer, default=0)
+    conversions_count = Column(Integer, default=0)
+    is_published = Column(Boolean, default=True)
+    data_origin = Column(String(30), default="REAL")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class CommercialProposal(Base):
+    """Gerador de propostas comerciais com ciclo de vida completo e trava de aprovação do proprietário."""
+
+    __tablename__ = "commercial_proposals"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    business_unit_code = Column(String(50), index=True, nullable=False)
+    proposal_number = Column(String(60), index=True, nullable=False)
+    lead_id = Column(Integer, ForeignKey("crm_leads.id", ondelete="SET NULL"), nullable=True)
+    service_code = Column(String(60), default="SRV_01_DIAGNOSTICO")
+    company_issuer_name = Column(String(200), default="UNION GROWTH HOLDING LTDA")
+    client_name = Column(String(180), nullable=False)
+    client_company = Column(String(200), nullable=False)
+    client_email = Column(String(255), nullable=False)
+    identified_problem = Column(Text, nullable=False)
+    proposed_solution = Column(Text, nullable=False)
+    scope_details = Column(Text, nullable=False)
+    deliverables_json = Column(Text, default="[]")
+    timeline_schedule_json = Column(Text, default="[]")
+    setup_price_brl = Column(Float, default=0.0)
+    monthly_price_brl = Column(Float, default=0.0)
+    total_contract_value_brl = Column(Float, default=0.0)
+    payment_terms = Column(String(255), default="50% no aceite e 50% na entrega final + mensalidade recorrente a partir de D+30.")
+    validity_days = Column(Integer, default=10)
+    conditions_and_limitations = Column(Text, default="Proposta sujeita a validação técnica de escopo. Não inclui custos de APIs pagas de terceiros ou compra de tráfego pago.")
+    next_steps = Column(Text, default="1. Aprovação formal da proposta; 2. Assinatura do contrato; 3. Reunião de Kickoff Técnico.")
+    status = Column(String(40), default="DRAFT")  # DRAFT, PENDING_APPROVAL, SENT, VIEWED, NEGOTIATION, ACCEPTED, REJECTED, EXPIRED
+    owner_approved = Column(Boolean, default=False)
+    approved_by_user_id = Column(Integer, nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    data_origin = Column(String(30), default="REAL")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class AgencyClientAccount(Base):
+    """Contas isoladas de empresas clientes atendidas pela unidade UNION AGENCY."""
+
+    __tablename__ = "agency_client_accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    business_unit_code = Column(String(50), default="UNION_AGENCY", index=True)
+    client_name = Column(String(200), nullable=False)
+    brand_name = Column(String(180), nullable=False)
+    slug = Column(String(120), index=True, nullable=False)
+    segment = Column(String(120), default="PME & Serviços")
+    target_audience = Column(Text, default="")
+    products_json = Column(Text, default="[]")
+    objectives_json = Column(Text, default="[]")
+    communication_tone = Column(String(120), default="Profissional, Consultivo e Orientado a Resultados")
+    plan_tier = Column(String(40), default="PRO")  # STARTER, PRO, BUSINESS, ENTERPRISE
+    setup_fee_brl = Column(Float, default=0.0)
+    monthly_retainer_brl = Column(Float, default=0.0)
+    connected_networks_json = Column(Text, default="[]")
+    campaigns_count = Column(Integer, default=0)
+    contents_count = Column(Integer, default=0)
+    leads_count = Column(Integer, default=0)
+    status = Column(String(40), default="ACTIVE")  # ONBOARDING, ACTIVE, AT_RISK, PAUSED
+    owner_approved_pricing = Column(Boolean, default=False)
+    data_origin = Column(String(30), default="REAL")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class AffiliateProgram(Base):
+    """Programas de afiliados e parcerias comerciais gerenciados pela unidade UNION PARTNERS."""
+
+    __tablename__ = "affiliate_programs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    business_unit_code = Column(String(50), default="UNION_PARTNERS", index=True)
+    name = Column(String(180), nullable=False)
+    platform = Column(String(80), index=True, nullable=False)  # mercado_livre, amazon, shopee, digital_tools, tech_partners
+    approval_status = Column(String(40), default="PENDING_CREDENTIALS")  # PENDING_CREDENTIALS, APPROVED, ACTIVE, REJECTED
+    credentials_status = Column(String(60), default="PENDING_CREDENTIALS")
+    rules_summary = Column(Text, default="")
+    default_commission_pct = Column(Float, default=8.0)
+    attribution_window_days = Column(Integer, default=7)
+    payment_conditions = Column(String(255), default="Repasse conforme calendário oficial da plataforma após confirmação da venda.")
+    limitations = Column(Text, default="Comissão somente devida após faturamento definitivo e ausência de devolução/cancelamento.")
+    official_api_status = Column(String(120), default="Requer token/credencial de afiliado oficial")
+    data_origin = Column(String(30), default="REAL")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class AffiliateProduct(Base):
+    """Produtos e ferramentas curados para recomendação e comparação pela UNION PARTNERS."""
+
+    __tablename__ = "affiliate_products"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    business_unit_code = Column(String(50), default="UNION_PARTNERS", index=True)
+    program_id = Column(Integer, ForeignKey("affiliate_programs.id", ondelete="CASCADE"), index=True, nullable=False)
+    platform = Column(String(80), nullable=False)
+    name = Column(String(255), nullable=False)
+    category = Column(String(120), default="Tecnologia & Produtividade")
+    brand = Column(String(120), default="")
+    observed_price_brl = Column(Float, default=0.0)
+    price_source = Column(String(180), default="Cadastro Manual / Consulta Autorizada")
+    observed_at = Column(String(40), nullable=False)
+    availability_status = Column(String(50), default="AVAILABLE")  # AVAILABLE, OUT_OF_STOCK, UNVERIFIED
+    authorized_url = Column(String(500), nullable=False)
+    affiliate_url = Column(String(500), nullable=False)
+    tracking_code = Column(String(80), index=True, nullable=False)
+    commission_pct = Column(Float, default=8.0)
+    estimated_commission_brl = Column(Float, default=0.0)
+    curation_score = Column(Float, default=85.0)
+    comparison_notes = Column(Text, default="")
+    disclosure_label = Column(String(255), default="PUBLICIDADE / LINK DE AFILIADO: Podemos receber comissão sem custo adicional para o comprador.")
+    offer_status = Column(String(40), default="ACTIVE")
+    clicks_count = Column(Integer, default=0)
+    confirmed_conversions_count = Column(Integer, default=0)
+    data_origin = Column(String(30), default="REAL")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class AffiliateClick(Base):
+    """Registro auditável de cliques em links rastreáveis (NUNCA contabilizado como venda)."""
+
+    __tablename__ = "affiliate_clicks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    product_id = Column(Integer, ForeignKey("affiliate_products.id", ondelete="CASCADE"), index=True, nullable=False)
+    program_id = Column(Integer, ForeignKey("affiliate_programs.id", ondelete="CASCADE"), index=True, nullable=False)
+    tracking_code = Column(String(80), index=True, nullable=False)
+    source_channel = Column(String(80), default="Direct")
+    utm_campaign = Column(String(120), default="")
+    visitor_fingerprint = Column(String(120), default="")
+    clicked_at = Column(DateTime, default=utcnow)
+
+
+class AffiliateConversion(Base):
+    """Registro de conversões e conciliação de comissões de afiliados."""
+
+    __tablename__ = "affiliate_conversions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    product_id = Column(Integer, ForeignKey("affiliate_products.id", ondelete="CASCADE"), index=True, nullable=False)
+    program_id = Column(Integer, ForeignKey("affiliate_programs.id", ondelete="CASCADE"), index=True, nullable=False)
+    click_id = Column(Integer, ForeignKey("affiliate_clicks.id", ondelete="SET NULL"), nullable=True)
+    external_order_id = Column(String(120), index=True, nullable=False)
+    sale_amount_brl = Column(Float, default=0.0)
+    commission_amount_brl = Column(Float, default=0.0)
+    commission_status = Column(String(40), default="PENDING_CONFIRMATION")  # ESTIMATED, PENDING_CONFIRMATION, APPROVED, PAID, REJECTED
+    attribution_evidence = Column(String(300), default="")
+    reconciled_in_finance = Column(Boolean, default=False)
+    financial_record_id = Column(Integer, nullable=True)
+    data_origin = Column(String(30), default="REAL")
+    converted_at = Column(DateTime, default=utcnow)
+    reconciled_at = Column(DateTime, nullable=True)
+
 

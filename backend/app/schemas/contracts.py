@@ -2,7 +2,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, EmailStr, Field
 
 
-DataOriginType = Literal["REAL", "IMPORTED", "ESTIMATED", "GOAL", "TEST", "DEMO"]
+DataOriginType = Literal["REAL", "IMPORTED", "ESTIMATED", "GOAL", "PROJECTION", "TEST", "DEMO"]
+BusinessUnitCodeType = Literal["UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS", "ALL"]
 AutonomyLevelType = Literal[1, 2, 3]
 PlanTierType = Literal["STARTER", "PRO", "BUSINESS", "ENTERPRISE"]
 
@@ -245,6 +246,11 @@ class CRMLeadCreate(BaseModel):
     estimated_value: float = 0.0
     consent_lgpd: bool = True
     consent_source: str = "Opt-in Formulário Oficial"
+    legal_basis: str = "CONSENTIMENTO_OPT_IN"
+    purpose_description: str = "Atendimento comercial e envio de proposta solicitada"
+    campaign_attribution: str = ""
+    business_unit_code: str = "UNION_TECH"
+    funnel_stage: str = "LEAD"
     notes: str = ""
     data_origin: DataOriginType = "REAL"
 
@@ -256,6 +262,11 @@ class CRMDealCreate(BaseModel):
     value: float
     probability_pct: float = 60.0
     expected_close_date: str = ""
+    business_unit_code: str = "UNION_TECH"
+    offer_id: int | None = None
+    proposal_id: int | None = None
+    recurring_mrr_brl: float = 0.0
+    one_time_setup_brl: float = 0.0
     data_origin: DataOriginType = "REAL"
 
 
@@ -271,6 +282,9 @@ class FinancialRecordCreate(BaseModel):
     category: str = "Operacional"
     channel: str = "Direct"
     amount: float
+    business_unit_code: str = "UNION_TECH"
+    revenue_status: Literal["RECEIVED", "CONFIRMED", "PENDING_RECONCILIATION", "PROJECTED"] = "RECEIVED"
+    is_recurring: bool = False
     data_origin: DataOriginType = "REAL"
     description: str = ""
 
@@ -364,6 +378,8 @@ class ContentFactoryBatchGenerateRequest(BaseModel):
     company_name: str = ""
     niche: str = ""
     target_audience: str = ""
+    business_unit_code: str = "UNION_TECH"
+    utm_campaign: str = ""
     count: int = 30
     platforms: list[str] = [
         "instagram",
@@ -380,6 +396,9 @@ class ContentFactoryBatchGenerateRequest(BaseModel):
 class ContentFactoryItemResponse(BaseModel):
     id: int
     batch_id: str
+    business_unit_code: str = "UNION_TECH"
+    utm_campaign: str = ""
+    approval_status: str = "PENDING_REVIEW"
     channel: str
     content_type: str
     objective: str
@@ -518,6 +537,166 @@ class ResourceCostsResponse(BaseModel):
     external_api_costs_brl: float
     currency: str = "BRL"
     verdict: str
+
+
+# ==============================================================================
+# FASE 17 — SCHEMAS: MULTI-BUSINESS COMMERCIAL OPERATION
+# ==============================================================================
+class ProductServicePricingUpdateRequest(BaseModel):
+    dev_hours_estimated: float | None = None
+    complexity_level: Literal["LOW", "MEDIUM", "HIGH", "ENTERPRISE"] | None = None
+    hourly_rate_brl: float | None = None
+    infra_cost_brl: float | None = None
+    tools_api_cost_brl: float | None = None
+    support_cost_brl: float | None = None
+    tax_rate_pct: float | None = None
+    target_margin_pct: float | None = None
+    configured_price_brl: float | None = None
+    recurring_monthly_brl: float | None = None
+    owner_approve_pricing: bool = False
+    commercial_terms: str | None = None
+
+
+class CommercialOfferCreateRequest(BaseModel):
+    business_unit_code: Literal["UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS"] = "UNION_TECH"
+    product_service_id: int | None = None
+    name: str
+    headline: str = ""
+    offer_type: Literal["ONE_TIME", "RECURRING_PLAN", "HYBRID_SETUP_PLUS_MRR"] = "HYBRID_SETUP_PLUS_MRR"
+    plan_tier: Literal["STARTER", "PRO", "BUSINESS", "ENTERPRISE", "CUSTOM"] = "PRO"
+    setup_fee_brl: float = 0.0
+    monthly_fee_brl: float = 0.0
+    included_items: list[str] = []
+    limits: dict[str, Any] = {}
+    payment_conditions: str = "PIX, Boleto Corporativo ou Cartão Empresarial"
+    owner_approved: bool = False
+    data_origin: DataOriginType = "REAL"
+
+
+class LandingPageCaptureLeadRequest(BaseModel):
+    landing_page_slug: str
+    full_name: str
+    email: str
+    phone: str = ""
+    company_name: str = ""
+    buy_intent: Literal["LOW", "MEDIUM", "HIGH", "URGENT"] = "HIGH"
+    estimated_value: float = 0.0
+    consent_lgpd: bool = True
+    purpose_description: str = "Solicitação de diagnóstico e proposta comercial via Landing Page"
+    utm_campaign: str = ""
+    notes: str = ""
+    data_origin: DataOriginType = "REAL"
+
+
+class LeadFunnelStageUpdateRequest(BaseModel):
+    funnel_stage: Literal[
+        "VISITANTE",
+        "INTERESSADO",
+        "LEAD",
+        "QUALIFICADO",
+        "DIAGNOSTICO",
+        "PROPOSTA",
+        "NEGOCIACAO",
+        "GANHO",
+        "PERDIDO",
+        "POS_VENDA",
+    ]
+    notes: str = ""
+
+
+class CommercialProposalCreateRequest(BaseModel):
+    business_unit_code: Literal["UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS"] = "UNION_TECH"
+    lead_id: int | None = None
+    service_code: str = "SRV_01_DIAGNOSTICO"
+    client_name: str
+    client_company: str
+    client_email: str
+    identified_problem: str
+    proposed_solution: str = ""
+    scope_details: str = ""
+    deliverables: list[str] = []
+    timeline_schedule: list[str] = []
+    setup_price_brl: float = 0.0
+    monthly_price_brl: float = 0.0
+    validity_days: int = 10
+    payment_terms: str = "50% na assinatura e 50% na entrega homologada + recorrência mensal."
+    data_origin: DataOriginType = "REAL"
+
+
+class CommercialProposalStatusUpdateRequest(BaseModel):
+    status: Literal[
+        "DRAFT",
+        "PENDING_APPROVAL",
+        "SENT",
+        "VIEWED",
+        "NEGOTIATION",
+        "ACCEPTED",
+        "REJECTED",
+        "EXPIRED",
+    ]
+    owner_approve: bool = False
+    confirmation_token: str | None = None
+
+
+class AgencyClientAccountCreateRequest(BaseModel):
+    client_name: str
+    brand_name: str
+    segment: str = "PME & Serviços"
+    target_audience: str = "Clientes B2B e B2C regionais"
+    products: list[str] = []
+    objectives: list[str] = ["Geração de Leads", "Posicionamento SEO", "Gestão de Redes Sociais"]
+    communication_tone: str = "Profissional, Consultivo e Orientado a Resultados"
+    plan_tier: PlanTierType = "PRO"
+    setup_fee_brl: float = 0.0
+    monthly_retainer_brl: float = 0.0
+    owner_approved_pricing: bool = False
+    data_origin: DataOriginType = "REAL"
+
+
+class AffiliateProductCreateRequest(BaseModel):
+    program_id: int
+    name: str
+    category: str = "Tecnologia & Produtividade"
+    brand: str = ""
+    observed_price_brl: float
+    price_source: str = "Consulta Direta na Página Oficial da Plataforma"
+    availability_status: Literal["AVAILABLE", "OUT_OF_STOCK", "UNVERIFIED"] = "AVAILABLE"
+    authorized_url: str
+    affiliate_url: str
+    commission_pct: float = 8.0
+    comparison_notes: str = ""
+    data_origin: DataOriginType = "REAL"
+
+
+class AffiliateClickRecordRequest(BaseModel):
+    tracking_code: str
+    source_channel: str = "Blog / Content Factory"
+    utm_campaign: str = ""
+    visitor_fingerprint: str = ""
+
+
+class AffiliateConversionRecordRequest(BaseModel):
+    product_id: int
+    click_id: int | None = None
+    external_order_id: str
+    sale_amount_brl: float
+    commission_amount_brl: float
+    commission_status: Literal["ESTIMATED", "PENDING_CONFIRMATION", "APPROVED", "PAID", "REJECTED"] = "PENDING_CONFIRMATION"
+    attribution_evidence: str = "Relatório de Pedido na Plataforma"
+    data_origin: DataOriginType = "REAL"
+
+
+class AffiliateCommissionReconcileRequest(BaseModel):
+    commission_status: Literal["APPROVED", "PAID", "REJECTED"]
+    attribution_evidence: str
+    confirmation_token: str | None = None
+
+
+class MarketOpportunityResearchRequest(BaseModel):
+    segment: str = "Varejo"
+    business_unit_code: Literal["UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS"] = "UNION_TECH"
+    custom_focus: str = ""
+
 
 
 

@@ -622,12 +622,20 @@ def generate_30_day_content_batch_service(
     niche: str = "",
     target_audience: str = "",
     count: int = 30,
+    business_unit_code: str = "UNION_TECH",
+    utm_campaign: str = "",
 ) -> dict[str, Any]:
     """Gera automaticamente o lote de 30 publicações mensais multicanal para a Content Factory."""
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    unit_prefixes = {
+        "UNION_TECH": "IA, Automação & Engenharia de Software",
+        "UNION_AGENCY": "Marketing Digital, SEO, Funil & Growth",
+        "UNION_PARTNERS": "Curadoria Técnica, Comparativos & Ofertas Verificadas",
+    }
     comp_name = company_name or (tenant.name if tenant else "Empresa Parceira")
-    niche_label = niche or (tenant.niche if tenant and tenant.niche else "Mercado Corporativo")
+    niche_label = niche or unit_prefixes.get(business_unit_code, tenant.niche if tenant and tenant.niche else "Mercado Corporativo")
     audience_label = target_audience or (tenant.target_audience if tenant and tenant.target_audience else "Empresários, Gestores e Decisores")
+    effective_utm = utm_campaign or f"utm_source=content_factory&utm_medium=social&utm_campaign={business_unit_code.lower()}"
 
     batch_id = f"batch_{tenant_id}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
 
@@ -715,6 +723,9 @@ def generate_30_day_content_batch_service(
             status="PLANNED",
             responsible_agent=resp_agent,
             change_history_json=json.dumps(initial_history, ensure_ascii=False),
+            business_unit_code=business_unit_code,
+            utm_campaign=effective_utm,
+            approval_status="PENDING_REVIEW",
             data_origin="GOAL",
         )
         db.add(item)
@@ -761,6 +772,9 @@ def generate_30_day_content_batch_service(
             {
                 "id": it.id,
                 "batch_id": it.batch_id,
+                "business_unit_code": getattr(it, "business_unit_code", "UNION_TECH"),
+                "utm_campaign": getattr(it, "utm_campaign", ""),
+                "approval_status": getattr(it, "approval_status", "PENDING_REVIEW"),
                 "channel": it.channel,
                 "content_type": it.content_type,
                 "objective": it.objective,
@@ -775,6 +789,8 @@ def generate_30_day_content_batch_service(
                 "quality_score": it.quality_score,
                 "is_duplicate": it.is_duplicate,
                 "status": it.status,
+                "responsible_agent": getattr(it, "responsible_agent", "AGENT_04_SOCIAL"),
+                "change_history": json.loads(getattr(it, "change_history_json", "[]") or "[]"),
                 "published_post_id": it.published_post_id or "",
                 "data_origin": it.data_origin,
                 "created_at": it.created_at.isoformat() if it.created_at else "",
@@ -789,14 +805,17 @@ def get_content_factory_items_service(
     tenant_id: int,
     channel: str | None = None,
     status_filter: str | None = None,
+    business_unit_code: str | None = None,
     limit: int = 50,
 ) -> list[dict[str, Any]]:
-    """Recupera publicações da Content Factory com filtros opcionais de canal e status."""
+    """Recupera publicações da Content Factory com filtros opcionais de canal, unidade e status."""
     query = db.query(ContentFactoryItem).filter(ContentFactoryItem.tenant_id == tenant_id)
     if channel:
         query = query.filter(ContentFactoryItem.channel == channel)
     if status_filter:
         query = query.filter(ContentFactoryItem.status == status_filter)
+    if business_unit_code and business_unit_code != "ALL":
+        query = query.filter(ContentFactoryItem.business_unit_code == business_unit_code)
 
     items = query.order_by(ContentFactoryItem.scheduled_for.asc()).limit(limit).all()
 
@@ -804,6 +823,9 @@ def get_content_factory_items_service(
         {
             "id": it.id,
             "batch_id": it.batch_id,
+            "business_unit_code": getattr(it, "business_unit_code", "UNION_TECH"),
+            "utm_campaign": getattr(it, "utm_campaign", ""),
+            "approval_status": getattr(it, "approval_status", "PENDING_REVIEW"),
             "channel": it.channel,
             "content_type": it.content_type,
             "objective": it.objective,

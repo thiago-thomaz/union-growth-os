@@ -114,6 +114,36 @@ from app.schemas.contracts import (
     PilotRunResponse,
     PilotSummaryResponse,
     ResourceCostsResponse,
+    ProductServicePricingUpdateRequest,
+    CommercialOfferCreateRequest,
+    LandingPageCaptureLeadRequest,
+    LeadFunnelStageUpdateRequest,
+    CommercialProposalCreateRequest,
+    CommercialProposalStatusUpdateRequest,
+    AgencyClientAccountCreateRequest,
+    AffiliateProductCreateRequest,
+    AffiliateClickRecordRequest,
+    AffiliateConversionRecordRequest,
+    AffiliateCommissionReconcileRequest,
+    MarketOpportunityResearchRequest,
+)
+from app.services.phase17_commercial_engine import (
+    AGENCY_PLAN_LIMITS,
+    FUNNEL_STAGES_ORDER,
+    build_multibusiness_executive_dashboard,
+    build_multibusiness_financial_summary,
+    capture_lead_from_landing_page,
+    create_commercial_proposal_service,
+    ensure_phase17_multibusiness_seeded,
+    generate_multibusiness_ceo_daily_report,
+    reconcile_affiliate_commission_service,
+    record_affiliate_click_service,
+    record_affiliate_conversion_service,
+    render_proposal_printable_html,
+    serialize_product_service,
+    serialize_proposal,
+    update_product_service_pricing,
+    update_proposal_status_service,
 )
 from app.services.phase14_automation_factory import (
     generate_30_day_content_batch_service,
@@ -1494,6 +1524,11 @@ def create_crm_lead(payload: CRMLeadCreate, user: User = Depends(get_current_use
         data_origin=payload.data_origin,
         consent_lgpd=payload.consent_lgpd,
         consent_source=sanitize_text(payload.consent_source),
+        legal_basis=sanitize_text(payload.legal_basis),
+        purpose_description=sanitize_text(payload.purpose_description),
+        campaign_attribution=sanitize_text(payload.campaign_attribution),
+        business_unit_code=payload.business_unit_code,
+        funnel_stage=payload.funnel_stage,
         notes=sanitize_text(payload.notes),
     )
     lead.lead_score, lead.qualification_status = compute_lead_score(lead)
@@ -1574,6 +1609,11 @@ def create_crm_deal(payload: CRMDealCreate, user: User = Depends(get_current_use
         probability_pct=100.0 if deal_status == "WON" else payload.probability_pct,
         expected_close_date=payload.expected_close_date,
         status=deal_status,
+        business_unit_code=payload.business_unit_code,
+        offer_id=payload.offer_id,
+        proposal_id=payload.proposal_id,
+        recurring_mrr_brl=payload.recurring_mrr_brl,
+        one_time_setup_brl=payload.one_time_setup_brl,
         data_origin=payload.data_origin,
     )
     db.add(d)
@@ -2485,6 +2525,8 @@ def content_factory_generate_batch(
         niche=payload.niche,
         target_audience=payload.target_audience,
         count=payload.count,
+        business_unit_code=payload.business_unit_code,
+        utm_campaign=payload.utm_campaign,
     )
 
 
@@ -2492,13 +2534,21 @@ def content_factory_generate_batch(
 def content_factory_list_items(
     channel: str | None = None,
     status: str | None = None,
+    business_unit_code: str | None = None,
     limit: int = 50,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Lista as publicações planejadas da Content Factory com filtros por canal e status."""
+    """Lista as publicações planejadas da Content Factory com filtros por canal, unidade e status."""
     tid = get_active_tenant_id(user)
-    return get_content_factory_items_service(db, tenant_id=tid, channel=channel, status_filter=status, limit=limit)
+    return get_content_factory_items_service(
+        db,
+        tenant_id=tid,
+        channel=channel,
+        status_filter=status,
+        business_unit_code=business_unit_code,
+        limit=limit,
+    )
 
 
 @router.get("/content-factory/assisted-export/{item_id}", response_model=AssistedPublishingPackageResponse)
@@ -2667,4 +2717,697 @@ def system_resource_costs(
     """Audita o consumo de banco, tokens de IA e certifica a garantia de custo R$ 0,00."""
     tid = get_active_tenant_id(user)
     return get_resource_costs_service(db, tenant_id=tid)
+
+
+# ==============================================================================
+# 21. FASE 17 — OPERAÇÃO COMERCIAL MULTINEGÓCIO (UNION TECH, AGENCY, PARTNERS)
+# ==============================================================================
+@router.get("/commercial/multibusiness-dashboard")
+def commercial_multibusiness_dashboard(
+    unit: str = "ALL",
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Retorna o painel executivo consolidado ou filtrado por unidade comercial (UNION_TECH, UNION_AGENCY, UNION_PARTNERS)."""
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    return build_multibusiness_executive_dashboard(db, tenant, unit_filter=unit.upper())
+
+
+@router.get("/commercial/business-units")
+def commercial_list_business_units(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    ensure_phase17_multibusiness_seeded(db, tenant)
+    from app.models.entities import BusinessUnit as _BU
+
+    units = db.query(_BU).filter(_BU.tenant_id == tid).order_by(_BU.id.asc()).all()
+    return [
+        {
+            "id": u.id,
+            "code": u.code,
+            "name": u.name,
+            "business_type": u.business_type,
+            "description": u.description,
+            "target_audience": u.target_audience,
+            "value_proposition": u.value_proposition,
+            "products_services": json.loads(u.products_services_json or "[]"),
+            "acquisition_channels": json.loads(u.acquisition_channels_json or "[]"),
+            "revenue_streams": json.loads(u.revenue_streams_json or "[]"),
+            "monthly_revenue_goal_brl": u.monthly_revenue_goal_brl,
+            "monthly_budget_brl": u.monthly_budget_brl,
+            "status": u.status,
+        }
+        for u in units
+    ]
+
+
+@router.get("/commercial/services")
+def commercial_list_services(
+    unit: str = "ALL",
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    ensure_phase17_multibusiness_seeded(db, tenant)
+    from app.models.entities import ProductService as _PS
+
+    q = db.query(_PS).filter(_PS.tenant_id == tid)
+    if unit.upper() in ("UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS"):
+        q = q.filter(_PS.business_unit_code == unit.upper())
+    return [serialize_product_service(s) for s in q.order_by(_PS.id.asc()).all()]
+
+
+@router.put("/commercial/services/{service_id}/pricing")
+def commercial_update_service_pricing(
+    service_id: int,
+    payload: ProductServicePricingUpdateRequest,
+    user: User = Depends(require_roles("owner", "admin")),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    try:
+        res = update_product_service_pricing(db, tenant_id=tid, service_id=service_id, payload=payload)
+        record_audit_log(
+            db,
+            tenant_id=tid,
+            user_id=user.id,
+            actor=user.email,
+            action="SERVICE_PRICING_UPDATED",
+            resource_type="product_service",
+            resource_id=str(service_id),
+        )
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/commercial/offers")
+def commercial_list_offers(
+    unit: str = "ALL",
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    ensure_phase17_multibusiness_seeded(db, tenant)
+    from app.models.entities import CommercialOffer as _CO
+
+    q = db.query(_CO).filter(_CO.tenant_id == tid)
+    if unit.upper() in ("UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS"):
+        q = q.filter(_CO.business_unit_code == unit.upper())
+    return [
+        {
+            "id": o.id,
+            "business_unit_code": o.business_unit_code,
+            "product_service_id": o.product_service_id,
+            "name": o.name,
+            "headline": o.headline,
+            "offer_type": o.offer_type,
+            "plan_tier": o.plan_tier,
+            "setup_fee_brl": o.setup_fee_brl,
+            "monthly_fee_brl": o.monthly_fee_brl,
+            "included_items": json.loads(o.included_items_json or "[]"),
+            "limits": json.loads(o.limits_json or "{}"),
+            "payment_conditions": o.payment_conditions,
+            "owner_approved": o.owner_approved,
+            "is_active": o.is_active,
+            "data_origin": o.data_origin,
+        }
+        for o in q.order_by(_CO.id.asc()).all()
+    ]
+
+
+@router.post("/commercial/offers", status_code=status.HTTP_201_CREATED)
+def commercial_create_offer(
+    payload: CommercialOfferCreateRequest,
+    user: User = Depends(require_roles("owner", "admin", "manager")),
+    db: Session = Depends(get_db),
+):
+    from app.models.entities import CommercialOffer as _CO
+
+    tid = get_active_tenant_id(user)
+    offer = _CO(
+        tenant_id=tid,
+        business_unit_code=payload.business_unit_code,
+        product_service_id=payload.product_service_id,
+        name=sanitize_text(payload.name),
+        headline=sanitize_text(payload.headline),
+        offer_type=payload.offer_type,
+        plan_tier=payload.plan_tier,
+        setup_fee_brl=payload.setup_fee_brl,
+        monthly_fee_brl=payload.monthly_fee_brl,
+        included_items_json=json.dumps(payload.included_items, ensure_ascii=False),
+        limits_json=json.dumps(payload.limits, ensure_ascii=False),
+        payment_conditions=sanitize_text(payload.payment_conditions),
+        owner_approved=payload.owner_approved if user.role == "owner" else False,
+        is_active=True,
+        data_origin=payload.data_origin,
+    )
+    db.add(offer)
+    db.commit()
+    db.refresh(offer)
+    return {
+        "id": offer.id,
+        "business_unit_code": offer.business_unit_code,
+        "name": offer.name,
+        "setup_fee_brl": offer.setup_fee_brl,
+        "monthly_fee_brl": offer.monthly_fee_brl,
+        "owner_approved": offer.owner_approved,
+    }
+
+
+@router.get("/commercial/market-opportunities")
+def commercial_list_market_opportunities(
+    unit: str = "ALL",
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.models.entities import MarketOpportunity as _MO
+
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    ensure_phase17_multibusiness_seeded(db, tenant)
+    q = db.query(_MO).filter(_MO.tenant_id == tid)
+    if unit.upper() in ("UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS"):
+        q = q.filter(_MO.business_unit_code == unit.upper())
+    return [
+        {
+            "id": m.id,
+            "business_unit_code": m.business_unit_code,
+            "segment": m.segment,
+            "identified_problem": m.identified_problem,
+            "recommended_service_code": m.recommended_service_code,
+            "recommended_service_name": m.recommended_service_name,
+            "ideal_customer_profile": m.ideal_customer_profile,
+            "commercial_potential": m.commercial_potential,
+            "implementation_difficulty": m.implementation_difficulty,
+            "priority": m.priority,
+            "justification": m.justification,
+            "information_source": m.information_source,
+            "researched_at": m.researched_at,
+        }
+        for m in q.order_by(_MO.id.desc()).all()
+    ]
+
+
+@router.post("/commercial/market-opportunities/research", status_code=status.HTTP_201_CREATED)
+def commercial_research_market_opportunity(
+    payload: MarketOpportunityResearchRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.models.entities import MarketOpportunity as _MO, ProductService as _PS
+
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    ensure_phase17_multibusiness_seeded(db, tenant)
+
+    seg = sanitize_text(payload.segment)
+    svc = (
+        db.query(_PS)
+        .filter(_PS.tenant_id == tid, _PS.business_unit_code == payload.business_unit_code)
+        .first()
+    )
+    svc_code = svc.service_code if svc else "SRV_01_DIAGNOSTICO"
+    svc_name = svc.name if svc else "SERVIÇO 01 — Diagnóstico de Automação"
+
+    opp = _MO(
+        tenant_id=tid,
+        business_unit_code=payload.business_unit_code,
+        segment=seg,
+        identified_problem=sanitize_text(
+            payload.custom_focus
+            or f"Gargalos operacionais recorrentes no segmento de {seg}: atendimento manual lento, falta de integração de dados e perdas no funil."
+        ),
+        recommended_service_code=svc_code,
+        recommended_service_name=svc_name,
+        ideal_customer_profile=f"Empresas do setor de {seg} buscando redução de custos e escala comercial",
+        commercial_potential="HIGH",
+        implementation_difficulty="MEDIUM",
+        priority="HIGH",
+        justification=f"Alta aderência técnica de {svc_name} para eliminar trabalho manual em {seg}.",
+        information_source="Pesquisa Setorial Sob Demanda (Respeitando robots.txt e LGPD)",
+        researched_at=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        data_origin="REAL",
+    )
+    db.add(opp)
+    db.commit()
+    db.refresh(opp)
+    return {
+        "id": opp.id,
+        "segment": opp.segment,
+        "business_unit_code": opp.business_unit_code,
+        "recommended_service_code": opp.recommended_service_code,
+        "recommended_service_name": opp.recommended_service_name,
+        "identified_problem": opp.identified_problem,
+        "researched_at": opp.researched_at,
+    }
+
+
+@router.get("/commercial/landing-pages")
+def commercial_list_landing_pages(
+    unit: str = "ALL",
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.models.entities import LandingPage as _LP
+
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    ensure_phase17_multibusiness_seeded(db, tenant)
+    q = db.query(_LP).filter(_LP.tenant_id == tid)
+    if unit.upper() in ("UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS"):
+        q = q.filter(_LP.business_unit_code == unit.upper())
+    return [
+        {
+            "id": lp.id,
+            "business_unit_code": lp.business_unit_code,
+            "slug": lp.slug,
+            "title": lp.title,
+            "value_proposition": lp.value_proposition,
+            "problem_statement": lp.problem_statement,
+            "solution_summary": lp.solution_summary,
+            "benefits": json.loads(lp.benefits_json or "[]"),
+            "real_example_description": lp.real_example_description,
+            "differentials": json.loads(lp.differentials_json or "[]"),
+            "cta_text": lp.cta_text,
+            "privacy_policy_summary": lp.privacy_policy_summary,
+            "views_count": lp.views_count,
+            "leads_captured_count": lp.leads_captured_count,
+            "conversions_count": lp.conversions_count,
+            "is_published": lp.is_published,
+        }
+        for lp in q.order_by(_LP.id.asc()).all()
+    ]
+
+
+@router.post("/commercial/landing-pages/capture-lead", status_code=status.HTTP_201_CREATED)
+def commercial_capture_lead_from_lp(
+    payload: LandingPageCaptureLeadRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    ensure_phase17_multibusiness_seeded(db, tenant)
+    try:
+        return capture_lead_from_landing_page(db, tenant_id=tid, payload=payload)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.put("/crm/leads/{lead_id}/funnel-stage")
+def commercial_update_lead_funnel_stage(
+    lead_id: int,
+    payload: LeadFunnelStageUpdateRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    lead = db.query(CRMLead).filter(CRMLead.tenant_id == tid, CRMLead.id == lead_id).first()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Lead não encontrado.")
+    lead.funnel_stage = payload.funnel_stage
+    stage_map = {
+        "VISITANTE": "NEW_LEAD",
+        "INTERESSADO": "NEW_LEAD",
+        "LEAD": "NEW_LEAD",
+        "QUALIFICADO": "QUALIFICATION",
+        "DIAGNOSTICO": "QUALIFICATION",
+        "PROPOSTA": "PROPOSAL",
+        "NEGOCIACAO": "NEGOTIATION",
+        "GANHO": "CLOSED_WON",
+        "PERDIDO": "CLOSED_LOST",
+        "POS_VENDA": "CLOSED_WON",
+    }
+    lead.pipeline_stage = stage_map.get(payload.funnel_stage, lead.pipeline_stage)
+    if payload.notes:
+        lead.notes = f"{lead.notes}\n[{payload.funnel_stage}] {sanitize_text(payload.notes)}".strip()
+    db.commit()
+    db.refresh(lead)
+    return {
+        "id": lead.id,
+        "full_name": lead.full_name,
+        "funnel_stage": lead.funnel_stage,
+        "pipeline_stage": lead.pipeline_stage,
+        "business_unit_code": getattr(lead, "business_unit_code", "UNION_TECH"),
+    }
+
+
+@router.get("/commercial/proposals")
+def commercial_list_proposals(
+    unit: str = "ALL",
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.models.entities import CommercialProposal as _CP
+
+    tid = get_active_tenant_id(user)
+    q = db.query(_CP).filter(_CP.tenant_id == tid)
+    if unit.upper() in ("UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS"):
+        q = q.filter(_CP.business_unit_code == unit.upper())
+    return [serialize_proposal(p) for p in q.order_by(_CP.id.desc()).all()]
+
+
+@router.post("/commercial/proposals", status_code=status.HTTP_201_CREATED)
+def commercial_create_proposal(
+    payload: CommercialProposalCreateRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    ensure_phase17_multibusiness_seeded(db, tenant)
+    prop = create_commercial_proposal_service(db, tenant=tenant, payload=payload)
+    record_audit_log(
+        db,
+        tenant_id=tid,
+        user_id=user.id,
+        actor=user.email,
+        action="COMMERCIAL_PROPOSAL_CREATED",
+        resource_type="commercial_proposal",
+        resource_id=prop["proposal_number"],
+    )
+    return prop
+
+
+@router.put("/commercial/proposals/{proposal_id}/status")
+def commercial_update_proposal_status(
+    proposal_id: int,
+    payload: CommercialProposalStatusUpdateRequest,
+    user: User = Depends(require_roles("owner", "admin", "manager")),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    try:
+        res = update_proposal_status_service(db, tenant_id=tid, user_id=user.id, proposal_id=proposal_id, payload=payload)
+        record_audit_log(
+            db,
+            tenant_id=tid,
+            user_id=user.id,
+            actor=user.email,
+            action=f"PROPOSAL_STATUS_{res['status']}",
+            resource_type="commercial_proposal",
+            resource_id=res["proposal_number"],
+        )
+        return res
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/commercial/proposals/{proposal_id}/pdf")
+def commercial_get_proposal_pdf_html(
+    proposal_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from fastapi.responses import HTMLResponse
+    from app.models.entities import CommercialProposal as _CP
+
+    tid = get_active_tenant_id(user)
+    prop = db.query(_CP).filter(_CP.tenant_id == tid, _CP.id == proposal_id).first()
+    if not prop:
+        raise HTTPException(status_code=404, detail="Proposta não encontrada.")
+    return HTMLResponse(content=render_proposal_printable_html(prop), status_code=200)
+
+
+@router.get("/agency/clients")
+def agency_list_clients(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.models.entities import AgencyClientAccount as _ACA
+
+    tid = get_active_tenant_id(user)
+    clients = db.query(_ACA).filter(_ACA.tenant_id == tid).order_by(_ACA.id.desc()).all()
+    return [
+        {
+            "id": c.id,
+            "business_unit_code": c.business_unit_code,
+            "client_name": c.client_name,
+            "brand_name": c.brand_name,
+            "slug": c.slug,
+            "segment": c.segment,
+            "target_audience": c.target_audience,
+            "products": json.loads(c.products_json or "[]"),
+            "objectives": json.loads(c.objectives_json or "[]"),
+            "communication_tone": c.communication_tone,
+            "plan_tier": c.plan_tier,
+            "plan_limits": AGENCY_PLAN_LIMITS.get(c.plan_tier, AGENCY_PLAN_LIMITS["PRO"]),
+            "setup_fee_brl": c.setup_fee_brl,
+            "monthly_retainer_brl": c.monthly_retainer_brl,
+            "campaigns_count": c.campaigns_count,
+            "contents_count": c.contents_count,
+            "leads_count": c.leads_count,
+            "status": c.status,
+            "owner_approved_pricing": c.owner_approved_pricing,
+            "data_origin": c.data_origin,
+        }
+        for c in clients
+    ]
+
+
+@router.post("/agency/clients", status_code=status.HTTP_201_CREATED)
+def agency_create_client(
+    payload: AgencyClientAccountCreateRequest,
+    user: User = Depends(require_roles("owner", "admin", "manager")),
+    db: Session = Depends(get_db),
+):
+    from app.models.entities import AgencyClientAccount as _ACA
+
+    tid = get_active_tenant_id(user)
+    slug = re.sub(r"[^a-z0-9]+", "-", payload.brand_name.lower()).strip("-") + f"-{uuid.uuid4().hex[:4]}"
+    client_acc = _ACA(
+        tenant_id=tid,
+        business_unit_code="UNION_AGENCY",
+        client_name=sanitize_text(payload.client_name),
+        brand_name=sanitize_text(payload.brand_name),
+        slug=slug,
+        segment=sanitize_text(payload.segment),
+        target_audience=sanitize_text(payload.target_audience),
+        products_json=json.dumps(payload.products, ensure_ascii=False),
+        objectives_json=json.dumps(payload.objectives, ensure_ascii=False),
+        communication_tone=sanitize_text(payload.communication_tone),
+        plan_tier=payload.plan_tier,
+        setup_fee_brl=payload.setup_fee_brl,
+        monthly_retainer_brl=payload.monthly_retainer_brl,
+        status="ACTIVE",
+        owner_approved_pricing=payload.owner_approved_pricing if user.role == "owner" else False,
+        data_origin=payload.data_origin,
+    )
+    db.add(client_acc)
+    db.commit()
+    db.refresh(client_acc)
+    return {
+        "id": client_acc.id,
+        "client_name": client_acc.client_name,
+        "brand_name": client_acc.brand_name,
+        "slug": client_acc.slug,
+        "plan_tier": client_acc.plan_tier,
+        "plan_limits": AGENCY_PLAN_LIMITS.get(client_acc.plan_tier, AGENCY_PLAN_LIMITS["PRO"]),
+        "monthly_retainer_brl": client_acc.monthly_retainer_brl,
+        "owner_approved_pricing": client_acc.owner_approved_pricing,
+        "status": client_acc.status,
+    }
+
+
+@router.get("/partners/programs")
+def partners_list_programs(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.models.entities import AffiliateProgram as _AP
+
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    ensure_phase17_multibusiness_seeded(db, tenant)
+    progs = db.query(_AP).filter(_AP.tenant_id == tid).order_by(_AP.id.asc()).all()
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "platform": p.platform,
+            "approval_status": p.approval_status,
+            "credentials_status": p.credentials_status,
+            "rules_summary": p.rules_summary,
+            "default_commission_pct": p.default_commission_pct,
+            "attribution_window_days": p.attribution_window_days,
+            "payment_conditions": p.payment_conditions,
+            "limitations": p.limitations,
+            "official_api_status": p.official_api_status,
+        }
+        for p in progs
+    ]
+
+
+@router.get("/partners/products")
+def partners_list_products(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.models.entities import AffiliateProduct as _APr
+
+    tid = get_active_tenant_id(user)
+    prods = db.query(_APr).filter(_APr.tenant_id == tid).order_by(_APr.id.desc()).all()
+    return [
+        {
+            "id": pr.id,
+            "program_id": pr.program_id,
+            "platform": pr.platform,
+            "name": pr.name,
+            "category": pr.category,
+            "brand": pr.brand,
+            "observed_price_brl": pr.observed_price_brl,
+            "price_source": pr.price_source,
+            "observed_at": pr.observed_at,
+            "availability_status": pr.availability_status,
+            "authorized_url": pr.authorized_url,
+            "affiliate_url": pr.affiliate_url,
+            "tracking_code": pr.tracking_code,
+            "commission_pct": pr.commission_pct,
+            "estimated_commission_brl": pr.estimated_commission_brl,
+            "curation_score": pr.curation_score,
+            "disclosure_label": pr.disclosure_label,
+            "clicks_count": pr.clicks_count,
+            "confirmed_conversions_count": pr.confirmed_conversions_count,
+            "data_origin": pr.data_origin,
+        }
+        for pr in prods
+    ]
+
+
+@router.post("/partners/products", status_code=status.HTTP_201_CREATED)
+def partners_create_product(
+    payload: AffiliateProductCreateRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.models.entities import AffiliateProduct as _APr, AffiliateProgram as _AP
+
+    tid = get_active_tenant_id(user)
+    prog = db.query(_AP).filter(_AP.tenant_id == tid, _AP.id == payload.program_id).first()
+    if not prog:
+        raise HTTPException(status_code=404, detail="Programa de afiliados não encontrado.")
+
+    est_comm = round(payload.observed_price_brl * (payload.commission_pct / 100.0), 2)
+    track_code = f"aff-{prog.platform[:4]}-{uuid.uuid4().hex[:8]}"
+    prod = _APr(
+        tenant_id=tid,
+        business_unit_code="UNION_PARTNERS",
+        program_id=prog.id,
+        platform=prog.platform,
+        name=sanitize_text(payload.name),
+        category=sanitize_text(payload.category),
+        brand=sanitize_text(payload.brand),
+        observed_price_brl=payload.observed_price_brl,
+        price_source=sanitize_text(payload.price_source),
+        observed_at=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        availability_status=payload.availability_status,
+        authorized_url=payload.authorized_url,
+        affiliate_url=payload.affiliate_url,
+        tracking_code=track_code,
+        commission_pct=payload.commission_pct,
+        estimated_commission_brl=est_comm,
+        curation_score=88.0,
+        comparison_notes=sanitize_text(payload.comparison_notes),
+        data_origin=payload.data_origin,
+    )
+    db.add(prod)
+    db.commit()
+    db.refresh(prod)
+    return {
+        "id": prod.id,
+        "name": prod.name,
+        "platform": prod.platform,
+        "tracking_code": prod.tracking_code,
+        "observed_price_brl": prod.observed_price_brl,
+        "estimated_commission_brl": prod.estimated_commission_brl,
+        "disclosure_label": prod.disclosure_label,
+    }
+
+
+@router.post("/partners/clicks", status_code=status.HTTP_201_CREATED)
+def partners_record_click(
+    payload: AffiliateClickRecordRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    try:
+        return record_affiliate_click_service(db, tenant_id=tid, payload=payload)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/partners/conversions", status_code=status.HTTP_201_CREATED)
+def partners_record_conversion(
+    payload: AffiliateConversionRecordRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    try:
+        return record_affiliate_conversion_service(db, tenant_id=tid, payload=payload)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/partners/conversions/{conversion_id}/reconcile")
+def partners_reconcile_commission(
+    conversion_id: int,
+    payload: AffiliateCommissionReconcileRequest,
+    user: User = Depends(require_roles("owner", "admin")),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    try:
+        res = reconcile_affiliate_commission_service(
+            db=db,
+            tenant_id=tid,
+            conversion_id=conversion_id,
+            commission_status=payload.commission_status,
+            attribution_evidence=payload.attribution_evidence,
+        )
+        record_audit_log(
+            db,
+            tenant_id=tid,
+            user_id=user.id,
+            actor=user.email,
+            action="AFFILIATE_COMMISSION_RECONCILED",
+            resource_type="affiliate_conversion",
+            resource_id=str(conversion_id),
+        )
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/finance/multibusiness-summary")
+def finance_multibusiness_summary(
+    unit: str = "ALL",
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    ensure_phase17_multibusiness_seeded(db, tenant)
+    return build_multibusiness_financial_summary(db, tenant_id=tid, unit_filter=unit.upper())
+
+
+@router.post("/ceo/multibusiness-briefing", status_code=status.HTTP_201_CREATED)
+def ceo_generate_multibusiness_briefing(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    return generate_multibusiness_ceo_daily_report(db, tenant)
+
 

@@ -840,4 +840,383 @@ def test_32_content_factory_item_update_and_history(client: TestClient):
     assert last_entry["action"] == "EDITED"
 
 
+# ===================== FASE 17 — OPERAÇÃO COMERCIAL MULTINEGÓCIO =====================
+def test_33_phase17_three_business_units_services_and_pricing_calculator(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # 1. Três unidades comerciais independentes (UNION_TECH, UNION_AGENCY, UNION_PARTNERS)
+    r_units = client.get("/api/v1/commercial/business-units", headers=h)
+    assert r_units.status_code == 200
+    units = r_units.json()
+    unit_codes = {u["code"] for u in units}
+    assert {"UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS"}.issubset(unit_codes)
+
+    # 2. Catálogo de 7 serviços de IA/Automação em UNION_TECH
+    r_svcs = client.get("/api/v1/commercial/services?unit=UNION_TECH", headers=h)
+    assert r_svcs.status_code == 200
+    tech_svcs = r_svcs.json()
+    assert len(tech_svcs) >= 7
+    svc_codes = {s["service_code"] for s in tech_svcs}
+    for code in (
+        "SRV_01_DIAGNOSTICO",
+        "SRV_02_AGENTES_IA",
+        "SRV_03_AUTOMACAO_PROCESSOS",
+        "SRV_04_DASHBOARDS",
+        "SRV_05_MARKETING_IA",
+        "SRV_06_CRM_COMERCIAL",
+        "SRV_07_SISTEMAS_SOB_MEDIDA",
+    ):
+        assert code in svc_codes
+
+    # 3. Calculadora dinâmica de custos/preços e aprovação do proprietário
+    svc_id = tech_svcs[0]["id"]
+    r_price = client.put(
+        f"/api/v1/commercial/services/{svc_id}/pricing",
+        headers=h,
+        json={
+            "dev_hours_estimated": 20.0,
+            "complexity_level": "MEDIUM",
+            "hourly_rate_brl": 160.0,
+            "infra_cost_brl": 100.0,
+            "tools_api_cost_brl": 50.0,
+            "support_cost_brl": 200.0,
+            "tax_rate_pct": 12.0,
+            "target_margin_pct": 45.0,
+            "owner_approve_pricing": True,
+        },
+    )
+    assert r_price.status_code == 200
+    calc = r_price.json()["pricing_calculator"]
+    assert calc["estimated_cost_brl"] > 0
+    assert calc["suggested_price_brl"] > calc["estimated_cost_brl"]
+    assert calc["pricing_approved_by_owner"] is True
+
+    # 4. Cadastro e listagem de ofertas comerciais
+    r_off = client.post(
+        "/api/v1/commercial/offers",
+        headers=h,
+        json={
+            "business_unit_code": "UNION_TECH",
+            "product_service_id": svc_id,
+            "name": f"Oferta Teste Automação {RUN_SUFFIX}",
+            "headline": "Diagnóstico + Protótipo Funcional",
+            "offer_type": "HYBRID_SETUP_PLUS_MRR",
+            "plan_tier": "PRO",
+            "setup_fee_brl": 4500.0,
+            "monthly_fee_brl": 590.0,
+            "included_items": ["Mapeamento", "Agente IA"],
+            "owner_approved": True,
+            "data_origin": "TEST",
+        },
+    )
+    assert r_off.status_code == 201
+    assert r_off.json()["owner_approved"] is True
+
+
+def test_34_phase17_market_opportunities_and_landing_pages(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # 1. Oportunidades de mercado nos 8 segmentos prioritários
+    r_opps = client.get("/api/v1/commercial/market-opportunities", headers=h)
+    assert r_opps.status_code == 200
+    opps = r_opps.json()
+    assert len(opps) >= 8
+
+    # 2. Pesquisa de nova oportunidade sob demanda
+    r_res = client.post(
+        "/api/v1/commercial/market-opportunities/research",
+        headers=h,
+        json={
+            "segment": "Logística e Transportadoras",
+            "business_unit_code": "UNION_TECH",
+            "custom_focus": "Rastreamento automatizado de entregas e atendimento de ocorrências",
+        },
+    )
+    assert r_res.status_code == 201
+    assert r_res.json()["segment"] == "Logística e Transportadoras"
+
+    # 3. Landing pages comerciais independentes (UNION TECH + 6 específicas + AGENCY + PARTNERS)
+    r_lps = client.get("/api/v1/commercial/landing-pages", headers=h)
+    assert r_lps.status_code == 200
+    lps = r_lps.json()
+    slugs = {lp["slug"] for lp in lps}
+    for expected_slug in (
+        "union-tech",
+        "agentes-ia",
+        "automacao-empresarial",
+        "consultoria-ia",
+        "crm-inteligente",
+        "marketing-automatizado",
+        "sistemas-sob-medida",
+        "union-agency",
+        "union-partners",
+    ):
+        assert expected_slug in slugs
+
+
+def test_35_phase17_landing_page_lead_capture_deduplication_scoring_and_funnel(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    lead_email = f"diretor.tech.{RUN_SUFFIX}@clienteindustrial.com.br"
+
+    # 1. Captura de lead via Landing Page com consentimento LGPD
+    r_cap1 = client.post(
+        "/api/v1/commercial/landing-pages/capture-lead",
+        headers=h,
+        json={
+            "landing_page_slug": "agentes-ia",
+            "full_name": "Roberto Almeida",
+            "email": lead_email,
+            "phone": "+5511977776666",
+            "company_name": "Indústria Almeida Ltda",
+            "buy_intent": "URGENT",
+            "estimated_value": 18000.0,
+            "consent_lgpd": True,
+            "utm_campaign": "lp_agentes_ia_q4",
+            "data_origin": "TEST",
+        },
+    )
+    assert r_cap1.status_code == 201
+    d1 = r_cap1.json()
+    assert d1["deduplicated"] is False
+    assert d1["business_unit_code"] == "UNION_TECH"
+    assert d1["lead_score"] >= 70
+    lead_id = d1["lead_id"]
+
+    # 2. Deduplicação automática ao enviar mesmo e-mail na mesma unidade
+    r_cap2 = client.post(
+        "/api/v1/commercial/landing-pages/capture-lead",
+        headers=h,
+        json={
+            "landing_page_slug": "automacao-empresarial",
+            "full_name": "Roberto Almeida Diretor",
+            "email": lead_email,
+            "phone": "+5511977776666",
+            "company_name": "Indústria Almeida Ltda",
+            "buy_intent": "URGENT",
+            "estimated_value": 22000.0,
+            "consent_lgpd": True,
+            "data_origin": "TEST",
+        },
+    )
+    assert r_cap2.status_code == 201
+    d2 = r_cap2.json()
+    assert d2["deduplicated"] is True
+    assert d2["lead_id"] == lead_id
+
+    # 3. Evolução no funil de 10 etapas (DIAGNOSTICO)
+    r_stg = client.put(
+        f"/api/v1/crm/leads/{lead_id}/funnel-stage",
+        headers=h,
+        json={"funnel_stage": "DIAGNOSTICO", "notes": "Reunião de diagnóstico agendada."},
+    )
+    assert r_stg.status_code == 200
+    assert r_stg.json()["funnel_stage"] == "DIAGNOSTICO"
+
+
+def test_36_phase17_commercial_proposals_owner_approval_gate_pdf_and_deal_closing(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # 1. Gerar proposta comercial
+    r_prop = client.post(
+        "/api/v1/commercial/proposals",
+        headers=h,
+        json={
+            "business_unit_code": "UNION_TECH",
+            "service_code": "SRV_02_AGENTES_IA",
+            "client_name": "Marcos Viana",
+            "client_company": f"Viana Distribuidora {RUN_SUFFIX} Ltda",
+            "client_email": f"marcos.{RUN_SUFFIX}@vianadist.com.br",
+            "identified_problem": "Atendimento comercial lento e perda de cotações no WhatsApp.",
+            "setup_price_brl": 6500.0,
+            "monthly_price_brl": 690.0,
+            "data_origin": "TEST",
+        },
+    )
+    assert r_prop.status_code == 201
+    prop = r_prop.json()
+    prop_id = prop["id"]
+    assert prop["status"] == "PENDING_APPROVAL"
+    assert prop["owner_approved"] is False
+
+    # 2. Trava de Governança: proibir envio/fechamento vinculante sem aprovação do proprietário
+    r_forbidden = client.put(
+        f"/api/v1/commercial/proposals/{prop_id}/status",
+        headers=h,
+        json={"status": "ACCEPTED", "owner_approve": False},
+    )
+    assert r_forbidden.status_code == 403
+
+    # 3. Gerar documento PDF/HTML imprimível da proposta
+    r_pdf = client.get(f"/api/v1/commercial/proposals/{prop_id}/pdf", headers=h)
+    assert r_pdf.status_code == 200
+    assert "PROPOSTA COMERCIAL" in r_pdf.text
+    assert prop["proposal_number"] in r_pdf.text
+
+    # 4. Aprovar pelo proprietário e fechar negócio (ACCEPTED)
+    r_accept = client.put(
+        f"/api/v1/commercial/proposals/{prop_id}/status",
+        headers=h,
+        json={"status": "ACCEPTED", "owner_approve": True},
+    )
+    assert r_accept.status_code == 200
+    assert r_accept.json()["status"] == "ACCEPTED"
+    assert r_accept.json()["owner_approved"] is True
+
+
+def test_37_phase17_union_agency_isolated_clients_and_plan_limits(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    r_create = client.post(
+        "/api/v1/agency/clients",
+        headers=h,
+        json={
+            "client_name": f"Clínica Vida Plena {RUN_SUFFIX} Ltda",
+            "brand_name": f"VidaPlena {RUN_SUFFIX}",
+            "segment": "Clínicas e Saúde",
+            "plan_tier": "BUSINESS",
+            "setup_fee_brl": 2500.0,
+            "monthly_retainer_brl": 4900.0,
+            "owner_approved_pricing": True,
+            "data_origin": "TEST",
+        },
+    )
+    assert r_create.status_code == 201
+    c_data = r_create.json()
+    assert c_data["plan_tier"] == "BUSINESS"
+    assert c_data["plan_limits"]["max_monthly_contents"] == 60
+
+    r_list = client.get("/api/v1/agency/clients", headers=h)
+    assert r_list.status_code == 200
+    assert any(c["id"] == c_data["id"] for c in r_list.json())
+
+
+def test_38_phase17_union_partners_affiliates_click_tracking_and_commission_reconciliation(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # 1. Verificar programas de afiliados (Mercado Livre, Amazon, Shopee, etc.)
+    r_progs = client.get("/api/v1/partners/programs", headers=h)
+    assert r_progs.status_code == 200
+    progs = r_progs.json()
+    platforms = {p["platform"] for p in progs}
+    assert {"mercado_livre", "amazon", "shopee"}.issubset(platforms)
+    ml_prog_id = next(p["id"] for p in progs if p["platform"] == "mercado_livre")
+
+    # 2. Cadastrar produto curado com link rastreável e aviso publicitário
+    r_prod = client.post(
+        "/api/v1/partners/products",
+        headers=h,
+        json={
+            "program_id": ml_prog_id,
+            "name": f"Servidor Mini PC Corporativo {RUN_SUFFIX}",
+            "category": "Hardware & Infraestrutura",
+            "brand": "Dell / Lenovo",
+            "observed_price_brl": 3200.0,
+            "price_source": "Consulta Oficial Mercado Livre",
+            "authorized_url": "https://www.mercadolivre.com.br/p/MLB12345",
+            "affiliate_url": "https://mercadolivre.com/sec/test12345",
+            "commission_pct": 8.0,
+            "data_origin": "TEST",
+        },
+    )
+    assert r_prod.status_code == 201
+    prod = r_prod.json()
+    prod_id = prod["id"]
+    tracking_code = prod["tracking_code"]
+    assert "AFILIADO" in prod["disclosure_label"].upper()
+
+    # 3. Registrar clique rastreável -> NUNCA deve contar como venda ou receita
+    r_click = client.post(
+        "/api/v1/partners/clicks",
+        headers=h,
+        json={"tracking_code": tracking_code, "source_channel": "Artigo Comparativo Blog"},
+    )
+    assert r_click.status_code == 201
+    click_data = r_click.json()
+    assert click_data["counted_as_sale"] is False
+    assert click_data["revenue_recorded_brl"] == 0.0
+
+    # 4. Registrar conversão pendente -> NÃO concilia no financeiro até confirmação
+    ext_order = f"ORD-ML-{RUN_SUFFIX}"
+    r_conv = client.post(
+        "/api/v1/partners/conversions",
+        headers=h,
+        json={
+            "product_id": prod_id,
+            "click_id": click_data["click_id"],
+            "external_order_id": ext_order,
+            "sale_amount_brl": 3200.0,
+            "commission_amount_brl": 256.0,
+            "commission_status": "PENDING_CONFIRMATION",
+            "attribution_evidence": "Pedido aguardando prazo de entrega na plataforma",
+            "data_origin": "TEST",
+        },
+    )
+    assert r_conv.status_code == 201
+    conv = r_conv.json()
+    assert conv["reconciled_in_finance"] is False
+    conv_id = conv["conversion_id"]
+
+    # 5. Conciliar comissão após confirmação da plataforma
+    r_rec = client.post(
+        f"/api/v1/partners/conversions/{conv_id}/reconcile",
+        headers=h,
+        json={
+            "commission_status": "PAID",
+            "attribution_evidence": f"Relatório Oficial Mercado Livre Afiliados #{ext_order} — Pago",
+        },
+    )
+    assert r_rec.status_code == 200
+    rec_data = r_rec.json()
+    assert rec_data["reconciled_in_finance"] is True
+    assert rec_data["financial_record_id"] is not None
+
+
+def test_39_phase17_multibusiness_dashboard_finance_and_ceo_briefing(client: TestClient):
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # 1. Gerar lote de conteúdo específico para uma unidade (UNION_PARTNERS)
+    r_cf = client.post(
+        "/api/v1/content-factory/generate-batch",
+        headers=h,
+        json={"count": 3, "business_unit_code": "UNION_PARTNERS", "utm_campaign": "afiliados_q4"},
+    )
+    assert r_cf.status_code == 201
+    assert r_cf.json()["items"][0]["business_unit_code"] == "UNION_PARTNERS"
+
+    # 2. Resumo financeiro multinegócio separando DADO_REAL, PROJECAO e META
+    r_fin = client.get("/api/v1/finance/multibusiness-summary?unit=ALL", headers=h)
+    assert r_fin.status_code == 200
+    fin = r_fin.json()
+    assert "dado_real" in fin["consolidated"]
+    assert "projecao" in fin["consolidated"]
+    assert "meta" in fin["consolidated"]
+    assert "UNION_TECH" in fin["units"]
+    assert "UNION_AGENCY" in fin["units"]
+    assert "UNION_PARTNERS" in fin["units"]
+
+    # 3. Briefing diário consolidado do AI CEO com classificação honesta DETERMINISTIC_PYTHON_ENGINE
+    r_ceo = client.post("/api/v1/ceo/multibusiness-briefing", headers=h)
+    assert r_ceo.status_code == 201
+    ceo = r_ceo.json()
+    assert ceo["processing_type"] == "DETERMINISTIC_PYTHON_ENGINE"
+    assert "UNION_TECH" in ceo["units_performance"]
+
+    # 4. Dashboard executivo multinegócio
+    r_dash = client.get("/api/v1/commercial/multibusiness-dashboard?unit=UNION_TECH", headers=h)
+    assert r_dash.status_code == 200
+    dash = r_dash.json()
+    assert dash["selected_unit"] == "UNION_TECH"
+    assert len(dash["business_units"]) == 3
+    assert "sales_funnel_10_stages" in dash
+
+
+
 

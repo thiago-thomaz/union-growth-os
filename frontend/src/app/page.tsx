@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 
 type MenuId =
   | "overview"
+  | "multibusiness"
   | "ceo"
   | "marketing"
   | "seo"
@@ -30,6 +31,7 @@ type MenuId =
 
 const MENU_ITEMS: { id: MenuId; num: string; label: string }[] = [
   { id: "overview", num: "01", label: "Visão Geral" },
+  { id: "multibusiness", num: "17M", label: "🏢 Multinegócio (3 Unidades)" },
   { id: "ceo", num: "02", label: "AI CEO" },
   { id: "marketing", num: "03", label: "Marketing (AI CMO)" },
   { id: "seo", num: "04", label: "SEO Director" },
@@ -94,7 +96,7 @@ export default function UnionGrowthOSPortal() {
   const [activeTenantId, setActiveTenantId] = useState<number | null>(null);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("admin@projetosunion.cloud");
-  const [password, setPassword] = useState("UnionGrowth@2026");
+  const [password, setPassword] = useState("UnionGrowth#2026!");
   const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [authError, setAuthError] = useState("");
@@ -134,6 +136,19 @@ export default function UnionGrowthOSPortal() {
   const [systemAlerts, setSystemAlerts] = useState<any[]>([]);
   const [pilotData, setPilotData] = useState<any>(null);
   const [resourceCosts, setResourceCosts] = useState<any>(null);
+
+  // FASE 17 Multi-Business State Stores
+  const [mbDashboard, setMbDashboard] = useState<any>(null);
+  const [selectedUnit, setSelectedUnit] = useState<string>("ALL");
+  const [propClientName, setPropClientName] = useState("");
+  const [propClientCompany, setPropClientCompany] = useState("");
+  const [propClientEmail, setPropClientEmail] = useState("");
+  const [propServiceCode, setPropServiceCode] = useState("SRV_01_DIAGNOSTICO");
+  const [propProblem, setPropProblem] = useState("");
+  const [agencyClientName, setAgencyClientName] = useState("");
+  const [agencyBrandName, setAgencyBrandName] = useState("");
+  const [agencyPlanTier, setAgencyPlanTier] = useState("PRO");
+  const [agencyRetainer, setAgencyRetainer] = useState("2900");
 
   // CEO Goal Form
   const [goalTitle, setGoalTitle] = useState("");
@@ -288,18 +303,20 @@ export default function UnionGrowthOSPortal() {
 
       // Carregar dados da FASE 14
       try {
-        const [cfItems, cPlan, opDash, sAlerts, rCosts] = await Promise.all([
+        const [cfItems, cPlan, opDash, sAlerts, rCosts, mbDash] = await Promise.all([
           apiFetch("/api/v1/content-factory/items").catch(() => []),
           apiFetch("/api/v1/ceo/daily-plan").catch(() => null),
           apiFetch("/api/v1/system/operational-dashboard").catch(() => null),
           apiFetch("/api/v1/system/alerts").catch(() => []),
           apiFetch("/api/v1/system/resource-costs").catch(() => null),
+          apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`).catch(() => null),
         ]);
         setContentFactoryItems(cfItems || []);
         setCeoDailyPlan(cPlan);
         setOpDashboard(opDash);
         setSystemAlerts(sAlerts || []);
         setResourceCosts(rCosts);
+        setMbDashboard(mbDash);
       } catch (e) {
         // silencioso para não interromper carga base
       }
@@ -2949,6 +2966,389 @@ export default function UnionGrowthOSPortal() {
                   >
                     Adicionar Empresa
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* FASE 17 — OPERAÇÃO COMERCIAL MULTINEGÓCIO (3 UNIDADES) */}
+          {activeMenu === "multibusiness" && mbDashboard && (
+            <div className="space-y-6">
+              {/* Seletor de Unidade de Negócio */}
+              <div className="bg-[#0f1629] border border-indigo-500/30 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-base font-bold text-white">
+                    Central Executiva Multinegócio — 3 Fontes Independentes de Receita
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    Fonte: {mbDashboard.data_source} • Período: {mbDashboard.period_reference} • Separação estrita entre DADO REAL, PROJEÇÃO e META
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { code: "ALL", label: "Visão Consolidada (3 Unidades)" },
+                    { code: "UNION_TECH", label: "Unidade A: UNION TECH (IA & Sistemas)" },
+                    { code: "UNION_AGENCY", label: "Unidade B: UNION AGENCY (Clientes)" },
+                    { code: "UNION_PARTNERS", label: "Unidade C: UNION PARTNERS (Afiliados)" },
+                  ].map((u) => (
+                    <button
+                      key={u.code}
+                      onClick={async () => {
+                        setSelectedUnit(u.code);
+                        const res = await apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${u.code}`);
+                        setMbDashboard(res);
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                        selectedUnit === u.code
+                          ? "bg-indigo-600 text-white"
+                          : "bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-800"
+                      }`}
+                    >
+                      {u.label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={async () => {
+                      await apiFetch("/api/v1/ceo/multibusiness-briefing", { method: "POST" });
+                      const res = await apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`);
+                      setMbDashboard(res);
+                      showNotice("Briefing Consolidado Multinegócio gerado pelo AI CEO!");
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white"
+                  >
+                    Gerar Briefing CEO Multinegócio
+                  </button>
+                </div>
+              </div>
+
+              {/* KPIs Financeiros Consolidados (DADO REAL vs PROJEÇÃO vs META) */}
+              {mbDashboard.financial_summary?.consolidated && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-[#0f1629] border border-emerald-500/30 rounded-xl p-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[11px] text-slate-400">Receita Confirmada / Recebida</span>
+                      <OriginBadge origin="REAL" />
+                    </div>
+                    <div className="text-xl font-bold text-emerald-400">
+                      R$ {Number(mbDashboard.financial_summary.consolidated.dado_real.received_confirmed_revenue_brl || 0).toLocaleString("pt-BR")}
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-1">
+                      MRR Ativo: R$ {Number(mbDashboard.financial_summary.consolidated.dado_real.monthly_recurring_revenue_mrr_brl || 0).toLocaleString("pt-BR")}
+                    </div>
+                  </div>
+
+                  <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[11px] text-slate-400">Lucro Líquido & Margem</span>
+                      <OriginBadge origin="REAL" />
+                    </div>
+                    <div className="text-xl font-bold text-white">
+                      R$ {Number(mbDashboard.financial_summary.consolidated.dado_real.net_profit_brl || 0).toLocaleString("pt-BR")}
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-1">
+                      Margem: {mbDashboard.financial_summary.consolidated.dado_real.margin_pct}% • Custos: R$ {Number(mbDashboard.financial_summary.consolidated.dado_real.expenses_and_costs_brl || 0).toLocaleString("pt-BR")}
+                    </div>
+                  </div>
+
+                  <div className="bg-[#0f1629] border border-amber-500/30 rounded-xl p-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[11px] text-slate-400">Pipeline Ponderado (Não Recebido)</span>
+                      <OriginBadge origin="ESTIMATED" />
+                    </div>
+                    <div className="text-xl font-bold text-amber-300">
+                      R$ {Number(mbDashboard.financial_summary.consolidated.projecao.weighted_pipeline_projection_brl || 0).toLocaleString("pt-BR")}
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-1">
+                      Negociações abertas: {mbDashboard.financial_summary.consolidated.projecao.open_deals_count}
+                    </div>
+                  </div>
+
+                  <div className="bg-[#0f1629] border border-purple-500/30 rounded-xl p-4">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[11px] text-slate-400">Meta de Receita Mensal</span>
+                      <OriginBadge origin="GOAL" />
+                    </div>
+                    <div className="text-xl font-bold text-purple-300">
+                      R$ {Number(mbDashboard.financial_summary.consolidated.meta.monthly_revenue_goal_brl || 0).toLocaleString("pt-BR")}
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-1">
+                      Atingimento Real: {mbDashboard.financial_summary.consolidated.meta.goal_attainment_pct}%
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Funil Comercial de 10 Etapas */}
+              {mbDashboard.sales_funnel_10_stages && (
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5">
+                  <h3 className="text-sm font-bold text-white mb-3">
+                    Funil Comercial de 10 Etapas (Visitante → Pós-Venda)
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-2">
+                    {Object.entries(mbDashboard.sales_funnel_10_stages).map(([stage, count]: [string, any]) => (
+                      <div key={stage} className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-center">
+                        <div className="text-[10px] font-semibold text-slate-400 truncate">{stage}</div>
+                        <div className="text-base font-bold text-indigo-400 mt-0.5">{count}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* UNIDADE A — UNION TECH: Catálogo de 7 Serviços & Calculadora de Preços */}
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-bold text-white">
+                    Catálogo de Serviços de IA & Automação (Calculadora Dinâmica de Custos e Preços)
+                  </h3>
+                  <span className="text-xs text-slate-400">
+                    {mbDashboard.services_catalog?.length || 0} serviços ativos
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {(mbDashboard.services_catalog || []).map((svc: any) => (
+                    <div key={svc.id} className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs space-y-2">
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="font-bold text-indigo-300">{svc.name}</span>
+                        <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300">
+                          {svc.business_unit_code}
+                        </span>
+                      </div>
+                      <p className="text-slate-400 text-[11px]">{svc.problem_solved}</p>
+                      <div className="p-2.5 rounded bg-slate-950 border border-slate-800/80 space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Custo Estimado ({svc.pricing_calculator.dev_hours_estimated}h):</span>
+                          <span className="text-slate-200">R$ {svc.pricing_calculator.estimated_cost_brl}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Preço Configurado (Setup):</span>
+                          <span className="font-bold text-emerald-400">R$ {svc.pricing_calculator.configured_price_brl}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Mensalidade (MRR):</span>
+                          <span className="text-indigo-300">R$ {svc.pricing_calculator.recurring_monthly_brl}/mês</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Status do Preço:</span>
+                          <span className={svc.pricing_approved_by_owner ? "text-emerald-400" : "text-amber-300"}>
+                            {svc.pricing_calculator.pricing_approved_by_owner ? "Aprovado pelo Proprietário" : "Sugerido pela Calculadora"}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          await apiFetch(`/api/v1/commercial/services/${svc.id}/pricing`, {
+                            method: "PUT",
+                            body: JSON.stringify({ owner_approve_pricing: true }),
+                          });
+                          const res = await apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`);
+                          setMbDashboard(res);
+                          showNotice(`Preço de ${svc.service_code} aprovado pelo proprietário!`);
+                        }}
+                        className="w-full py-1.5 rounded bg-indigo-600/25 hover:bg-indigo-600 text-indigo-200 hover:text-white font-semibold transition"
+                      >
+                        Aprovar Tabela de Preço
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Gerador de Propostas Comerciais & Fechamento */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
+                  <h3 className="text-sm font-bold text-white">Gerador de Propostas Comerciais (Com Trava de Governança)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <input
+                      value={propClientName}
+                      onChange={(e) => setPropClientName(e.target.value)}
+                      placeholder="Nome do Decisor / Contato"
+                      className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                    <input
+                      value={propClientCompany}
+                      onChange={(e) => setPropClientCompany(e.target.value)}
+                      placeholder="Empresa Cliente"
+                      className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                    <input
+                      value={propClientEmail}
+                      onChange={(e) => setPropClientEmail(e.target.value)}
+                      placeholder="E-mail Corporativo"
+                      className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                    <select
+                      value={propServiceCode}
+                      onChange={(e) => setPropServiceCode(e.target.value)}
+                      className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    >
+                      {(mbDashboard.services_catalog || []).map((s: any) => (
+                        <option key={s.service_code} value={s.service_code}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <textarea
+                    value={propProblem}
+                    onChange={(e) => setPropProblem(e.target.value)}
+                    placeholder="Problema operacional identificado no cliente..."
+                    className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white h-16"
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!propClientName || !propClientCompany || !propClientEmail) return;
+                      await apiFetch("/api/v1/commercial/proposals", {
+                        method: "POST",
+                        body: JSON.stringify({
+                          business_unit_code: "UNION_TECH",
+                          service_code: propServiceCode,
+                          client_name: propClientName,
+                          client_company: propClientCompany,
+                          client_email: propClientEmail,
+                          identified_problem: propProblem || "Gargalos manuais em atendimento e integração de dados.",
+                        }),
+                      });
+                      setPropClientName("");
+                      setPropClientCompany("");
+                      setPropClientEmail("");
+                      setPropProblem("");
+                      const res = await apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`);
+                      setMbDashboard(res);
+                      showNotice("Proposta comercial gerada em status PENDING_APPROVAL!");
+                    }}
+                    className="w-full py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                  >
+                    Gerar Proposta Comercial e Enviar para Fila de Aprovação
+                  </button>
+
+                  <div className="space-y-2 max-h-64 overflow-y-auto pt-2">
+                    {(mbDashboard.proposals || []).map((p: any) => (
+                      <div key={p.id} className="p-3 rounded bg-slate-900 border border-slate-800 text-xs flex justify-between items-center gap-2">
+                        <div>
+                          <div className="font-bold text-white">
+                            {p.proposal_number} • {p.client_company}
+                          </div>
+                          <div className="text-slate-400">
+                            Setup: R$ {p.setup_price_brl} • MRR: R$ {p.monthly_price_brl}/mês • Status: <span className="text-amber-300 font-semibold">{p.status}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-1.5">
+                          <a
+                            href={p.pdf_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 font-semibold"
+                          >
+                            PDF
+                          </a>
+                          {p.status !== "ACCEPTED" && (
+                            <button
+                              onClick={async () => {
+                                await apiFetch(`/api/v1/commercial/proposals/${p.id}/status`, {
+                                  method: "PUT",
+                                  body: JSON.stringify({ status: "ACCEPTED", owner_approve: true }),
+                                });
+                                const res = await apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`);
+                                setMbDashboard(res);
+                                showNotice(`Proposta ${p.proposal_number} aprovada e fechada (ACCEPTED)!`);
+                              }}
+                              className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+                            >
+                              Aprovar & Fechar
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* UNIDADE B (UNION AGENCY) & UNIDADE C (UNION PARTNERS) */}
+                <div className="space-y-4">
+                  <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
+                    <h3 className="text-sm font-bold text-white">
+                      UNIDADE B — UNION AGENCY (Contas Isoladas de Empresas Clientes)
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <input
+                        value={agencyClientName}
+                        onChange={(e) => setAgencyClientName(e.target.value)}
+                        placeholder="Razão Social Cliente"
+                        className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                      />
+                      <input
+                        value={agencyBrandName}
+                        onChange={(e) => setAgencyBrandName(e.target.value)}
+                        placeholder="Marca"
+                        className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                      />
+                      <select
+                        value={agencyPlanTier}
+                        onChange={(e) => setAgencyPlanTier(e.target.value)}
+                        className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                      >
+                        <option value="STARTER">STARTER</option>
+                        <option value="PRO">PRO</option>
+                        <option value="BUSINESS">BUSINESS</option>
+                        <option value="ENTERPRISE">ENTERPRISE</option>
+                      </select>
+                      <button
+                        onClick={async () => {
+                          if (!agencyClientName || !agencyBrandName) return;
+                          await apiFetch("/api/v1/agency/clients", {
+                            method: "POST",
+                            body: JSON.stringify({
+                              client_name: agencyClientName,
+                              brand_name: agencyBrandName,
+                              plan_tier: agencyPlanTier,
+                              monthly_retainer_brl: Number(agencyRetainer) || 2900,
+                              owner_approved_pricing: true,
+                            }),
+                          });
+                          setAgencyClientName("");
+                          setAgencyBrandName("");
+                          const res = await apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`);
+                          setMbDashboard(res);
+                          showNotice("Conta isolada de cliente adicionada na UNION AGENCY!");
+                        }}
+                        className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+                      >
+                        + Cliente Agência
+                      </button>
+                    </div>
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                      {(mbDashboard.agency_clients || []).map((c: any) => (
+                        <div key={c.id} className="p-2.5 rounded bg-slate-900 border border-slate-800 text-xs flex justify-between">
+                          <span>
+                            <strong>{c.brand_name}</strong> ({c.client_name}) • Plano {c.plan_tier}
+                          </span>
+                          <span className="text-emerald-400 font-semibold">R$ {c.monthly_retainer_brl}/mês</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
+                    <h3 className="text-sm font-bold text-white">
+                      UNIDADE C — UNION PARTNERS (Programas de Afiliados & Conciliação)
+                    </h3>
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                      {(mbDashboard.affiliate_operation?.programs || []).map((prog: any) => (
+                        <div key={prog.id} className="p-2.5 rounded bg-slate-900 border border-slate-800 text-xs flex justify-between items-center">
+                          <div>
+                            <div className="font-bold text-white">{prog.name}</div>
+                            <div className="text-[11px] text-slate-400">
+                              Comissão Ref: {prog.default_commission_pct}% • Janela: {prog.attribution_window_days}d • {prog.official_api_status}
+                            </div>
+                          </div>
+                          <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-semibold">
+                            {prog.approval_status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

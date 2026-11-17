@@ -22,6 +22,7 @@ from app.models.entities import (
 from app.services.automation_scheduler import ensure_tenant_automations_seeded, execute_automation_rule
 from app.services.creative_and_copy_engine import generate_creative_asset, generate_persuasive_copy
 from app.services.integrations_and_social_engine import ensure_tenant_integrations_seeded
+from app.services.phase17_commercial_engine import ensure_phase17_multibusiness_seeded
 from app.services.seo_and_market_engine import generate_seo_factory_article, research_keywords_and_clusters
 
 
@@ -59,6 +60,7 @@ def ensure_initial_workspace_seeded(db: Session) -> Tenant:
             db.commit()
         ensure_tenant_integrations_seeded(db, tenant.id)
         ensure_tenant_automations_seeded(db, tenant.id)
+        ensure_phase17_multibusiness_seeded(db, tenant)
         return tenant
 
     tenant = Tenant(
@@ -380,6 +382,7 @@ def ensure_initial_workspace_seeded(db: Session) -> Tenant:
 
     ensure_tenant_integrations_seeded(db, tenant.id)
     rules = ensure_tenant_automations_seeded(db, tenant.id)
+    ensure_phase17_multibusiness_seeded(db, tenant)
     generate_ceo_daily_briefing_service(db, tenant)
 
     # Execute the CEO Briefing automation rule once on initial seed so execution history is populated
