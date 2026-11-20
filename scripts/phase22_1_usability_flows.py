@@ -349,20 +349,40 @@ async def run_flows(mode: str):
                 clicks += 1
             if await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Campanhas"):
                 clicks += 1
-            await asyncio.sleep(0.5)
+            await cdp.wait_until_idle()
+            await asyncio.sleep(0.3)
             # Testar envio vazio para medir feedback ao iniciante
-            await cdp.click_by_text("main button", "Criar Campanha")
+            await cdp.click_by_text("main button", "Criar Campanha", exact=True)
             clicks += 1
-            await asyncio.sleep(0.35)
-            empty_feedback = await cdp.evaluate("(document.body.innerText || '').includes('Informe') || (document.body.innerText || '').includes('obrigatório') || (document.body.innerText || '').includes('Preencha')")
+            empty_feedback = False
+            for _ in range(8):
+                await asyncio.sleep(0.25)
+                empty_feedback = bool(await cdp.evaluate("(document.body.innerText || '').includes('Informe') || (document.body.innerText || '').includes('obrigatório') || (document.body.innerText || '').includes('Preencha')"))
+                if empty_feedback:
+                    break
             camp_test_name = f"Campanha Usab {ts}"
             has_channel_select = await cdp.evaluate("Boolean(document.querySelector('#ug-camp-channel-select'))")
             await cdp.set_input_by_id_or_placeholder("#ug-camp-name-input", camp_test_name)
-            await cdp.click_by_text("main button", "Criar Campanha")
+            await cdp.click_by_text("main button", "Criar Campanha", exact=True)
             clicks += 1
-            await cdp.wait_until_idle()
-            await asyncio.sleep(0.4)
-            camp_persisted = await cdp.evaluate(f"(document.querySelector('main')?.innerText || '').includes({json.dumps(camp_test_name)})")
+            camp_persisted = False
+            for _ in range(30):
+                await asyncio.sleep(0.4)
+                st_camp = await cdp.evaluate(f"""
+                    (() => {{
+                        const txt = document.body.innerText || '';
+                        const mainTxt = document.querySelector('main')?.innerText || '';
+                        return {{
+                            busy: txt.includes('Atualizando...'),
+                            persisted: mainTxt.includes({json.dumps(camp_test_name)})
+                        }};
+                    }})()
+                """)
+                if st_camp and st_camp.get("persisted"):
+                    camp_persisted = True
+                    if not st_camp.get("busy"):
+                        break
+            await asyncio.sleep(0.3)
             sh4 = await cdp.screenshot("04_fluxo4_criar_campanha.png")
             if sh4:
                 report["screenshots"].append(sh4)
