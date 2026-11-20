@@ -335,6 +335,29 @@ INITIAL_MODELS_SEED: list[dict[str, Any]] = [
     },
     {
         "provider_key": "gemini",
+        "model_id": "gemini-3.5-flash-lite",
+        "display_name": "Gemini 3.5 Flash Lite (Ultra-Rápido • Cota Gratuita)",
+        "modality": "MULTIMODAL",
+        "capabilities": {
+            "text_generation": True,
+            "structured_generation": True,
+            "image_generation": False,
+            "image_analysis": True,
+            "video_generation": False,
+            "audio_generation": False,
+            "audio_transcription": True,
+        },
+        "cost_tier": "VERIFIED_FREE",
+        "owner_permitted_free": True,
+        "owner_approved_paid": True,
+        "input_cost_per_1k_usd": 0.0,
+        "output_cost_per_1k_usd": 0.0,
+        "known_quota_note": "15 RPM / 1.500 RPD gratuitos no Google AI Studio.",
+        "limitations_note": "Modelo de baixíssima latência (~1s) para campanhas, copy e agentes.",
+        "is_default_for_modality": False,
+    },
+    {
+        "provider_key": "gemini",
         "model_id": "gemini-3.5-flash",
         "display_name": "Gemini 3.5 Flash (Cota Gratuita)",
         "modality": "MULTIMODAL",
@@ -757,28 +780,24 @@ class GeminiProvider(BaseAIProvider):
 
     def _post_generate_content_with_model_resolution(self, model_id: str, payload: dict[str, Any]) -> tuple[httpx.Response, str]:
         """
-        Tenta o model_id solicitado; caso retorne 404 ou timeout em modelos thinking pesados,
-        resolve automaticamente para os modelos Flash rápidos ativos na conta Google AI Studio.
+        Prioriza os modelos ativos de baixa latência da conta Google AI Studio 2026+
+        (gemini-3.5-flash-lite / gemini-3.5-flash) quando um alias legado (gemini-2.5-flash)
+        é solicitado, evitando 404 ou timeout em modelos descontinuados.
         """
-        candidates_to_try = [model_id]
-        if model_id in (
-            "gemini-2.5-flash",
-            "gemini-2.0-flash",
-            "gemini-1.5-flash",
-            "gemini-flash-latest",
-            "gemini-3.5-flash",
-            "gemini-4-hydrogen",
-        ):
-            for alt in (
-                "gemini-2.5-flash-lite",
-                "gemini-3.1-flash-lite",
+        if model_id in ("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"):
+            candidates_to_try = [
                 "gemini-3.5-flash-lite",
-                "gemini-flash-lite-latest",
                 "gemini-3.5-flash",
+                "gemini-flash-lite-latest",
                 "gemini-flash-latest",
-            ):
-                if alt not in candidates_to_try:
-                    candidates_to_try.append(alt)
+                model_id,
+            ]
+        else:
+            candidates_to_try = [model_id]
+            if model_id.startswith("gemini"):
+                for alt in ("gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-lite-latest"):
+                    if alt not in candidates_to_try:
+                        candidates_to_try.append(alt)
 
         last_resp = None
         used_model = model_id
@@ -1687,6 +1706,7 @@ class AIRouter:
 
                 est_brl = round(est_usd * 5.80, 4) if est_usd is not None else None
 
+                effective_executed_model = str(out.get("model_id") or cand_model_id)
                 exec_rec = AIEngineExecutionRecord(
                     tenant_id=tenant_id,
                     execution_uuid=exec_uuid,
@@ -1696,7 +1716,7 @@ class AIRouter:
                     requested_provider=req_prov,
                     requested_model=req_model,
                     executed_provider=cand_prov_key,
-                    executed_model=cand_model_id,
+                    executed_model=effective_executed_model,
                     fallback_used=is_fb,
                     cost_classification=cost_class,
                     execution_origin="REAL_PROVIDER_API",

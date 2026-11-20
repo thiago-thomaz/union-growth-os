@@ -4112,6 +4112,7 @@ export default function UnionGrowthOSPortal() {
                     <h4 className="text-sm font-bold text-white">Histórico de Execuções, Testes de Conexão e Fallbacks</h4>
                     <button
                       onClick={async () => {
+                        showNotice("Testando conexão e geração real no motor padrão...");
                         const res = await apiFetch("/api/v1/ai-engine-hub/test-connection", {
                           method: "POST",
                           body: JSON.stringify({
@@ -4119,9 +4120,19 @@ export default function UnionGrowthOSPortal() {
                             model_id: aiEnginesConfig.configuration?.default_text_model || "gemini-2.5-flash",
                           }),
                         });
+                        if (res.ok) {
+                          await apiFetch("/api/v1/ai-engine-hub/route-execute", {
+                            method: "POST",
+                            body: JSON.stringify({
+                              task_type: "test_generation",
+                              required_capability: "text_generation",
+                              prompt: "Teste rápido de conexão e geração real no UNION AI ENGINE HUB.",
+                            }),
+                          });
+                        }
                         const refreshed = await apiFetch("/api/v1/ai-engine-hub/overview");
                         setAiEnginesConfig(refreshed);
-                        showNotice(`Teste do motor padrão: ${res.status}`);
+                        showNotice(res.ok ? `Motor ${res.provider_key.toUpperCase()} CONECTADO e geração validada com SUCESSO!` : `Teste: ${res.status} (${res.error})`);
                       }}
                       className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold"
                     >
