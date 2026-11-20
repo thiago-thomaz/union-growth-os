@@ -543,13 +543,16 @@ async def run_phase22_e2e():
             await cdp.click_by_text("aside button", "Gestão")
             await asyncio.sleep(0.5)
             await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Relatórios")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.6)
             rep_ok = await cdp.evaluate("""
                 (() => {
-                    const txt = document.querySelector('main')?.innerText || '';
-                    return txt.includes('Relatório Executivo Consolidado') && txt.includes('Receita Real Confirmada') && txt.includes('Detalhes Técnicos Completos');
+                    const txt = (document.querySelector('main')?.innerText || '').toLowerCase();
+                    return txt.includes('relatório executivo consolidado') && txt.includes('receita real confirmada') && txt.includes('detalhes técnicos completos');
                 })()
             """)
+            sh_rep = await cdp.screenshot("10b_gestao_relatorios.png")
+            if sh_rep:
+                report["screenshots"].append(sh_rep)
             await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Integrações")
             await asyncio.sleep(0.5)
             intg_filter_pending = await cdp.click_by_text('main [aria-label="Filtrar status de integrações"] button', "Pendentes")

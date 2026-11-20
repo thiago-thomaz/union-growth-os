@@ -1,0 +1,253 @@
+{
+  "prod_url": "https://automacao.projetosunion.cloud",
+  "scenarios": {
+    "S01_S02_login_and_inicio_5blocks": {
+      "has_sidebar_areas": true,
+      "has_5_blocks": true,
+      "has_onboarding": true,
+      "passed": true
+    },
+    "S03_onboarding_dismiss_and_restore": {
+      "dismissed_ok": true,
+      "hidden_in_dom": true,
+      "stored": true,
+      "has_restore_btn": true,
+      "restored_ok": true,
+      "visible_again": true,
+      "cleared_storage": true,
+      "passed": true
+    },
+    "S04_theme_light_dark_toggle": {
+      "light_clicked": true,
+      "light_metrics": {
+        "htmlLight": true,
+        "bodyBg": "rgb(241, 245, 249)",
+        "bodyColor": "rgb(30, 41, 59)",
+        "h1Color": "rgb(15, 23, 42)",
+        "obBg": "rgba(0, 0, 0, 0)",
+        "obFg": "rgb(15, 23, 42)"
+      },
+      "dark_restored": true,
+      "passed": true
+    },
+    "S05_command_center_global_search": {
+      "cmd_opened": true,
+      "found_campanha": true,
+      "navigated_campanha": true,
+      "found_gemini": true,
+      "passed": true
+    },
+    "S06_sidebar_and_todos_recursos_favoritos": {
+      "sidebar_collapsed_w": 80,
+      "sidebar_expanded_w": 256,
+      "fav_toggled": true,
+      "fav_listed": true,
+      "passed": true
+    },
+    "S07_meu_trabalho_7_filtros_drawer": {
+      "filters_tested": [
+        {
+          "filter": "Precisa de mim",
+          "clicked": true
+        },
+        {
+          "filter": "IA executando",
+          "clicked": true
+        },
+        {
+          "filter": "Aguardando aprovação",
+          "clicked": true
+        },
+        {
+          "filter": "Concluído",
+          "clicked": true
+        },
+        {
+          "filter": "Falhou",
+          "clicked": true
+        },
+        {
+          "filter": "Bloqueado",
+          "clicked": true
+        },
+        {
+          "filter": "Tudo",
+          "clicked": true
+        }
+      ],
+      "drawer_opened": true,
+      "drawer_visible": true,
+      "passed": true
+    },
+    "S08_comercial_crm_e_blob_pdf": {
+      "crm_filter_exists": true,
+      "switched_qa": true,
+      "pdf_check": {
+        "found": true,
+        "count": 3,
+        "urls": [
+          "blob:https://automacao.projetosunion.cloud/ed1e219d-702c-4090-be8f-a996e913cb74"
+        ]
+      },
+      "passed": true
+    },
+    "S09_marketing_subtabs_e_filtro": {
+      "camp_filter_exists": true,
+      "sub_seo": true,
+      "sub_cal": true,
+      "sub_cf": true,
+      "passed": true
+    },
+    "S10_ia_ux_e_motores": {
+      "ia_overview_ok": true,
+      "prov_ok": true,
+      "hist_ok": true,
+      "passed": true
+    },
+    "S11_gestao_relatorios_integracoes": {
+      "rep_ok": true,
+      "intg_filter_pending": true,
+      "intg_filter_all": true,
+      "passed": true
+    },
+    "S12_central_de_ajuda": {
+      "help_opened": true,
+      "gloss_ok": true,
+      "short_ok": true,
+      "passed": true
+    },
+    "S15_logout_and_public_lp": {
+      "logout_clicked": true,
+      "login_returned": true,
+      "has_title": true,
+      "has_form": true,
+      "has_lgpd": true,
+      "passed": true
+    }
+  },
+  "accessibility": {
+    "lang": "pt-BR",
+    "landmarks": {
+      "aside": true,
+      "header": true,
+      "main": true,
+      "nav": true
+    },
+    "total_visible_buttons": 51,
+    "unlabeled_buttons_count": 0,
+    "unlabeled_buttons_sample": [],
+    "unlabeled_inputs_count": 0,
+    "unlabeled_inputs_sample": [],
+    "passed": true
+  },
+  "responsiveness": {
+    "viewports": {
+      "desktop_1920x1080": {
+        "scrollWidth": 1905,
+        "clientWidth": 1905,
+        "overflowPx": 0,
+        "mobile_drawer_ok": true,
+        "passed": true
+      },
+      "notebook_1366x768": {
+        "scrollWidth": 1351,
+        "clientWidth": 1351,
+        "overflowPx": 0,
+        "mobile_drawer_ok": true,
+        "passed": true
+      },
+      "tablet_768x1024": {
+        "scrollWidth": 768,
+        "clientWidth": 768,
+        "overflowPx": 0,
+        "mobile_drawer_ok": true,
+        "passed": true
+      },
+      "mobile_390x844": {
+        "scrollWidth": 390,
+        "clientWidth": 390,
+        "overflowPx": 0,
+        "mobile_drawer_ok": true,
+        "passed": true
+      }
+    },
+    "passed": true
+  },
+  "screenshots": [
+    {
+      "file": "01_inicio_dashboard_dark.png",
+      "size_bytes": 241794
+    },
+    {
+      "file": "02_inicio_light_mode.png",
+      "size_bytes": 228230
+    },
+    {
+      "file": "03_command_center_ctrl_k.png",
+      "size_bytes": 261520
+    },
+    {
+      "file": "04_todos_recursos_favoritos.png",
+      "size_bytes": 90763
+    },
+    {
+      "file": "05_meu_trabalho_drawer.png",
+      "size_bytes": 278511
+    },
+    {
+      "file": "06_comercial_propostas.png",
+      "size_bytes": 178195
+    },
+    {
+      "file": "07_marketing_campanhas.png",
+      "size_bytes": 171580
+    },
+    {
+      "file": "08_ia_visao_e_agentes.png",
+      "size_bytes": 201991
+    },
+    {
+      "file": "09_ia_motores_provedores.png",
+      "size_bytes": 223270
+    },
+    {
+      "file": "10b_gestao_relatorios.png",
+      "size_bytes": 113205
+    },
+    {
+      "file": "10_gestao_integracoes.png",
+      "size_bytes": 204943
+    },
+    {
+      "file": "11_central_ajuda_drawer.png",
+      "size_bytes": 360725
+    },
+    {
+      "file": "12_responsive_notebook_1366.png",
+      "size_bytes": 174377
+    },
+    {
+      "file": "13_responsive_tablet_768.png",
+      "size_bytes": 153069
+    },
+    {
+      "file": "14_responsive_mobile_390.png",
+      "size_bytes": 95217
+    },
+    {
+      "file": "15_public_landing_page.png",
+      "size_bytes": 88934
+    }
+  ],
+  "telemetry": {
+    "total_network_requests": 94,
+    "console_errors_count": 0,
+    "console_errors": [],
+    "runtime_exceptions_count": 0,
+    "runtime_exceptions": [],
+    "network_failures_count": 0,
+    "network_failures": [],
+    "url_token_leaks_count": 0
+  },
+  "all_phase22_e2e_passed": true
+}
