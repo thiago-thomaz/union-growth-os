@@ -1,0 +1,346 @@
+{
+  "audited_at_utc": "2026-11-20T17:00:57.562346+00:00",
+  "prod_git_commit": "32be93315e62c09701d6607aa4f40e0f0a055842",
+  "alt_git_commit": "32be93315e62c09701d6607aa4f40e0f0a055842",
+  "scheduler_status": {
+    "running": true,
+    "jobs_count": 88,
+    "engine": "APScheduler Native Python (100% Internalized)",
+    "boot_id": "5d4937f64b7f",
+    "timezone": "America/Sao_Paulo"
+  },
+  "tenants_count": 4,
+  "tenants": [
+    {
+      "tenant_id": 1,
+      "name": "Union Growth Holding Ltda",
+      "brand_name": "UNION GROWTH OS",
+      "leads_count": 5,
+      "qa_leads_inside_this_tenant": [
+        {
+          "id": 3,
+          "email": "validacao.fase15@empresa.com.br",
+          "data_origin": "TEST"
+        },
+        {
+          "id": 4,
+          "email": "validacao.fase15@empresa.com.br",
+          "data_origin": "TEST"
+        },
+        {
+          "id": 5,
+          "email": "validacao.fase15@empresa.com.br",
+          "data_origin": "TEST"
+        }
+      ],
+      "real_confirmed_revenue_brl": 0,
+      "sandbox_charges_total": 3,
+      "active_cron_rules": 28,
+      "metrics_cards": [
+        {
+          "key": "revenue",
+          "label": "Receita Real Consolidada",
+          "value": "R$ 48,500.00",
+          "raw_value": 48500.0,
+          "origin": "IMPORTED",
+          "subtext": "Lucro: R$ 41,200.00 (84.95% margem)"
+        },
+        {
+          "key": "leads",
+          "label": "Leads no CRM",
+          "value": "5",
+          "raw_value": 5,
+          "origin": "REAL",
+          "subtext": "Conversões: 1 (20.0%)"
+        },
+        {
+          "key": "roi",
+          "label": "ROI Comercial & Mídia",
+          "value": "564.38%",
+          "raw_value": 564.38,
+          "origin": "REAL",
+          "subtext": "ROAS: 15.65x | CAC: R$ 3,100.00"
+        },
+        {
+          "key": "campaigns",
+          "label": "Campanhas Ativas",
+          "value": "37",
+          "raw_value": 37,
+          "origin": "REAL",
+          "subtext": "Total estruturadas: 37"
+        },
+        {
+          "key": "scheduled_posts",
+          "label": "Publicações Programadas",
+          "value": "55",
+          "raw_value": 55,
+          "origin": "REAL",
+          "subtext": "Na fila: 55"
+        },
+        {
+          "key": "contents_produced",
+          "label": "Conteúdos & Ativos Produzidos",
+          "value": "23",
+          "raw_value": 23,
+          "origin": "REAL",
+          "subtext": "2 artigos SEO | 15 criativos | 6 copies"
+        },
+        {
+          "key": "seo_evolution",
+          "label": "Score Técnico de SEO",
+          "value": "94.0/100",
+          "raw_value": 94.0,
+          "origin": "REAL",
+          "subtext": "5 auditoria(s) executada(s)"
+        },
+        {
+          "key": "automations",
+          "label": "Automações Nativas Ativas",
+          "value": "32/32",
+          "raw_value": 32,
+          "origin": "REAL",
+          "subtext": "Scheduler Python em execução contínua"
+        }
+      ]
+    },
+    {
+      "tenant_id": 2,
+      "name": "TecnoAgro Soluções Inteligentes Ltda",
+      "brand_name": "TecnoAgro",
+      "leads_count": 0,
+      "qa_leads_inside_this_tenant": [],
+      "real_confirmed_revenue_brl": 0,
+      "sandbox_charges_total": 0,
+      "active_cron_rules": 28,
+      "metrics_cards": [
+        {
+          "key": "revenue",
+          "label": "Receita Real Consolidada",
+          "value": "R$ 0.00",
+          "raw_value": 0,
+          "origin": "REAL",
+          "subtext": "Lucro: R$ 0.00 (0.0% margem)"
+        },
+        {
+          "key": "leads",
+          "label": "Leads no CRM",
+          "value": "0",
+          "raw_value": 0,
+          "origin": "REAL",
+          "subtext": "Conversões: 0 (0.0%)"
+        },
+        {
+          "key": "roi",
+          "label": "ROI Comercial & Mídia",
+          "value": "0.0%",
+          "raw_value": 0.0,
+          "origin": "REAL",
+          "subtext": "ROAS: 0.0x | CAC: R$ 0.00"
+        },
+        {
+          "key": "campaigns",
+          "label": "Campanhas Ativas",
+          "value": "26",
+          "raw_value": 28,
+          "origin": "REAL",
+          "subtext": "Total estruturadas: 28"
+        },
+        {
+          "key": "scheduled_posts",
+          "label": "Publicações Programadas",
+          "value": "46",
+          "raw_value": 46,
+          "origin": "REAL",
+          "subtext": "Na fila: 46"
+        },
+        {
+          "key": "contents_produced",
+          "label": "Conteúdos & Ativos Produzidos",
+          "value": "15",
+          "raw_value": 15,
+          "origin": "REAL",
+          "subtext": "1 artigos SEO | 12 criativos | 2 copies"
+        },
+        {
+          "key": "seo_evolution",
+          "label": "Score Técnico de SEO",
+          "value": "52.4/100",
+          "raw_value": 52.4,
+          "origin": "REAL",
+          "subtext": "5 auditoria(s) executada(s)"
+        },
+        {
+          "key": "automations",
+          "label": "Automações Nativas Ativas",
+          "value": "32/32",
+          "raw_value": 32,
+          "origin": "REAL",
+          "subtext": "Scheduler Python em execução contínua"
+        }
+      ]
+    },
+    {
+      "tenant_id": 3,
+      "name": "TecnoAgro Soluções Inteligentes Ltda",
+      "brand_name": "TecnoAgro",
+      "leads_count": 0,
+      "qa_leads_inside_this_tenant": [],
+      "real_confirmed_revenue_brl": 0,
+      "sandbox_charges_total": 0,
+      "active_cron_rules": 28,
+      "metrics_cards": [
+        {
+          "key": "revenue",
+          "label": "Receita Real Consolidada",
+          "value": "R$ 0.00",
+          "raw_value": 0,
+          "origin": "REAL",
+          "subtext": "Lucro: R$ 0.00 (0.0% margem)"
+        },
+        {
+          "key": "leads",
+          "label": "Leads no CRM",
+          "value": "0",
+          "raw_value": 0,
+          "origin": "REAL",
+          "subtext": "Conversões: 0 (0.0%)"
+        },
+        {
+          "key": "roi",
+          "label": "ROI Comercial & Mídia",
+          "value": "0.0%",
+          "raw_value": 0.0,
+          "origin": "REAL",
+          "subtext": "ROAS: 0.0x | CAC: R$ 0.00"
+        },
+        {
+          "key": "campaigns",
+          "label": "Campanhas Ativas",
+          "value": "25",
+          "raw_value": 27,
+          "origin": "REAL",
+          "subtext": "Total estruturadas: 27"
+        },
+        {
+          "key": "scheduled_posts",
+          "label": "Publicações Programadas",
+          "value": "41",
+          "raw_value": 41,
+          "origin": "REAL",
+          "subtext": "Na fila: 41"
+        },
+        {
+          "key": "contents_produced",
+          "label": "Conteúdos & Ativos Produzidos",
+          "value": "14",
+          "raw_value": 14,
+          "origin": "REAL",
+          "subtext": "1 artigos SEO | 12 criativos | 1 copies"
+        },
+        {
+          "key": "seo_evolution",
+          "label": "Score Técnico de SEO",
+          "value": "52.4/100",
+          "raw_value": 52.4,
+          "origin": "REAL",
+          "subtext": "5 auditoria(s) executada(s)"
+        },
+        {
+          "key": "automations",
+          "label": "Automações Nativas Ativas",
+          "value": "20/20",
+          "raw_value": 20,
+          "origin": "REAL",
+          "subtext": "Scheduler Python em execução contínua"
+        }
+      ]
+    },
+    {
+      "tenant_id": 5,
+      "name": "QA_AUTOMATED_TENANT",
+      "brand_name": "QA_AUTOMATED_TENANT",
+      "leads_count": 2,
+      "qa_leads_inside_this_tenant": [
+        {
+          "id": 6,
+          "email": "lead.e2e.1795193300@qa-union.com.br",
+          "data_origin": "TEST"
+        },
+        {
+          "id": 7,
+          "email": "lead.e2e.1795193356@qa-union.com.br",
+          "data_origin": "TEST"
+        }
+      ],
+      "real_confirmed_revenue_brl": 0,
+      "sandbox_charges_total": 2,
+      "active_cron_rules": 27,
+      "metrics_cards": [
+        {
+          "key": "revenue",
+          "label": "Receita Real Consolidada",
+          "value": "R$ 0.00",
+          "raw_value": 0,
+          "origin": "REAL",
+          "subtext": "Lucro: R$ 0.00 (0.0% margem)"
+        },
+        {
+          "key": "leads",
+          "label": "Leads no CRM",
+          "value": "2",
+          "raw_value": 2,
+          "origin": "REAL",
+          "subtext": "Conversões: 2 (100.0%)"
+        },
+        {
+          "key": "roi",
+          "label": "ROI Comercial & Mídia",
+          "value": "0.0%",
+          "raw_value": 0.0,
+          "origin": "REAL",
+          "subtext": "ROAS: 0.0x | CAC: R$ 0.00"
+        },
+        {
+          "key": "campaigns",
+          "label": "Campanhas Ativas",
+          "value": "2",
+          "raw_value": 2,
+          "origin": "REAL",
+          "subtext": "Total estruturadas: 2"
+        },
+        {
+          "key": "scheduled_posts",
+          "label": "Publicações Programadas",
+          "value": "0",
+          "raw_value": 0,
+          "origin": "REAL",
+          "subtext": "Na fila: 0"
+        },
+        {
+          "key": "contents_produced",
+          "label": "Conteúdos & Ativos Produzidos",
+          "value": "2",
+          "raw_value": 2,
+          "origin": "REAL",
+          "subtext": "0 artigos SEO | 0 criativos | 2 copies"
+        },
+        {
+          "key": "seo_evolution",
+          "label": "Score Técnico de SEO",
+          "value": "0.0/100",
+          "raw_value": 0.0,
+          "origin": "ESTIMATED",
+          "subtext": "0 auditoria(s) executada(s)"
+        },
+        {
+          "key": "automations",
+          "label": "Automações Nativas Ativas",
+          "value": "31/31",
+          "raw_value": 31,
+          "origin": "REAL",
+          "subtext": "Scheduler Python em execução contínua"
+        }
+      ]
+    }
+  ]
+}

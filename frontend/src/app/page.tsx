@@ -3309,14 +3309,30 @@ export default function UnionGrowthOSPortal() {
                           </div>
                         </div>
                         <div className="flex gap-1.5">
-                          <a
-                            href={`${p.pdf_url}?access_token=${encodeURIComponent(token || "")}${activeTenantId ? `&tenant_id=${activeTenantId}` : ""}`}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button
+                            onClick={async () => {
+                              try {
+                                const hdrs: Record<string, string> = {};
+                                if (token) hdrs["Authorization"] = `Bearer ${token}`;
+                                if (activeTenantId) hdrs["X-Tenant-Id"] = String(activeTenantId);
+                                const resp = await fetch(p.pdf_url, { headers: hdrs });
+                                if (!resp.ok) {
+                                  showNotice(`Falha ao abrir PDF da proposta (HTTP ${resp.status}).`);
+                                  return;
+                                }
+                                const htmlText = await resp.text();
+                                const blob = new Blob([htmlText], { type: "text/html;charset=utf-8" });
+                                const blobUrl = URL.createObjectURL(blob);
+                                window.open(blobUrl, "_blank", "noopener,noreferrer");
+                                setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+                              } catch (err: any) {
+                                showNotice(err?.message || "Erro ao carregar PDF da proposta.");
+                              }
+                            }}
                             className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 font-semibold"
                           >
                             PDF
-                          </a>
+                          </button>
                           {p.status !== "ACCEPTED" && (
                             <button
                               onClick={async () => {

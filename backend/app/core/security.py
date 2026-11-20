@@ -202,13 +202,12 @@ def get_current_user(
     from app.models.entities import User
 
     enforce_rate_limit(request)
-    token_str = credentials.credentials if (credentials and credentials.credentials) else request.query_params.get("access_token")
-    if not token_str:
+    if not credentials or not credentials.credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Autenticação necessária. Forneça Bearer Token.",
+            detail="Autenticação necessária. Forneça Bearer Token no cabeçalho Authorization (tokens em URL são proibidos).",
         )
-    payload = decode_access_token(token_str)
+    payload = decode_access_token(credentials.credentials)
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token sem identificador de usuário.")
@@ -222,7 +221,7 @@ def get_current_user(
             detail="PASSWORD_CHANGE_REQUIRED: defina uma nova senha forte em /api/v1/auth/change-password antes de continuar.",
         )
 
-    header_tenant = request.headers.get("X-Tenant-Id") or request.query_params.get("tenant_id")
+    header_tenant = request.headers.get("X-Tenant-Id")
     if header_tenant is not None and str(header_tenant).strip() != "":
         if not str(header_tenant).strip().isdigit():
             raise HTTPException(

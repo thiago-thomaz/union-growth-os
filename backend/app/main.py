@@ -48,11 +48,11 @@ app.add_middleware(
 @app.middleware("http")
 async def security_headers_middleware(request: Request, call_next):
     response: Response = await call_next(request)
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "SAMEORIGIN"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault("X-XSS-Protection", "1; mode=block")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     return response
 
 
@@ -103,6 +103,14 @@ def readiness_endpoint():
 app.include_router(api_v1_router)
 
 
+@app.api_route("/api/{full_path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"], include_in_schema=False)
+async def api_not_found_catchall(full_path: str):
+    return JSONResponse(
+        status_code=404,
+        content={"detail": f"Endpoint API não encontrado: /api/{full_path}"},
+    )
+
+
 @app.get("/lp/{slug}", include_in_schema=False)
 def public_landing_page_view(slug: str):
     from app.models.entities import LandingPage, Tenant
@@ -147,11 +155,20 @@ if FRONTEND_OUT_DIR.exists():
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_spa(full_path: str):
         normalized = full_path.strip("/")
+        lower_norm = normalized.lower()
         if normalized == "api" or normalized.startswith("api/"):
             return JSONResponse(
                 status_code=404,
                 content={"detail": f"Endpoint API não encontrado: /{normalized}"},
             )
+        if (
+            lower_norm.endswith(".php")
+            or lower_norm.startswith(".env")
+            or lower_norm.startswith(".git")
+            or "wp-admin" in lower_norm
+            or "wp-login" in lower_norm
+        ):
+            return JSONResponse(status_code=404, content={"detail": "Recurso não encontrado."})
         target = FRONTEND_OUT_DIR / full_path
         if full_path and target.exists() and target.is_file():
             return FileResponse(str(target))

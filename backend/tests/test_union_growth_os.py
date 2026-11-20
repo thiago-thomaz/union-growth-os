@@ -2140,10 +2140,15 @@ def test_44_phase20_qa_defects_security_and_e2e_15_scenarios(client: TestClient,
     prop_id = r_prop.json()["id"]
     assert r_prop.json()["status"] == "PENDING_APPROVAL"
 
-    # DEFECT-03: Abrir PDF em nova aba usando apenas query params ?access_token=&tenant_id= (sem headers Authorization/X-Tenant-Id)
-    r_pdf_tab = client.get(f"/api/v1/commercial/proposals/{prop_id}/pdf?access_token={token}&tenant_id={qa_tid}")
-    assert r_pdf_tab.status_code == 200
-    assert "text/html" in r_pdf_tab.headers.get("content-type", "")
+    # DEFECT-03 (Endurecido na Fase 20.1): Token em URL DEVE ser rejeitado (401), enquanto header Authorization + X-Tenant-Id retorna 200 sem cache
+    r_pdf_url_token_blocked = client.get(f"/api/v1/commercial/proposals/{prop_id}/pdf?access_token={token}&tenant_id={qa_tid}")
+    assert r_pdf_url_token_blocked.status_code == 401
+
+    r_pdf_secure = client.get(f"/api/v1/commercial/proposals/{prop_id}/pdf", headers=qa_h)
+    assert r_pdf_secure.status_code == 200
+    assert "text/html" in r_pdf_secure.headers.get("content-type", "")
+    assert "no-store" in r_pdf_secure.headers.get("cache-control", "").lower()
+    assert r_pdf_secure.headers.get("referrer-policy") == "no-referrer"
 
     # CENÁRIO 7 — APROVAÇÃO HUMANA (Bloqueio sem owner_approve=True + Aprovação com owner_approve=True)
     r_prop_block = client.put(
@@ -2278,6 +2283,138 @@ def test_44_phase20_qa_defects_security_and_e2e_15_scenarios(client: TestClient,
     r_bkp = client.post("/api/v1/system/backup", headers=h)
     assert r_bkp.status_code == 201
     assert r_bkp.json()["size_bytes"] > 100
+
+
+def test_45_phase20_1_security_zero_url_tokens_free_only_and_qa_isolation(client: TestClient, monkeypatch):
+    """
+    FASE 20.1 — Testes de Regressão da Auditoria Independente:
+    1. Proibição absoluta de JWT / tenant_id em query strings (AUDIT-20.1-SEC-01).
+    2. Bloqueio de probes maliciosos (.php, .env, .git) e rotas /api/* inexistentes em múltiplos métodos (DEFECT-01 + AUDIT-20.1-SEC-02).
+    3. Isolamento Multi-Tenant para usuário secundário de outro tenant (não pode acessar Tenant 1 via X-Tenant-Id -> HTTP 403).
+    4. Bloqueio estrito FREE_ONLY sem mascaramento por fallback quando provedor pago/desconhecido é solicitado (AUDIT-20.1-AI-01).
+    5. Classificação clara de HTTP 402 como QUOTA_OR_BILLING_REQUIRED sem cobrança.
+    6. Isolamento de leads TEST/SIMULATION fora do contador REAL de leads em calculate_tenant_financial_kpis (AUDIT-20.1-QA-01).
+    7. Exclusão de tenants QA_* do APScheduler de produção (AUDIT-20.1-SCHED-01).
+    """
+    from app.services.ai_engines_hub import GeminiProvider
+    from app.services.automation_scheduler import _is_qa_isolated_tenant
+
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # 1. Proibição de JWT em query string em qualquer endpoint protegido
+    r_qs_jwt = client.get(f"/api/v1/dashboard/overview?access_token={token}")
+    assert r_qs_jwt.status_code == 401
+
+    # 2. Rotas /api/* inexistentes (GET, POST, PUT, DELETE) e probes .php/.env -> sempre 404 JSON
+    for method, path in [
+        ("GET", "/api/v1/nao-existe-20-1"),
+        ("GET", "/api/v2/subcaminho/inexistente"),
+        ("POST", "/api/v1/nao-existe-20-1"),
+        ("DELETE", "/api/v1/nao-existe-20-1"),
+        ("GET", "/wp-login.php"),
+        ("GET", "/.env"),
+        ("GET", "/.git/config"),
+    ]:
+        resp = client.request(method, path)
+        assert resp.status_code == 404, f"{method} {path} retornou {resp.status_code}"
+        assert "application/json" in resp.headers.get("content-type", "")
+
+    # 3. Usuário de outro tenant tentando acessar Tenant 1 via X-Tenant-Id -> HTTP 403
+    sec_email = f"auditor.tenant2.{RUN_SUFFIX}@empresa2.com.br"
+    r_reg = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": sec_email,
+            "password": "StrongAudit#2026!",
+            "full_name": "Auditor Segundo Tenant",
+            "company_name": f"Empresa Isolada {RUN_SUFFIX}",
+            "lgpd_consent": True,
+        },
+    )
+    assert r_reg.status_code == 201
+    sec_token = r_reg.json()["access_token"]
+    r_bypass = client.get(
+        "/api/v1/dashboard/overview",
+        headers={"Authorization": f"Bearer {sec_token}", "X-Tenant-Id": "1"},
+    )
+    assert r_bypass.status_code == 403
+
+    # 4. FREE_ONLY estrito mesmo com allow_fallback=True (não mascara com fallback nem PROVIDER_ERROR)
+    for pkey, mid in [
+        ("openai", "gpt-4o"),
+        ("anthropic", "claude-3-7-sonnet-latest"),
+        ("openai_compatible", "custom-openai-model"),
+    ]:
+        r_blk = client.post(
+            "/api/v1/ai-engine-hub/route-execute",
+            headers=h,
+            json={
+                "task_type": "copywriting",
+                "required_capability": "text_generation",
+                "preferred_provider": pkey,
+                "preferred_model": mid,
+                "prompt": "Teste bloqueio estrito FREE_ONLY",
+            },
+        )
+        assert r_blk.status_code == 200
+        body = r_blk.json()
+        assert body["ok"] is False
+        assert body["status"] == "BLOCKED_FREE_ONLY", f"{pkey}:{mid} retornou {body}"
+        assert body["estimated_cost_brl"] == 0.0
+
+    # 5. Classificação de HTTP 402 como QUOTA_OR_BILLING_REQUIRED (zero cobrança)
+    def mock_gemini_402(self, model_id, prompt, system_instruction="", temperature=0.4):
+        raise RuntimeError("Cota gratuita esgotada ou faturamento exigido pela Google (HTTP 402 Payment Required).")
+
+    monkeypatch.setattr(GeminiProvider, "generate_text", mock_gemini_402)
+    client.post(
+        "/api/v1/ai-engine-hub/credentials",
+        headers=h,
+        json={"provider_key": "gemini", "api_key": "AQ.TestKey402_1234567890", "is_active": True},
+    )
+    r_402 = client.post(
+        "/api/v1/ai-engine-hub/route-execute",
+        headers=h,
+        json={"task_type": "copywriting", "required_capability": "text_generation", "prompt": "Teste 402"},
+    )
+    assert r_402.status_code == 200
+    assert r_402.json()["ok"] is False
+    assert r_402.json()["status"] == "QUOTA_OR_BILLING_REQUIRED"
+    assert r_402.json()["estimated_cost_brl"] == 0.0
+
+    # 6. Isolamento de leads TEST fora do contador REAL de leads no Dashboard
+    sec_h = {"Authorization": f"Bearer {sec_token}"}
+    ov_before = client.get("/api/v1/dashboard/overview", headers=sec_h).json()
+    leads_before = next(c["raw_value"] for c in ov_before["metrics_cards"] if c["key"] == "leads")
+
+    r_test_lead = client.post(
+        "/api/v1/crm/leads",
+        headers=sec_h,
+        json={
+            "full_name": "Lead QA Isolado",
+            "email": f"lead.qa.isolado.{RUN_SUFFIX}@teste.com.br",
+            "phone": "+5511999998888",
+            "company_name": "Empresa QA",
+            "buy_intent": "HIGH",
+            "estimated_value": 5000.0,
+            "consent_lgpd": True,
+            "data_origin": "TEST",
+        },
+    )
+    assert r_test_lead.status_code == 201
+    ov_after = client.get("/api/v1/dashboard/overview", headers=sec_h).json()
+    leads_after = next(c["raw_value"] for c in ov_after["metrics_cards"] if c["key"] == "leads")
+    assert leads_after == leads_before
+
+    # 7. Verificação da função de exclusão de tenants QA_* no scheduler
+    class _DummyTenant:
+        def __init__(self, name):
+            self.name = name
+
+    assert _is_qa_isolated_tenant(_DummyTenant("QA_AUTOMATED_TENANT")) is True
+    assert _is_qa_isolated_tenant(_DummyTenant("Union Growth Holding Ltda")) is False
+
 
 
 

@@ -1,0 +1,88 @@
+{
+  "audited_at_utc": "2026-11-20T17:01:01.692177+00:00",
+  "operation_mode": null,
+  "default_provider": null,
+  "default_model": null,
+  "providers_summary": [
+    {
+      "provider_key": "gemini",
+      "status": "CONNECTED",
+      "cost_classification": null,
+      "credential_configured": null,
+      "credential_masked": null
+    },
+    {
+      "provider_key": "openai",
+      "status": "PENDING_API_KEY",
+      "cost_classification": null,
+      "credential_configured": null,
+      "credential_masked": null
+    },
+    {
+      "provider_key": "anthropic",
+      "status": "PENDING_API_KEY",
+      "cost_classification": null,
+      "credential_configured": null,
+      "credential_masked": null
+    },
+    {
+      "provider_key": "groq",
+      "status": "PENDING_API_KEY",
+      "cost_classification": null,
+      "credential_configured": null,
+      "credential_masked": null
+    },
+    {
+      "provider_key": "openrouter",
+      "status": "PENDING_API_KEY",
+      "cost_classification": null,
+      "credential_configured": null,
+      "credential_masked": null
+    },
+    {
+      "provider_key": "openai_compatible",
+      "status": "PENDING_API_KEY",
+      "cost_classification": null,
+      "credential_configured": null,
+      "credential_masked": null
+    }
+  ],
+  "free_only_enforcement_tests": {
+    "openai_gpt4o_paid": {
+      "ok": false,
+      "status": "PROVIDER_ERROR",
+      "error": null
+    },
+    "anthropic_claude_paid": {
+      "ok": false,
+      "status": "PROVIDER_ERROR",
+      "error": null
+    },
+    "google_imagen3_paid": {
+      "ok": false,
+      "status": "BLOCKED_FREE_ONLY",
+      "error": null
+    },
+    "google_veo2_paid": {
+      "ok": false,
+      "status": "BLOCKED_FREE_ONLY",
+      "error": null
+    },
+    "generic_unknown_cost": {
+      "ok": false,
+      "status": "PROVIDER_ERROR",
+      "error": null
+    }
+  },
+  "gemini_controlled_live_check": {
+    "test_connection_ok": true,
+    "test_connection_status": "CONNECTED",
+    "test_connection_latency_ms": 259.39,
+    "models_discovered_count": 35,
+    "generation_ok": false,
+    "generation_status": "PROVIDER_ERROR",
+    "generation_error": null,
+    "executed_model": null,
+    "estimated_cost_brl": 0.0
+  }
+}

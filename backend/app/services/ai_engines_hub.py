@@ -830,6 +830,11 @@ class GeminiProvider(BaseAIProvider):
         resp, effective_model = self._post_generate_content_with_model_resolution(model_id, payload)
         duration_ms = round((time.perf_counter() - t0) * 1000, 2)
 
+        if resp.status_code == 402:
+            raise RuntimeError(
+                "Cota gratuita esgotada ou faturamento exigido pela Google (HTTP 402 Payment Required). "
+                "Nenhuma cobrança foi realizada. Utilize uma chave padrão Free Tier ('AIzaSy...') gerada em https://aistudio.google.com/apikey."
+            )
         if resp.status_code == 404:
             raise LookupError(f"Modelo Gemini '{model_id}' inexistente ou indisponível (HTTP 404).")
         if resp.status_code == 429:
@@ -1662,6 +1667,10 @@ class AIRouter:
                 if not is_fb:
                     primary_failure_reason = policy_msg
                     last_status_code = "BLOCKED_FREE_ONLY"
+                    if preferred_provider.strip():
+                        # Se o chamador solicitou explicitamente um provedor/modelo proibido pela política FREE_ONLY,
+                        # interrompe imediatamente sem mascarar a recusa via fallback silencioso.
+                        break
                 continue
 
             # Verificar limites de uso
@@ -1773,6 +1782,8 @@ class AIRouter:
                         last_status_code = "PENDING_API_KEY"
                     elif "inexistente" in err_str.lower() or "não encontrado" in err_str.lower():
                         last_status_code = "MODEL_NOT_FOUND"
+                    elif "402" in err_str:
+                        last_status_code = "QUOTA_OR_BILLING_REQUIRED"
                     elif "429" in err_str:
                         last_status_code = "QUOTA_EXHAUSTED"
                     else:

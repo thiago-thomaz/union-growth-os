@@ -572,9 +572,14 @@ def calculate_tenant_financial_kpis(db: Session, tenant_id: int) -> dict[str, An
     Never invents financial numbers.
     """
     records = db.query(FinancialRecord).filter(FinancialRecord.tenant_id == tenant_id).all()
-    leads = db.query(CRMLead).filter(CRMLead.tenant_id == tenant_id).all()
-    deals = db.query(CRMDeal).filter(CRMDeal.tenant_id == tenant_id).all()
+    all_leads = db.query(CRMLead).filter(CRMLead.tenant_id == tenant_id).all()
+    all_deals = db.query(CRMDeal).filter(CRMDeal.tenant_id == tenant_id).all()
     feedbacks = db.query(CustomerFeedback).filter(CustomerFeedback.tenant_id == tenant_id).all()
+
+    non_real_origins = {"TEST", "SIMULATION", "DEMO"}
+    leads = [l for l in all_leads if (getattr(l, "data_origin", "REAL") or "REAL").upper() not in non_real_origins]
+    deals = [d for d in all_deals if (getattr(d, "data_origin", "REAL") or "REAL").upper() not in non_real_origins]
+    excluded_test_leads_count = len(all_leads) - len(leads)
 
     real_revenue = sum(r.amount for r in records if r.record_type == "REVENUE" and r.data_origin in ("REAL", "IMPORTED"))
     real_expenses = sum(r.amount for r in records if r.record_type == "EXPENSE" and r.data_origin in ("REAL", "IMPORTED"))
@@ -623,6 +628,7 @@ def calculate_tenant_financial_kpis(db: Session, tenant_id: int) -> dict[str, An
         "margin_pct": margin_pct,
         "estimated_or_goal_revenue": round(estimated_revenue, 2),
         "leads_total": leads_count,
+        "excluded_test_leads_count": excluded_test_leads_count,
         "conversions_total": conversions_count,
         "conversion_rate_pct": conversion_rate_pct,
         "average_ticket_brl": avg_ticket,

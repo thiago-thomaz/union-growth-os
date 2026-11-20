@@ -3185,7 +3185,16 @@ def commercial_get_proposal_pdf_html(
     prop = db.query(_CP).filter(_CP.tenant_id == tid, _CP.id == proposal_id).first()
     if not prop:
         raise HTTPException(status_code=404, detail="Proposta não encontrada.")
-    return HTMLResponse(content=render_proposal_printable_html(prop), status_code=200)
+    return HTMLResponse(
+        content=render_proposal_printable_html(prop),
+        status_code=200,
+        headers={
+            "Cache-Control": "no-store, private, max-age=0",
+            "Pragma": "no-cache",
+            "Referrer-Policy": "no-referrer",
+            "X-Robots-Tag": "noindex, nofollow",
+        },
+    )
 
 
 @router.get("/agency/clients")
@@ -3769,8 +3778,8 @@ def ai_engine_hub_route_execute(
         required_capability=str(payload.get("required_capability") or "text_generation"),
         prompt=sanitize_text(str(payload.get("prompt") or "")),
         agent_id=str(payload.get("agent_id") or "AI_ENGINE_HUB"),
-        preferred_provider=str(payload.get("provider_key") or ""),
-        preferred_model=str(payload.get("model_id") or ""),
+        preferred_provider=str(payload.get("provider_key") or payload.get("preferred_provider") or ""),
+        preferred_model=str(payload.get("model_id") or payload.get("preferred_model") or ""),
         system_instruction=str(payload.get("system_instruction") or ""),
         schema_hint=str(payload.get("schema_hint") or ""),
         aspect_ratio=str(payload.get("aspect_ratio") or "1:1"),

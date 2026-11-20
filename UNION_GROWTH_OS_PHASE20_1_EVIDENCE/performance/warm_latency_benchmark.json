@@ -1,0 +1,90 @@
+{
+  "audited_at_utc": "2026-11-20T17:01:07.302773+00:00",
+  "connection_mode": "HTTP/1.1 Keep-Alive (Warm TLS session)",
+  "endpoints": [
+    {
+      "endpoint": "/health",
+      "status": 200,
+      "samples_ms": [
+        181.13,
+        803.57,
+        258.02
+      ],
+      "avg_ms": 414.24,
+      "min_ms": 181.13,
+      "max_ms": 803.57
+    },
+    {
+      "endpoint": "/ready",
+      "status": 200,
+      "samples_ms": [
+        101.68,
+        42.61,
+        193.08
+      ],
+      "avg_ms": 112.46,
+      "min_ms": 42.61,
+      "max_ms": 193.08
+    },
+    {
+      "endpoint": "/lp/agentes-ia",
+      "status": 200,
+      "samples_ms": [
+        356.04,
+        192.82,
+        173.65
+      ],
+      "avg_ms": 240.84,
+      "min_ms": 173.65,
+      "max_ms": 356.04
+    },
+    {
+      "endpoint": "/api/v1/dashboard/overview",
+      "status": 200,
+      "samples_ms": [
+        131.88,
+        171.17,
+        140.39
+      ],
+      "avg_ms": 147.81,
+      "min_ms": 131.88,
+      "max_ms": 171.17
+    },
+    {
+      "endpoint": "/api/v1/ai-engine-hub/overview",
+      "status": 200,
+      "samples_ms": [
+        183.41,
+        89.85,
+        126.97
+      ],
+      "avg_ms": 133.41,
+      "min_ms": 89.85,
+      "max_ms": 183.41
+    },
+    {
+      "endpoint": "/api/v1/commercial/multibusiness-dashboard?unit=ALL",
+      "status": 200,
+      "samples_ms": [
+        488.15,
+        341.04,
+        505.66
+      ],
+      "avg_ms": 444.95,
+      "min_ms": 341.04,
+      "max_ms": 505.66
+    },
+    {
+      "endpoint": "/api/v1/system/pilot-7-days",
+      "status": 200,
+      "samples_ms": [
+        761.14,
+        168.89,
+        196.99
+      ],
+      "avg_ms": 375.67,
+      "min_ms": 168.89,
+      "max_ms": 761.14
+    }
+  ]
+}

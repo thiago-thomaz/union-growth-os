@@ -486,8 +486,15 @@ def _build_trigger(cron_expression: str):
         return CronTrigger.from_crontab(cron_expression, timezone="UTC")
 
 
+def _is_qa_isolated_tenant(tenant: Tenant | None) -> bool:
+    if not tenant:
+        return False
+    return (tenant.name or "").strip().upper().startswith("QA_")
+
+
 def sync_cron_jobs(db: Session) -> int:
-    """Registers one real APScheduler cron job per active CRON AutomationRule (all tenants)."""
+    """Registers one real APScheduler cron job per active CRON AutomationRule (excluding isolated QA_ tenants)."""
+    qa_tenant_ids = {t.id for t in db.query(Tenant).all() if _is_qa_isolated_tenant(t)}
     count = 0
     rules = (
         db.query(AutomationRule)
@@ -496,6 +503,8 @@ def sync_cron_jobs(db: Session) -> int:
     )
     wanted_ids = set()
     for r in rules:
+        if r.tenant_id in qa_tenant_ids:
+            continue
         if not r.cron_expression:
             continue
         job_id = f"rule-{r.id}"
@@ -518,7 +527,8 @@ def sync_cron_jobs(db: Session) -> int:
 
 
 def recover_missed_runs(db: Session, lookback_hours: int = 36) -> list[dict[str, Any]]:
-    """After a restart, runs CRON slots that should have fired while the app was down (idempotent)."""
+    """After a restart, runs CRON slots that should have fired while the app was down (idempotent, skipping QA_ tenants)."""
+    qa_tenant_ids = {t.id for t in db.query(Tenant).all() if _is_qa_isolated_tenant(t)}
     recovered: list[dict[str, Any]] = []
     now = datetime.now(timezone.utc)
     window_start = now - timedelta(hours=lookback_hours)
@@ -528,6 +538,8 @@ def recover_missed_runs(db: Session, lookback_hours: int = 36) -> list[dict[str,
         .all()
     )
     for r in rules:
+        if r.tenant_id in qa_tenant_ids:
+            continue
         if not r.cron_expression:
             continue
         trigger = _build_trigger(r.cron_expression)
