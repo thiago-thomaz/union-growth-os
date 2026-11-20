@@ -1,63 +1,49 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import {
+  Home,
+  CheckSquare,
+  Briefcase,
+  Megaphone,
+  BrainCircuit,
+  BarChart3,
+  Grid,
+  Search,
+  HelpCircle,
+  Bell,
+  Sun,
+  Moon,
+  Menu,
+  X,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ChevronDown,
+  ChevronRight,
+  LogOut,
+  Sparkles,
+  RefreshCw,
+} from "lucide-react";
+import {
+  AreaId,
+  LegacyMenuId,
+  PRIMARY_AREAS,
+  RESOURCE_CATALOG,
+  getAreaForView,
+  getResourceMeta,
+} from "@/lib/navigation";
+import {
+  OriginBadge,
+  SkeletonCard,
+  ToastBanner,
+} from "@/components/DesignSystem";
+import { CommandCenter } from "@/components/CommandCenter";
+import { HomeWorkspace } from "@/components/HomeWorkspace";
+import { MyWorkHub } from "@/components/MyWorkHub";
+import { AITeamAndGovernanceView } from "@/components/AITeamAndGovernanceView";
+import { AllResourcesHub, HelpCenterDrawer } from "@/components/ResourceCenterAndHelp";
 
-type MenuId =
-  | "overview"
-  | "multibusiness"
-  | "ceo"
-  | "marketing"
-  | "seo"
-  | "social"
-  | "creative"
-  | "copywriter"
-  | "growth"
-  | "crm"
-  | "commercial"
-  | "competitors"
-  | "finance"
-  | "cs"
-  | "calendar"
-  | "content_factory"
-  | "ceo_plan"
-  | "operational247"
-  | "pilot7d"
-  | "automations"
-  | "approvals"
-  | "reports"
-  | "integrations"
-  | "settings"
-  | "audit"
-  | "ai_engines";
-
-const MENU_ITEMS: { id: MenuId; num: string; label: string }[] = [
-  { id: "overview", num: "01", label: "Visão Geral" },
-  { id: "multibusiness", num: "17M", label: "🏢 Multinegócio (3 Unidades)" },
-  { id: "ceo", num: "02", label: "AI CEO" },
-  { id: "marketing", num: "03", label: "Marketing (AI CMO)" },
-  { id: "seo", num: "04", label: "SEO Director" },
-  { id: "social", num: "05", label: "Redes Sociais" },
-  { id: "content_factory", num: "06", label: "🏭 Content Factory 30D" },
-  { id: "ceo_plan", num: "07", label: "📋 Plano Diário CEO" },
-  { id: "operational247", num: "08", label: "🖥️ Painel 24/7 & Alertas" },
-  { id: "pilot7d", num: "09", label: "🚀 Piloto 7 Dias" },
-  { id: "creative", num: "10", label: "Creative Studio" },
-  { id: "copywriter", num: "11", label: "Copywriter" },
-  { id: "growth", num: "12", label: "Growth Hacker" },
-  { id: "crm", num: "13", label: "CRM & Leads" },
-  { id: "commercial", num: "14", label: "Comercial & Pipeline" },
-  { id: "competitors", num: "15", label: "Concorrentes" },
-  { id: "finance", num: "16", label: "Financeiro & KPIs" },
-  { id: "cs", num: "17", label: "Customer Success" },
-  { id: "calendar", num: "18", label: "Calendário Editorial" },
-  { id: "automations", num: "19", label: "Automações Python" },
-  { id: "approvals", num: "20", label: "Aprovações" },
-  { id: "reports", num: "21", label: "Relatórios" },
-  { id: "integrations", num: "22", label: "Integrações" },
-  { id: "settings", num: "23", label: "Configurações & Planos" },
-  { id: "audit", num: "24", label: "Auditoria e Logs" },
-  { id: "ai_engines", num: "25", label: "🧠 UNION AI ENGINE HUB" },
-];
+type MenuId = LegacyMenuId;
 
 const PIPELINE_STAGES = [
   "NEW_LEAD",
@@ -68,29 +54,23 @@ const PIPELINE_STAGES = [
   "CLOSED_LOST",
 ];
 
-function OriginBadge({ origin }: { origin?: string }) {
-  const o = (origin || "REAL").toUpperCase();
-  const styles: Record<string, string> = {
-    REAL: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-    IMPORTED: "bg-sky-500/15 text-sky-300 border-sky-500/30",
-    ESTIMATED: "bg-amber-500/15 text-amber-300 border-amber-500/30",
-    GOAL: "bg-purple-500/15 text-purple-300 border-purple-500/30",
-  };
-  const labels: Record<string, string> = {
-    REAL: "DADO REAL",
-    IMPORTED: "DADO IMPORTADO",
-    ESTIMATED: "ESTIMATIVA",
-    GOAL: "META",
-  };
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${
-        styles[o] || styles.REAL
-      }`}
-    >
-      {labels[o] || o}
-    </span>
-  );
+function AreaIcon({ areaId, className = "w-4 h-4" }: { areaId: AreaId; className?: string }) {
+  switch (areaId) {
+    case "inicio":
+      return <Home className={className} aria-hidden="true" />;
+    case "meu_trabalho":
+      return <CheckSquare className={className} aria-hidden="true" />;
+    case "comercial":
+      return <Briefcase className={className} aria-hidden="true" />;
+    case "marketing":
+      return <Megaphone className={className} aria-hidden="true" />;
+    case "ia":
+      return <BrainCircuit className={className} aria-hidden="true" />;
+    case "gestao":
+      return <BarChart3 className={className} aria-hidden="true" />;
+    default:
+      return <Grid className={className} aria-hidden="true" />;
+  }
 }
 
 export default function UnionGrowthOSPortal() {
@@ -106,6 +86,22 @@ export default function UnionGrowthOSPortal() {
   const [activeMenu, setActiveMenu] = useState<MenuId>("overview");
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<string>("");
+
+  // FASE 22 — UX/UI Navigation, Theme, Command Center, Onboarding, Help & Table Filters
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [expandedArea, setExpandedArea] = useState<AreaId | null>("inicio");
+  const [sidebarSearch, setSidebarSearch] = useState("");
+  const [themeMode, setThemeMode] = useState<"dark" | "light">("dark");
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<LegacyMenuId[]>(["crm", "marketing", "ai_engines"]);
+  const [recentIds, setRecentIds] = useState<LegacyMenuId[]>(["overview"]);
+  const [crmLeadFilter, setCrmLeadFilter] = useState("");
+  const [campFilter, setCampFilter] = useState("");
+  const [intgStatusFilter, setIntgStatusFilter] = useState<"ALL" | "CONNECTED" | "PENDING">("ALL");
+  const [showRawReportJson, setShowRawReportJson] = useState(false);
 
   // State Stores
   const [meData, setMeData] = useState<any>(null);
@@ -358,8 +354,47 @@ export default function UnionGrowthOSPortal() {
   }, [token, apiFetch]);
 
   useEffect(() => {
-    const saved = typeof window !== "undefined" ? localStorage.getItem("ug_token") : null;
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem("ug_token");
     if (saved) setToken(saved);
+    const savedCollapsed = localStorage.getItem("ug_sidebar_collapsed");
+    if (savedCollapsed === "1") setSidebarCollapsed(true);
+    const savedTheme = localStorage.getItem("ug_theme_mode") as "dark" | "light" | null;
+    if (savedTheme === "light" || savedTheme === "dark") setThemeMode(savedTheme);
+    const savedOb = localStorage.getItem("ug_onboarding_dismissed");
+    if (savedOb === "1") setOnboardingDismissed(true);
+    try {
+      const fav = JSON.parse(localStorage.getItem("ug_favorites") || "null");
+      if (Array.isArray(fav)) setFavoriteIds(fav);
+      const rec = JSON.parse(localStorage.getItem("ug_recents") || "null");
+      if (Array.isArray(rec)) setRecentIds(rec);
+    } catch {
+      // ignore corrupted local preferences
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    if (themeMode === "light") {
+      root.classList.remove("dark");
+      root.classList.add("light");
+    } else {
+      root.classList.remove("light");
+      root.classList.add("dark");
+    }
+    localStorage.setItem("ug_theme_mode", themeMode);
+  }, [themeMode]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCommandOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
   useEffect(() => {
@@ -367,6 +402,45 @@ export default function UnionGrowthOSPortal() {
       loadAllActiveData();
     }
   }, [token, activeTenantId, loadAllActiveData]);
+
+  const navigateTo = useCallback((viewId: LegacyMenuId) => {
+    const normalized: LegacyMenuId = viewId === "calendar" ? "social" : viewId;
+    setActiveMenu(normalized);
+    setMobileMenuOpen(false);
+    const area = getAreaForView(normalized);
+    setExpandedArea(area);
+    setRecentIds((prev) => {
+      const next = [normalized, ...prev.filter((x) => x !== normalized)].slice(0, 8);
+      if (typeof window !== "undefined") localStorage.setItem("ug_recents", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const toggleFavorite = useCallback((id: LegacyMenuId) => {
+    setFavoriteIds((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [id, ...prev];
+      if (typeof window !== "undefined") localStorage.setItem("ug_favorites", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const currentAreaId = getAreaForView(activeMenu);
+  const currentAreaConfig = PRIMARY_AREAS.find((a) => a.id === currentAreaId);
+  const currentResourceMeta = getResourceMeta(activeMenu);
+  const pendingWorkCount = useMemo(
+    () =>
+      (approvalsData || []).filter((a: any) => a.status === "PENDING").length +
+      (systemAlerts || []).filter((a: any) => a.status !== "RESOLVED").length,
+    [approvalsData, systemAlerts]
+  );
+
+  const sidebarMatchedResources = useMemo(() => {
+    const q = sidebarSearch.trim().toLowerCase();
+    if (!q) return [];
+    return RESOURCE_CATALOG.filter((r) =>
+      `${r.name} ${r.description} ${r.category} ${r.keywords.join(" ")}`.toLowerCase().includes(q)
+    ).slice(0, 8);
+  }, [sidebarSearch]);
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -403,7 +477,7 @@ export default function UnionGrowthOSPortal() {
       <div className="min-h-screen flex items-center justify-center bg-[#070b14] p-6">
         <div className="w-full max-w-md bg-[#0f1629] border border-indigo-500/30 rounded-2xl p-8 shadow-2xl">
           <div className="flex items-center gap-3 mb-6">
-            <div className="h-10 w-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-lg">
+            <div className="h-10 w-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-lg text-white">
               UG
             </div>
             <div>
@@ -434,7 +508,7 @@ export default function UnionGrowthOSPortal() {
           </div>
 
           {authError && (
-            <div className="mb-4 p-3 rounded-lg bg-red-500/15 border border-red-500/40 text-red-300 text-xs">
+            <div role="alert" className="mb-4 p-3 rounded-lg bg-red-500/15 border border-red-500/40 text-red-300 text-xs">
               {authError}
             </div>
           )}
@@ -443,8 +517,9 @@ export default function UnionGrowthOSPortal() {
             {authMode === "register" && (
               <>
                 <div>
-                  <label className="block text-xs text-slate-300 mb-1">Seu Nome Completo</label>
+                  <label htmlFor="ug-fullname" className="block text-xs text-slate-300 mb-1">Seu Nome Completo</label>
                   <input
+                    id="ug-fullname"
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
@@ -453,8 +528,9 @@ export default function UnionGrowthOSPortal() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-300 mb-1">Nome da Empresa / Marca</label>
+                  <label htmlFor="ug-company" className="block text-xs text-slate-300 mb-1">Nome da Empresa / Marca</label>
                   <input
+                    id="ug-company"
                     required
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
@@ -465,8 +541,9 @@ export default function UnionGrowthOSPortal() {
               </>
             )}
             <div>
-              <label className="block text-xs text-slate-300 mb-1">E-mail Corporativo</label>
+              <label htmlFor="ug-email" className="block text-xs text-slate-300 mb-1">E-mail Corporativo</label>
               <input
+                id="ug-email"
                 type="email"
                 required
                 value={email}
@@ -475,8 +552,9 @@ export default function UnionGrowthOSPortal() {
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-300 mb-1">Senha de Acesso</label>
+              <label htmlFor="ug-password" className="block text-xs text-slate-300 mb-1">Senha de Acesso</label>
               <input
+                id="ug-password"
                 type="password"
                 required
                 value={password}
@@ -519,29 +597,70 @@ export default function UnionGrowthOSPortal() {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#070b14] text-slate-100">
-      {/* SIDEBAR MENU (20 SECTIONS) */}
-      <aside className="w-64 bg-[#0c1222] border-r border-slate-800/80 flex flex-col shrink-0">
-        <div className="p-4 border-b border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-sm">
-              UG
+    <div className="min-h-screen flex ug-bg text-slate-100">
+      {/* MOBILE OVERLAY BACKDROP */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* SIDEBAR MINIMALISTA (6 ÁREAS PRINCIPAIS + TODOS OS RECURSOS) */}
+      <aside
+        aria-label="Navegação principal"
+        className={`fixed lg:sticky top-0 left-0 z-40 h-screen ug-sidebar border-r flex flex-col shrink-0 transition-all duration-200 ${
+          sidebarCollapsed ? "w-20" : "w-64"
+        } ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+      >
+        <div className="p-3.5 border-b border-slate-800/80 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-sm text-white shrink-0">
+                UG
+              </div>
+              {!sidebarCollapsed && (
+                <div className="min-w-0">
+                  <div className="font-bold text-sm text-white ug-text-primary leading-tight truncate">
+                    UNION GROWTH OS
+                  </div>
+                  <div className="text-[10px] text-emerald-400 font-medium truncate">Gestão & IA Empresarial</div>
+                </div>
+              )}
             </div>
-            <div>
-              <div className="font-bold text-sm text-white leading-tight">UNION GROWTH OS</div>
-              <div className="text-[10px] text-emerald-400 font-medium">11 AI Agents • Native Cloud</div>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const next = !sidebarCollapsed;
+                setSidebarCollapsed(next);
+                if (typeof window !== "undefined") localStorage.setItem("ug_sidebar_collapsed", next ? "1" : "0");
+              }}
+              aria-label={sidebarCollapsed ? "Expandir barra lateral" : "Recolher barra lateral"}
+              className="hidden lg:inline-flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60"
+            >
+              {sidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Fechar menu móvel"
+              className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
-          {meData?.available_tenants && (
-            <div className="mt-3">
-              <label className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1">
+          {!sidebarCollapsed && meData?.available_tenants && (
+            <div>
+              <label htmlFor="ug-tenant-select" className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1">
                 Empresa Ativa (Multi-Tenant)
               </label>
               <select
+                id="ug-tenant-select"
                 value={activeTenantId || meData?.active_tenant?.id || ""}
                 onChange={(e) => setActiveTenantId(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-white"
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"
               >
                 {meData.available_tenants.map((t: any) => (
                   <option key={t.id} value={t.id}>
@@ -551,193 +670,355 @@ export default function UnionGrowthOSPortal() {
               </select>
             </div>
           )}
+
+          {!sidebarCollapsed && (
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden="true" />
+              <input
+                type="text"
+                value={sidebarSearch}
+                onChange={(e) => setSidebarSearch(e.target.value)}
+                placeholder="Buscar módulo..."
+                aria-label="Filtrar módulos na barra lateral"
+                className="w-full pl-8 pr-2.5 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 text-xs text-white placeholder:text-slate-500"
+              />
+            </div>
+          )}
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
-          {MENU_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveMenu(item.id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition ${
-                activeMenu === item.id
-                  ? "bg-indigo-600 text-white shadow"
-                  : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
-              }`}
-            >
-              <span className="text-[10px] opacity-60 font-mono">{item.num}</span>
-              <span className="truncate">{item.label}</span>
-            </button>
-          ))}
+        <nav className="flex-1 overflow-y-auto p-2 space-y-1">
+          {sidebarSearch.trim() && !sidebarCollapsed ? (
+            <div className="space-y-1 p-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-2">
+                Resultados ({sidebarMatchedResources.length})
+              </div>
+              {sidebarMatchedResources.map((res) => (
+                <button
+                  key={res.id}
+                  type="button"
+                  onClick={() => {
+                    navigateTo(res.id);
+                    setSidebarSearch("");
+                  }}
+                  className="w-full text-left px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-indigo-600/20 hover:text-white transition"
+                >
+                  <div className="font-semibold truncate">{res.name}</div>
+                  <div className="text-[10px] text-slate-400 truncate">{res.category}</div>
+                </button>
+              ))}
+              {sidebarMatchedResources.length === 0 && (
+                <div className="text-xs text-slate-400 px-2 py-3">Nenhum módulo encontrado.</div>
+              )}
+            </div>
+          ) : (
+            <>
+              {PRIMARY_AREAS.map((area) => {
+                const isAreaActive = currentAreaId === area.id;
+                const isExpanded = expandedArea === area.id && !sidebarCollapsed && area.subtabs.length > 0;
+                return (
+                  <div key={area.id} className="space-y-0.5">
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        aria-current={isAreaActive ? "page" : undefined}
+                        title={sidebarCollapsed ? area.label : undefined}
+                        onClick={() => {
+                          navigateTo(area.defaultView);
+                          if (area.subtabs.length > 0 && !sidebarCollapsed) {
+                            setExpandedArea(area.id);
+                          }
+                        }}
+                        className={`flex-1 flex items-center ${
+                          sidebarCollapsed ? "justify-center px-2" : "justify-between px-3"
+                        } py-2.5 rounded-xl text-xs font-semibold transition ${
+                          isAreaActive
+                            ? "bg-indigo-600 text-white shadow-sm"
+                            : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <AreaIcon areaId={area.id} className="w-4 h-4 shrink-0" />
+                          {!sidebarCollapsed && <span className="truncate">{area.label}</span>}
+                        </div>
+                        {!sidebarCollapsed && area.id === "meu_trabalho" && pendingWorkCount > 0 && (
+                          <span
+                            className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                              isAreaActive ? "bg-white/20 text-white" : "bg-amber-500/20 text-amber-300"
+                            }`}
+                          >
+                            {pendingWorkCount}
+                          </span>
+                        )}
+                      </button>
+
+                      {!sidebarCollapsed && area.subtabs.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setExpandedArea((prev) => (prev === area.id ? null : area.id))}
+                          aria-label={`${isExpanded ? "Recolher" : "Expandir"} submenu de ${area.label}`}
+                          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50"
+                        >
+                          {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                    </div>
+
+                    {isExpanded && (
+                      <div className="ml-4 pl-2.5 border-l border-slate-800 space-y-0.5 py-1">
+                        {area.subtabs.map((sub) => {
+                          const isSubActive = activeMenu === sub.id || (sub.id === "social" && activeMenu === "calendar");
+                          return (
+                            <button
+                              key={sub.id}
+                              type="button"
+                              onClick={() => navigateTo(sub.id)}
+                              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition ${
+                                isSubActive
+                                  ? "bg-indigo-500/20 text-indigo-300 font-semibold"
+                                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                              }`}
+                            >
+                              {sub.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              <div className="pt-2 mt-2 border-t border-slate-800/80">
+                <button
+                  type="button"
+                  title={sidebarCollapsed ? "Todos os recursos" : undefined}
+                  aria-current={activeMenu === "all_resources" ? "page" : undefined}
+                  onClick={() => navigateTo("all_resources")}
+                  className={`w-full flex items-center ${
+                    sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-3"
+                  } py-2.5 rounded-xl text-xs font-semibold transition ${
+                    activeMenu === "all_resources"
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
+                  }`}
+                >
+                  <Grid className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  {!sidebarCollapsed && <span>Todos os recursos</span>}
+                </button>
+              </div>
+            </>
+          )}
         </nav>
 
-        <div className="p-3 border-t border-slate-800 text-xs space-y-2">
-          <div className="text-[11px] text-slate-400 truncate">
-            {meData?.user?.full_name} ({meData?.user?.role})
-          </div>
+        <div className="p-3 border-t border-slate-800/80 text-xs space-y-2">
+          {!sidebarCollapsed && (
+            <div className="text-[11px] text-slate-400 truncate">
+              {meData?.user?.full_name} ({meData?.user?.role})
+            </div>
+          )}
           <button
+            type="button"
             onClick={handleLogout}
-            className="w-full py-1.5 rounded bg-slate-800 hover:bg-red-900/50 text-slate-300 text-xs"
+            title={sidebarCollapsed ? "Sair da Conta" : undefined}
+            aria-label="Sair da Conta"
+            className="w-full py-2 px-2.5 rounded-xl bg-slate-800/80 hover:bg-red-900/50 text-slate-200 text-xs font-medium flex items-center justify-center gap-2 transition"
           >
-            Sair da Conta
+            <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
+            {!sidebarCollapsed && <span>Sair da Conta</span>}
           </button>
         </div>
       </aside>
 
       {/* MAIN CONTENT */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 bg-[#0c1222]/90 border-b border-slate-800 px-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-bold text-white">
-              {MENU_ITEMS.find((m) => m.id === activeMenu)?.label}
-            </h2>
-            <p className="text-xs text-slate-400">
-              Marca: <strong className="text-slate-200">{meData?.active_tenant?.brand_name}</strong> • Plano:{" "}
-              <strong className="text-emerald-400">{meData?.active_tenant?.plan_tier}</strong> • Autonomia:{" "}
-              <strong className="text-indigo-400">Nível {meData?.active_tenant?.autonomy_default_level || 2}</strong>
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            {toast && (
-              <div className="px-3 py-1.5 rounded-lg bg-indigo-600/20 border border-indigo-500/40 text-indigo-200 text-xs">
-                {toast}
+        {/* TOP HEADER (BUSCA GLOBAL, NOTIFICAÇÕES, TEMA, AJUDA, AÇÃO PRINCIPAL) */}
+        <header className="sticky top-0 z-30 ug-sidebar border-b border-slate-800/80 backdrop-blur-md">
+          <div className="px-4 lg:px-6 h-16 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(true)}
+                aria-label="Abrir menu de navegação"
+                className="lg:hidden p-2 rounded-lg bg-slate-800/70 text-slate-200"
+              >
+                <Menu className="w-4 h-4" />
+              </button>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hidden sm:inline-block">
+                    {currentAreaConfig?.label || (activeMenu === "all_resources" ? "Central" : "Workspace")}
+                  </span>
+                  <h2 className="text-sm sm:text-base font-bold text-white ug-text-primary truncate">
+                    {currentResourceMeta?.name || "UNION GROWTH OS"}
+                  </h2>
+                </div>
+                <p className="text-[11px] text-slate-400 truncate">
+                  {meData?.active_tenant?.brand_name} • Plano {meData?.active_tenant?.plan_tier} • Autonomia Nível{" "}
+                  {meData?.active_tenant?.autonomy_default_level || 2}
+                </p>
               </div>
-            )}
-            <button
-              onClick={async () => {
-                showNotice("Executando Diagnóstico Multiagente completo...");
-                const res = await apiFetch("/api/v1/orchestrator/diagnose", {
-                  method: "POST",
-                  body: JSON.stringify({ reason: "Acionamento Executivo Manual" }),
-                });
-                setDiagResult(res);
-                await loadAllActiveData();
-                showNotice("Diagnóstico Multiagente concluído com sucesso!");
-              }}
-              className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
-            >
-              Acionar Orquestrador Multiagente
-            </button>
-            <button
-              onClick={loadAllActiveData}
-              className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs"
-            >
-              {loading ? "Atualizando..." : "Atualizar Dados"}
-            </button>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {/* Botão Command Center / Busca Global (Ctrl+K) */}
+              <button
+                type="button"
+                onClick={() => setCommandOpen(true)}
+                aria-label="Abrir busca global (Ctrl+K)"
+                className="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 hover:border-indigo-500/60 text-slate-300 text-xs flex items-center gap-2 transition"
+              >
+                <Search className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
+                <span className="hidden md:inline">Buscar...</span>
+                <kbd className="hidden xl:inline-block px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-400">
+                  Ctrl+K
+                </kbd>
+              </button>
+
+              {/* Notificações -> Meu Trabalho */}
+              <button
+                type="button"
+                onClick={() => navigateTo("my_work")}
+                aria-label={`Notificações e pendências (${pendingWorkCount})`}
+                className="relative p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 text-slate-300 transition"
+              >
+                <Bell className="w-4 h-4" />
+                {pendingWorkCount > 0 && (
+                  <span className="absolute -top-1 -right-1 px-1.5 min-w-[18px] h-[18px] rounded-full bg-amber-500 text-[10px] font-bold text-slate-950 flex items-center justify-center">
+                    {pendingWorkCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Alternador Dark / Light Mode */}
+              <button
+                type="button"
+                onClick={() => setThemeMode((prev) => (prev === "dark" ? "light" : "dark"))}
+                aria-label={themeMode === "dark" ? "Ativar Modo Claro" : "Ativar Modo Escuro"}
+                title={themeMode === "dark" ? "Ativar Modo Claro" : "Ativar Modo Escuro"}
+                className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 text-slate-300 transition"
+              >
+                {themeMode === "dark" ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+              </button>
+
+              {/* Central de Ajuda Contextual */}
+              <button
+                type="button"
+                onClick={() => setHelpOpen(true)}
+                aria-label="Abrir Central de Ajuda"
+                title="Ajuda desta tela, Glossário e Atalhos"
+                className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 text-slate-300 transition"
+              >
+                <HelpCircle className="w-4 h-4 text-indigo-400" />
+              </button>
+
+              {/* Atualizar Dados */}
+              <button
+                type="button"
+                onClick={loadAllActiveData}
+                aria-label="Atualizar Dados"
+                className="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs flex items-center gap-1.5 transition"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} aria-hidden="true" />
+                <span className="hidden xl:inline">{loading ? "Atualizando..." : "Atualizar"}</span>
+              </button>
+
+              {/* Ação Primária Contextual da Área */}
+              {currentAreaConfig && (
+                <button
+                  type="button"
+                  onClick={() => navigateTo(currentAreaConfig.primaryCtaTarget)}
+                  className="hidden sm:inline-flex px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold items-center gap-1.5 transition shadow-sm"
+                >
+                  <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>{currentAreaConfig.primaryCtaLabel}</span>
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Barra Horizontal Contextual de Subtabs da Área Atual */}
+          {currentAreaConfig && currentAreaConfig.subtabs.length > 0 && (
+            <div
+              className="px-4 lg:px-6 py-2 border-t border-slate-800/60 flex items-center gap-1.5 overflow-x-auto"
+              role="navigation"
+              aria-label={`Submenus de ${currentAreaConfig.label}`}
+            >
+              {currentAreaConfig.subtabs.map((sub) => {
+                const isSubActive = activeMenu === sub.id || (sub.id === "social" && activeMenu === "calendar");
+                return (
+                  <button
+                    key={sub.id}
+                    type="button"
+                    onClick={() => navigateTo(sub.id)}
+                    title={sub.shortDesc}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
+                      isSubActive
+                        ? "bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 font-semibold"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent"
+                    }`}
+                  >
+                    {sub.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* 01. VISÃO GERAL */}
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
+          {/* Skeleton de carregamento inicial */}
+          {loading && !overviewData && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <SkeletonCard lines={3} />
+              <SkeletonCard lines={3} />
+              <SkeletonCard lines={3} />
+              <SkeletonCard lines={3} />
+            </div>
+          )}
+
+          {/* ÁREA 1 — INÍCIO (RECONSTRUÍDO NA FASE 22) */}
           {activeMenu === "overview" && overviewData && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {overviewData.metrics_cards.map((card: any) => (
-                  <div key={card.key} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-slate-400">{card.label}</span>
-                      <OriginBadge origin={card.origin} />
-                    </div>
-                    <div className="text-2xl font-bold text-white">{card.value}</div>
-                    <div className="text-[11px] text-slate-400 mt-1">{card.subtext}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5">
-                <h3 className="text-sm font-bold text-white mb-3">
-                  Painel de Autonomia Operacional & Governança em Tempo Real
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
-                  <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
-                    <div className="text-xl font-bold text-emerald-400">
-                      {overviewData.autonomy_status_panel.executed_by_ai_count}
-                    </div>
-                    <div className="text-[11px] text-slate-400">Executado pela IA</div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
-                    <div className="text-xl font-bold text-amber-400">
-                      {overviewData.autonomy_status_panel.pending_approval_count}
-                    </div>
-                    <div className="text-[11px] text-slate-400">Aguardando Aprovação</div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
-                    <div className="text-xl font-bold text-red-400">
-                      {overviewData.autonomy_status_panel.failed_count}
-                    </div>
-                    <div className="text-[11px] text-slate-400">Falhas Registradas</div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
-                    <div className="text-xl font-bold text-purple-400">
-                      {overviewData.autonomy_status_panel.blocked_count}
-                    </div>
-                    <div className="text-[11px] text-slate-400">Bloqueado por Segurança</div>
-                  </div>
-                  <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
-                    <div className="text-xl font-bold text-sky-400">
-                      {overviewData.autonomy_status_panel.needs_configuration_count}
-                    </div>
-                    <div className="text-[11px] text-slate-400">Aguardando Credenciais</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-[#0f1629] border border-indigo-500/30 rounded-xl p-5 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-indigo-300">CEO DAILY BRIEFING — Destaque do Dia</h3>
-                    <button
-                      onClick={() => setActiveMenu("ceo")}
-                      className="text-xs text-indigo-400 hover:underline"
-                    >
-                      Ver Completo →
-                    </button>
-                  </div>
-                  <p className="text-xs text-white font-medium">{overviewData.ceo_briefing.headline}</p>
-                  <div className="space-y-1">
-                    <div className="text-[11px] font-semibold text-slate-300">Recomendações Prioritárias da IA:</div>
-                    {overviewData.ceo_briefing.recommendations.map((r: string, idx: number) => (
-                      <div key={idx} className="text-xs text-slate-300 bg-slate-900/70 p-2 rounded">
-                        {r}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
-                  <h3 className="text-sm font-bold text-white">Equipe Digital de 11 Agentes Especializados</h3>
-                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                    {agentsData?.agents?.map((ag: any) => (
-                      <div
-                        key={ag.id}
-                        className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900 border border-slate-800"
-                      >
-                        <div>
-                          <div className="text-xs font-bold text-white">{ag.name}</div>
-                          <div className="text-[11px] text-slate-400">{ag.role}</div>
-                        </div>
-                        <button
-                          onClick={async () => {
-                            await apiFetch(`/api/v1/agents/${ag.id}/execute`, {
-                              method: "POST",
-                              body: JSON.stringify({}),
-                            });
-                            await loadAllActiveData();
-                            showNotice(`${ag.name} executou sua rotina com sucesso!`);
-                          }}
-                          className="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-semibold shrink-0"
-                        >
-                          Executar Agora
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <HomeWorkspace
+                meData={meData}
+                overviewData={overviewData}
+                agentsData={agentsData}
+                crmData={crmData}
+                marketingData={marketingData}
+                approvalsData={approvalsData}
+                integrationsData={integrationsData}
+                systemAlerts={systemAlerts}
+                contentFactoryItems={contentFactoryItems}
+                automationsData={automationsData}
+                aiEnginesConfig={aiEnginesConfig}
+                favoriteIds={favoriteIds}
+                recentIds={recentIds}
+                onboardingDismissed={onboardingDismissed}
+                onDismissOnboarding={() => {
+                  setOnboardingDismissed(true);
+                  if (typeof window !== "undefined") localStorage.setItem("ug_onboarding_dismissed", "1");
+                }}
+                onRestoreOnboarding={() => {
+                  setOnboardingDismissed(false);
+                  if (typeof window !== "undefined") localStorage.setItem("ug_onboarding_dismissed", "0");
+                }}
+                onNavigate={navigateTo}
+                onRunOrchestrator={async () => {
+                  showNotice("Executando Análise Coordenado pelos Agentes...");
+                  const res = await apiFetch("/api/v1/orchestrator/diagnose", {
+                    method: "POST",
+                    body: JSON.stringify({ reason: "Acionamento Executivo Manual" }),
+                  });
+                  setDiagResult(res);
+                  await loadAllActiveData();
+                  showNotice("Análise Multiagente concluída com sucesso!");
+                }}
+              />
 
               {diagResult && (
                 <div className="bg-[#0f1629] border border-emerald-500/40 rounded-xl p-5 space-y-2">
                   <h3 className="text-sm font-bold text-emerald-300">
-                    Resultado do Último Diagnóstico Coordenado pelo Orquestrador ({diagResult.workflow_run_id})
+                    Resultado do Último Diagnóstico Coordenado ({diagResult.workflow_run_id})
                   </h3>
                   <p className="text-xs text-slate-200">{diagResult.ceo_consolidation?.summary}</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-2">
@@ -751,6 +1032,47 @@ export default function UnionGrowthOSPortal() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* ÁREA 2 — MEU TRABALHO (CAIXA UNIFICADA DE TAREFAS, APROVAÇÕES E EXECUÇÕES) */}
+          {activeMenu === "my_work" && (
+            <MyWorkHub
+              approvalsData={approvalsData}
+              systemAlerts={systemAlerts}
+              ceoDailyPlan={ceoDailyPlan}
+              crmData={crmData}
+              aiEnginesConfig={aiEnginesConfig}
+              integrationsData={integrationsData}
+              meData={meData}
+              apiFetch={apiFetch}
+              onReload={loadAllActiveData}
+              onNavigate={navigateTo}
+              showNotice={showNotice}
+            />
+          )}
+
+          {/* ÁREA 5 — VISÃO SIMPLIFICADA DE AGENTES, AUTONOMIA & UX DE IA */}
+          {activeMenu === "ai_team_overview" && (
+            <AITeamAndGovernanceView
+              meData={meData}
+              agentsData={agentsData}
+              aiEnginesConfig={aiEnginesConfig}
+              integrationsData={integrationsData}
+              apiFetch={apiFetch}
+              onReload={loadAllActiveData}
+              onNavigate={navigateTo}
+              showNotice={showNotice}
+            />
+          )}
+
+          {/* TODOS OS RECURSOS (CATÁLOGO PESQUISÁVEL COM FAVORITOS E RECENTES) */}
+          {activeMenu === "all_resources" && (
+            <AllResourcesHub
+              favoriteIds={favoriteIds}
+              recentIds={recentIds}
+              onToggleFavorite={toggleFavorite}
+              onOpenResource={navigateTo}
+            />
           )}
 
           {/* 02. AI CEO */}
@@ -967,7 +1289,16 @@ export default function UnionGrowthOSPortal() {
                 </div>
 
                 <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
-                  <h4 className="text-sm font-bold text-white">Campanhas Ativas & ROI</h4>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h4 className="text-sm font-bold text-white">Campanhas Ativas & ROI ({marketingData.campaigns.length})</h4>
+                    <input
+                      value={campFilter}
+                      onChange={(e) => setCampFilter(e.target.value)}
+                      placeholder="Filtrar campanha, canal ou status..."
+                      aria-label="Filtrar campanhas"
+                      className="w-full sm:w-64 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                    />
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                     <input
                       value={campName}
@@ -1014,7 +1345,15 @@ export default function UnionGrowthOSPortal() {
                       Criar Campanha
                     </button>
                   </div>
-                  {marketingData.campaigns.map((c: any) => (
+                  {marketingData.campaigns
+                    .filter((c: any) => {
+                      const q = campFilter.trim().toLowerCase();
+                      if (!q) return true;
+                      return `${c.name || ""} ${c.channel || ""} ${c.status || ""} ${c.objective || ""}`
+                        .toLowerCase()
+                        .includes(q);
+                    })
+                    .map((c: any) => (
                     <div key={c.id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-white">{c.name}</span>
@@ -2176,8 +2515,23 @@ export default function UnionGrowthOSPortal() {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
-                  <h4 className="text-sm font-bold text-white">Base de Leads Qualificados</h4>
-                  {crmData.leads.map((l: any) => (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h4 className="text-sm font-bold text-white">Base de Leads Qualificados ({crmData.leads.length})</h4>
+                    <input
+                      value={crmLeadFilter}
+                      onChange={(e) => setCrmLeadFilter(e.target.value)}
+                      placeholder="Buscar lead por nome, empresa ou status..."
+                      aria-label="Filtrar leads no CRM"
+                      className="w-full sm:w-64 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                    />
+                  </div>
+                  {crmData.leads
+                    .filter((l: any) => {
+                      const q = crmLeadFilter.trim().toLowerCase();
+                      if (!q) return true;
+                      return `${l.name || ""} ${l.company || ""} ${l.email || ""} ${l.status || ""}`.toLowerCase().includes(q);
+                    })
+                    .map((l: any) => (
                     <div
                       key={l.id}
                       className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs flex justify-between items-center"
@@ -2770,10 +3124,18 @@ export default function UnionGrowthOSPortal() {
           {/* 17. RELATÓRIOS */}
           {activeMenu === "reports" && reportsData && (
             <div className="space-y-6">
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white">Relatório Executivo Consolidado</h3>
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Relatório Executivo Consolidado</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Empresa: {reportsData.tenant?.brand_name || reportsData.tenant?.name || "—"} • Plano:{" "}
+                      {reportsData.tenant?.plan_tier || "—"} • Gerado em{" "}
+                      {reportsData.generated_at ? new Date(reportsData.generated_at).toLocaleString("pt-BR") : "agora"}
+                    </p>
+                  </div>
                   <button
+                    type="button"
                     onClick={async () => {
                       const bkp = await apiFetch("/api/v1/system/backup", { method: "POST" });
                       showNotice(`Backup persistente criado: ${bkp.backup_file} (${bkp.size_bytes} bytes)`);
@@ -2783,9 +3145,66 @@ export default function UnionGrowthOSPortal() {
                     Gerar Snapshot & Backup Agora
                   </button>
                 </div>
-                <pre className="p-4 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-300 overflow-x-auto">
-                  {JSON.stringify(reportsData, null, 2)}
-                </pre>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                    <div className="text-[11px] uppercase text-slate-400">Receita Real Confirmada</div>
+                    <div className="text-lg font-bold text-emerald-400 mt-1">
+                      R$ {Number(reportsData.financial_performance?.real_revenue || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                    <div className="text-[11px] uppercase text-slate-400">Lucro Real / Margem</div>
+                    <div className="text-lg font-bold text-white mt-1">
+                      R$ {Number(reportsData.financial_performance?.real_profit || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (
+                      {Number(reportsData.financial_performance?.margin_pct || 0)}%)
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                    <div className="text-[11px] uppercase text-slate-400">Leads Reais & Conversão</div>
+                    <div className="text-lg font-bold text-indigo-300 mt-1">
+                      {reportsData.financial_performance?.leads_total ?? 0} leads •{" "}
+                      {reportsData.financial_performance?.conversion_rate_pct ?? 0}% conv.
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
+                    <div className="text-[11px] uppercase text-slate-400">Integrações Prontas</div>
+                    <div className="text-lg font-bold text-amber-300 mt-1">
+                      {(reportsData.integrations_summary?.connected || []).length} conectadas •{" "}
+                      {(reportsData.integrations_summary?.pending_credentials || []).length} pendentes
+                    </div>
+                  </div>
+                </div>
+
+                {reportsData.ceo_briefing && (
+                  <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2 text-xs">
+                    <div className="font-bold text-white">
+                      Resumo Executivo ({reportsData.ceo_briefing.date || "Hoje"}): {reportsData.ceo_briefing.headline}
+                    </div>
+                    {Array.isArray(reportsData.ceo_briefing.what_happened) && reportsData.ceo_briefing.what_happened.length > 0 && (
+                      <ul className="list-disc pl-4 text-slate-300 space-y-1">
+                        {reportsData.ceo_briefing.what_happened.map((item: string, idx: number) => (
+                          <li key={idx}>{item}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {Array.isArray(reportsData.ceo_briefing.recommendations) && reportsData.ceo_briefing.recommendations.length > 0 && (
+                      <div className="pt-2 border-t border-slate-800">
+                        <span className="font-semibold text-indigo-300">Recomendações Prioritárias: </span>
+                        <span className="text-slate-300">{reportsData.ceo_briefing.recommendations.join(" • ")}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <details className="rounded-xl bg-slate-950 border border-slate-800">
+                  <summary className="px-4 py-2.5 text-xs font-semibold text-slate-300 cursor-pointer hover:text-white">
+                    Ver Detalhes Técnicos Completos (JSON de Auditoria)
+                  </summary>
+                  <pre className="p-4 border-t border-slate-800 text-xs text-slate-300 overflow-x-auto">
+                    {JSON.stringify(reportsData, null, 2)}
+                  </pre>
+                </details>
               </div>
             </div>
           )}
@@ -2793,17 +3212,51 @@ export default function UnionGrowthOSPortal() {
           {/* 18. INTEGRAÇÕES */}
           {activeMenu === "integrations" && (
             <div className="space-y-4">
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-4">
-                <h3 className="text-sm font-bold text-white">
-                  Central de Integrações Oficiais (Criptografia Fernet • Status Real Sem Simulação)
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Cada integração informa exatamente qual credencial é necessária, onde obtê-la, permissões exigidas e teste real.
-                </p>
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    Central de Integrações Oficiais (Criptografia Fernet • Status Real Sem Simulação)
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Cada integração informa exatamente qual credencial é necessária, onde obtê-la, permissões exigidas e teste real.
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5" role="group" aria-label="Filtrar status de integrações">
+                  {[
+                    { id: "ALL", label: `Todas (${integrationsData.length})` },
+                    {
+                      id: "CONNECTED",
+                      label: `Conectadas (${integrationsData.filter((i: any) => i.status === "CONNECTED").length})`,
+                    },
+                    {
+                      id: "PENDING",
+                      label: `Pendentes (${integrationsData.filter((i: any) => i.status !== "CONNECTED").length})`,
+                    },
+                  ].map((f) => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setIntgStatusFilter(f.id as any)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${
+                        intgStatusFilter === f.id
+                          ? "bg-indigo-600 text-white border-indigo-500"
+                          : "bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800"
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {integrationsData.map((intg: any) => (
+                {integrationsData
+                  .filter((intg: any) => {
+                    if (intgStatusFilter === "CONNECTED") return intg.status === "CONNECTED";
+                    if (intgStatusFilter === "PENDING") return intg.status !== "CONNECTED";
+                    return true;
+                  })
+                  .map((intg: any) => (
                   <div
                     key={intg.provider_key}
                     className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-2 text-xs"
@@ -4179,6 +4632,41 @@ export default function UnionGrowthOSPortal() {
           )}
         </main>
       </div>
+
+      <CommandCenter
+        open={commandOpen}
+        onClose={() => setCommandOpen(false)}
+        onNavigate={(view) => navigateTo(view)}
+        crmData={crmData}
+        marketingData={marketingData}
+        mbDashboard={mbDashboard}
+        approvalsData={approvalsData}
+        integrationsData={integrationsData}
+        contentFactoryItems={contentFactoryItems}
+      />
+
+      <HelpCenterDrawer
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+        currentView={activeMenu}
+        onRestoreOnboarding={() => {
+          setOnboardingDismissed(false);
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("ug_onboarding_dismissed");
+          }
+          navigateTo("ceo");
+          setHelpOpen(false);
+        }}
+        onOpenCommandCenter={() => {
+          setHelpOpen(false);
+          setCommandOpen(true);
+        }}
+      />
+
+      <ToastBanner
+        message={toast}
+        onClose={() => setToast("")}
+      />
     </div>
   );
 }
