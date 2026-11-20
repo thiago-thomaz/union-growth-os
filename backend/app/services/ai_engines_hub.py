@@ -686,19 +686,21 @@ class GeminiProvider(BaseAIProvider):
         if not self.api_key:
             raise ValueError("Chave de API do Google Gemini (GEMINI_API_KEY) não configurada.")
         last_exc = None
-        for attempt in range(3):
+        for attempt in range(2):
             try:
-                with httpx.Client(timeout=15.0) as client:
+                with httpx.Client(timeout=35.0) as client:
                     resp = client.request(method, url, **kwargs)
-                if resp.status_code in (502, 503, 504) and attempt < 2:
-                    time.sleep(0.5 * (2 ** attempt))
+                if resp.status_code in (502, 503, 504) and attempt < 1:
+                    time.sleep(0.5)
                     continue
                 return resp
+            except httpx.TimeoutException as exc:
+                raise RuntimeError(f"Timeout aguardando resposta da API Google Gemini: {exc}")
             except httpx.RequestError as exc:
                 last_exc = exc
-                if attempt < 2:
-                    time.sleep(0.5 * (2 ** attempt))
-        raise RuntimeError(f"Falha de conexão com a API Google Gemini após 3 tentativas: {last_exc}")
+                if attempt < 1:
+                    time.sleep(0.5)
+        raise RuntimeError(f"Falha de conexão com a API Google Gemini: {last_exc}")
 
     def test_connection(self, model_id: str = "gemini-2.5-flash") -> dict[str, Any]:
         if not self.api_key or len(self.api_key) < 12:
@@ -755,13 +757,26 @@ class GeminiProvider(BaseAIProvider):
 
     def _post_generate_content_with_model_resolution(self, model_id: str, payload: dict[str, Any]) -> tuple[httpx.Response, str]:
         """
-        Tenta o model_id solicitado; caso a conta Google AI Studio tenha descontinuado a versão
-        específica (HTTP 404 para gemini-2.5-flash em chaves 2026+), resolve automaticamente para
-        os modelos ativos equivalentes da conta (gemini-flash-latest, gemini-4-hydrogen, gemini-3.5-flash).
+        Tenta o model_id solicitado; caso retorne 404 ou timeout em modelos thinking pesados,
+        resolve automaticamente para os modelos Flash rápidos ativos na conta Google AI Studio.
         """
         candidates_to_try = [model_id]
-        if model_id in ("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-4-hydrogen"):
-            for alt in ("gemini-flash-latest", "gemini-3.5-flash", "gemini-4-hydrogen", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite"):
+        if model_id in (
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-1.5-flash",
+            "gemini-flash-latest",
+            "gemini-3.5-flash",
+            "gemini-4-hydrogen",
+        ):
+            for alt in (
+                "gemini-2.5-flash-lite",
+                "gemini-3.1-flash-lite",
+                "gemini-3.5-flash-lite",
+                "gemini-flash-lite-latest",
+                "gemini-3.5-flash",
+                "gemini-flash-latest",
+            ):
                 if alt not in candidates_to_try:
                     candidates_to_try.append(alt)
 
@@ -769,11 +784,18 @@ class GeminiProvider(BaseAIProvider):
         used_model = model_id
         for cand_m in candidates_to_try:
             url = f"{self.base_url}/models/{cand_m}:generateContent"
-            resp = self._request_with_controlled_retry("POST", url, params={"key": self.api_key}, json=payload)
-            last_resp = resp
-            used_model = cand_m
-            if resp.status_code != 404:
-                return resp, used_model
+            try:
+                resp = self._request_with_controlled_retry("POST", url, params={"key": self.api_key}, json=payload)
+                last_resp = resp
+                used_model = cand_m
+                if resp.status_code == 200:
+                    return resp, used_model
+                if resp.status_code not in (404, 400, 503):
+                    return resp, used_model
+            except Exception:
+                continue
+        if last_resp is None:
+            raise RuntimeError("Nenhum modelo Gemini respondeu dentro do tempo limite.")
         return last_resp, used_model
 
     def generate_text(self, model_id: str, prompt: str, system_instruction: str = "", temperature: float = 0.4) -> dict[str, Any]:
