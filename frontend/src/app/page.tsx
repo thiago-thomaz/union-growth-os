@@ -938,9 +938,8 @@ export default function UnionGrowthOSPortal() {
 
           {/* Barra Horizontal Contextual de Subtabs da Área Atual */}
           {currentAreaConfig && currentAreaConfig.subtabs.length > 0 && (
-            <div
+            <nav
               className="px-4 lg:px-6 py-2 border-t border-slate-800/60 flex items-center gap-1.5 overflow-x-auto"
-              role="navigation"
               aria-label={`Submenus de ${currentAreaConfig.label}`}
             >
               {currentAreaConfig.subtabs.map((sub) => {
@@ -961,7 +960,7 @@ export default function UnionGrowthOSPortal() {
                   </button>
                 );
               })}
-            </div>
+            </nav>
           )}
         </header>
 
@@ -1000,7 +999,7 @@ export default function UnionGrowthOSPortal() {
                 }}
                 onRestoreOnboarding={() => {
                   setOnboardingDismissed(false);
-                  if (typeof window !== "undefined") localStorage.setItem("ug_onboarding_dismissed", "0");
+                  if (typeof window !== "undefined") localStorage.removeItem("ug_onboarding_dismissed");
                 }}
                 onNavigate={navigateTo}
                 onRunOrchestrator={async () => {

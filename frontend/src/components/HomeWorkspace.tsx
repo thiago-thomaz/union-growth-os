@@ -229,7 +229,7 @@ export function HomeWorkspace({
       {!onboardingDismissed && (
         <section
           aria-label="Primeiros passos no sistema"
-          className="ug-card rounded-2xl p-5 border border-indigo-500/30 bg-gradient-to-r from-indigo-950/30 via-[#0f1629] to-[#0f1629]"
+          className="ug-card ug-onboarding-banner rounded-2xl p-5 border border-indigo-500/30"
         >
           <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
             <div>

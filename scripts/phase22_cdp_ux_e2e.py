@@ -223,7 +223,7 @@ async def run_phase22_e2e():
                     const txt = document.body.innerText || '';
                     return {
                         has_sidebar_areas: ['Início', 'Meu Trabalho', 'Comercial', 'Marketing', 'Inteligência Artificial', 'Gestão'].every(x => txt.includes(x)),
-                        has_5_blocks: txt.includes('1. O que precisa da sua atenção agora') && txt.includes('2. O que a IA está fazendo') && txt.includes('3. O que está gerando resultados') && txt.includes('4. Atividade recente') && txt.includes('5. Acesso rápido'),
+                        has_5_blocks: txt.includes('1. O que precisa da sua atenção agora') && txt.includes('2. O que a IA está fazendo') && txt.includes('3. O que está gerando resultados') && txt.includes('4. Atividade recente') && txt.includes('5. O que posso fazer agora'),
                         has_onboarding: txt.includes('Primeiros Passos'),
                     };
                 })()
@@ -266,7 +266,7 @@ async def run_phase22_e2e():
                 ),
             }
 
-            # SCENARIO 4: Light Mode & Dark Mode Contrast Check
+            # SCENARIO 4: Light Mode & Dark Mode Contrast Check (incluindo Onboarding Banner)
             light_clicked = await cdp.click_aria("Ativar Modo Claro")
             await asyncio.sleep(0.6)
             light_metrics = await cdp.evaluate("""
@@ -275,7 +275,11 @@ async def run_phase22_e2e():
                     const mainStyle = window.getComputedStyle(document.body);
                     const h1 = document.querySelector('header h1, header h2');
                     const h1Color = h1 ? window.getComputedStyle(h1).color : '';
-                    return { htmlLight, bodyBg: mainStyle.backgroundColor, bodyColor: mainStyle.color, h1Color };
+                    const obHeading = document.querySelector('section[aria-label="Primeiros passos no sistema"] h4');
+                    const obBanner = document.querySelector('section[aria-label="Primeiros passos no sistema"]');
+                    const obBg = obBanner ? window.getComputedStyle(obBanner).backgroundColor : '';
+                    const obFg = obHeading ? window.getComputedStyle(obHeading).color : '';
+                    return { htmlLight, bodyBg: mainStyle.backgroundColor, bodyColor: mainStyle.color, h1Color, obBg, obFg };
                 })()
             """)
             sh2 = await cdp.screenshot("02_inicio_light_mode.png")
@@ -415,7 +419,7 @@ async def run_phase22_e2e():
             await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Leads & CRM")
             await asyncio.sleep(0.4)
             crm_filter_exists = await cdp.evaluate("Boolean(document.querySelector('input[aria-label=\"Filtrar leads no CRM\"]'))")
-            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Propostas & 3 Unidades")
+            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Propostas, Contratos & 3 Unidades")
             await asyncio.sleep(0.7)
             switched = await cdp.evaluate("""
                 (() => {
@@ -428,10 +432,14 @@ async def run_phase22_e2e():
                     return true;
                 })()
             """)
-            await asyncio.sleep(2.4)
+            for _ in range(16):
+                await asyncio.sleep(0.5)
+                ready_qa = await cdp.evaluate("!(document.body.innerText || '').includes('Atualizando...') && (document.querySelector('header')?.innerText || '').includes('QA_AUTOMATED_TENANT')")
+                if ready_qa:
+                    break
             await cdp.click_by_text("aside button", "Comercial")
             await asyncio.sleep(0.4)
-            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Propostas & 3 Unidades")
+            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Propostas, Contratos & 3 Unidades")
             await asyncio.sleep(0.8)
             pdf_check = await cdp.evaluate("""
                 (async () => {
@@ -449,7 +457,7 @@ async def run_phase22_e2e():
             sh6 = await cdp.screenshot("06_comercial_propostas.png")
             if sh6:
                 report["screenshots"].append(sh6)
-            # Voltar ao Tenant 1
+            # Voltar ao Tenant 1 e aguardar sincronizacao completa
             await cdp.evaluate("""
                 (() => {
                     const sel = document.querySelector('#ug-tenant-select');
@@ -461,7 +469,11 @@ async def run_phase22_e2e():
                     }
                 })()
             """)
-            await asyncio.sleep(2.0)
+            for _ in range(16):
+                await asyncio.sleep(0.5)
+                ready_t1 = await cdp.evaluate("!(document.body.innerText || '').includes('Atualizando...') && (document.querySelector('header')?.innerText || '').includes('UNION GROWTH OS')")
+                if ready_t1:
+                    break
             urls_opened = (pdf_check or {}).get("urls", [])
             report["scenarios"]["S08_comercial_crm_e_blob_pdf"] = {
                 "crm_filter_exists": bool(crm_filter_exists),
@@ -479,7 +491,7 @@ async def run_phase22_e2e():
             # SCENARIO 9: Marketing + Subtabs + Campaign Filter
             await cdp.click_by_text("aside button", "Marketing")
             await asyncio.sleep(0.5)
-            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Campanhas", exact=True)
+            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Campanhas & Personas")
             await asyncio.sleep(0.4)
             camp_filter_exists = await cdp.evaluate("Boolean(document.querySelector('input[aria-label=\"Filtrar campanhas\"]'))")
             sh7 = await cdp.screenshot("07_marketing_campanhas.png")
@@ -504,7 +516,7 @@ async def run_phase22_e2e():
             ia_overview_ok = await cdp.evaluate("""
                 (() => {
                     const txt = document.querySelector('main')?.innerText || '';
-                    return txt.includes('Motor de IA Prioritário') && txt.includes('Como sua Equipe IA Opera') && txt.includes('Sua Equipe de Especialistas');
+                    return txt.includes('Motor de IA Prioritário') && txt.includes('Como sua Equipe IA Opera') && txt.includes('Equipe Digital de Agentes Especializados');
                 })()
             """)
             sh8 = await cdp.screenshot("08_ia_visao_e_agentes.png")
