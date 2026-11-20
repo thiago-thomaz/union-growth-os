@@ -33,8 +33,10 @@ import {
   getResourceMeta,
 } from "@/lib/navigation";
 import {
+  EmptyState,
   OriginBadge,
   SkeletonCard,
+  StatusPill,
   ToastBanner,
 } from "@/components/DesignSystem";
 import { CommandCenter } from "@/components/CommandCenter";
@@ -42,6 +44,7 @@ import { HomeWorkspace } from "@/components/HomeWorkspace";
 import { MyWorkHub } from "@/components/MyWorkHub";
 import { AITeamAndGovernanceView } from "@/components/AITeamAndGovernanceView";
 import { AllResourcesHub, HelpCenterDrawer } from "@/components/ResourceCenterAndHelp";
+import { AreaContextGuide } from "@/components/AreaContextGuide";
 
 type MenuId = LegacyMenuId;
 
@@ -220,11 +223,18 @@ export default function UnionGrowthOSPortal() {
   const [calFormat, setCalFormat] = useState("CAROUSEL");
   const [calDate, setCalDate] = useState("2026-11-20 12:30");
 
-  // Integration Credentials Input per provider
+  // Integration Credentials Input per provider (suporte multi-campo real)
   const [credInputs, setCredInputs] = useState<Record<string, string>>({});
+  const [credFieldInputs, setCredFieldInputs] = useState<Record<string, Record<string, string>>>({});
+  const [leadLgpdConsent, setLeadLgpdConsent] = useState(true);
 
   // Settings & Tenant Form
   const [newTenantName, setNewTenantName] = useState("");
+  const [editCompanyName, setEditCompanyName] = useState("");
+  const [editBrandName, setEditBrandName] = useState("");
+  const [editDomain, setEditDomain] = useState("");
+  const [editNiche, setEditNiche] = useState("");
+  const [editAudience, setEditAudience] = useState("");
   const [brandColorPrimary, setBrandColorPrimary] = useState("#6366F1");
   const [brandColorSecondary, setBrandColorSecondary] = useState("#10B981");
 
@@ -302,6 +312,11 @@ export default function UnionGrowthOSPortal() {
           apiFetch("/api/v1/audit-logs"),
         ]);
       setMeData(me);
+      setEditCompanyName(me?.active_tenant?.name || "");
+      setEditBrandName(me?.active_tenant?.brand_name || "");
+      setEditDomain(me?.active_tenant?.domain || "");
+      setEditNiche(me?.active_tenant?.niche || "");
+      setEditAudience(me?.active_tenant?.target_audience || "");
       setBrandColorPrimary(me?.active_tenant?.primary_color || "#6366F1");
       setBrandColorSecondary(me?.active_tenant?.secondary_color || "#10B981");
       setOverviewData(ov);
@@ -975,6 +990,16 @@ export default function UnionGrowthOSPortal() {
             </div>
           )}
 
+          {/* ORIENTAÇÃO CONTEXTUAL DE USABILIDADE (6 PERGUNTAS + DEPENDÊNCIAS REAIS) */}
+          {currentAreaConfig && activeMenu !== "all_resources" && (
+            <AreaContextGuide
+              areaId={currentAreaConfig.id}
+              integrationsData={integrationsData}
+              aiEnginesConfig={aiEnginesConfig}
+              onNavigate={navigateTo}
+            />
+          )}
+
           {/* ÁREA 1 — INÍCIO (RECONSTRUÍDO NA FASE 22) */}
           {activeMenu === "overview" && overviewData && (
             <div className="space-y-6">
@@ -1216,20 +1241,28 @@ export default function UnionGrowthOSPortal() {
           {/* 03. MARKETING (AI CMO) */}
           {activeMenu === "marketing" && marketingData && (
             <div className="space-y-6">
-              <div className="flex items-center justify-between bg-[#0f1629] border border-slate-800 p-4 rounded-xl">
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0f1629] border border-slate-800 p-4 rounded-xl">
                 <div>
                   <h3 className="text-sm font-bold text-white">
-                    AGENTE 02 — AI CMO (Posicionamento, Personas, Campanhas e Planejamento Mensal)
+                    Estratégia de Marketing, Personas &amp; Campanhas (AI CMO)
                   </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    1. Cadastre seu público ideal (Persona) → 2. Crie sua Campanha com canal e orçamento → 3. Gere conteúdo na Fábrica.
+                  </p>
                 </div>
                 <button
+                  type="button"
                   onClick={async () => {
-                    await apiFetch("/api/v1/agents/AGENT_02_CMO/execute", {
-                      method: "POST",
-                      body: JSON.stringify({ task_name: "generate_monthly_marketing_plan" }),
-                    });
-                    await loadAllActiveData();
-                    showNotice("Novo Planejamento Mensal de Marketing gerado pelo AI CMO!");
+                    try {
+                      await apiFetch("/api/v1/agents/AGENT_02_CMO/execute", {
+                        method: "POST",
+                        body: JSON.stringify({ task_name: "generate_monthly_marketing_plan" }),
+                      });
+                      await loadAllActiveData();
+                      showNotice("Novo Planejamento Mensal de Marketing gerado pelo AI CMO!");
+                    } catch (err: any) {
+                      showNotice(err?.message || "Não foi possível gerar planejamento agora.");
+                    }
                   }}
                   className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
                 >
@@ -1239,135 +1272,213 @@ export default function UnionGrowthOSPortal() {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
-                  <h4 className="text-sm font-bold text-white">Personas & Público-Alvo (ICP)</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                    <input
-                      value={personaName}
-                      onChange={(e) => setPersonaName(e.target.value)}
-                      placeholder="Nome da Persona"
-                      className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                    />
-                    <input
-                      value={personaVP}
-                      onChange={(e) => setPersonaVP(e.target.value)}
-                      placeholder="Proposta de Valor"
-                      className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                    />
+                  <h4 className="text-sm font-bold text-white">1. Personas &amp; Público-Alvo (Quem você quer atrair)</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end text-xs">
+                    <div>
+                      <label htmlFor="ug-persona-name" className="block text-[11px] font-medium text-slate-300 mb-1">
+                        Nome da Persona *
+                      </label>
+                      <input
+                        id="ug-persona-name"
+                        value={personaName}
+                        onChange={(e) => setPersonaName(e.target.value)}
+                        placeholder="Ex.: Gestor Comercial B2B"
+                        className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="ug-persona-vp" className="block text-[11px] font-medium text-slate-300 mb-1">
+                        Principal Benefício / Oferta
+                      </label>
+                      <input
+                        id="ug-persona-vp"
+                        value={personaVP}
+                        onChange={(e) => setPersonaVP(e.target.value)}
+                        placeholder="Ex.: Reduzir tempo de resposta comercial"
+                        className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                      />
+                    </div>
                     <button
+                      type="button"
                       onClick={async () => {
-                        if (!personaName) return;
-                        await apiFetch("/api/v1/marketing/personas", {
-                          method: "POST",
-                          body: JSON.stringify({
-                            name: personaName,
-                            role_segment: personaRole,
-                            value_proposition: personaVP || "Eficiência e escala com IA",
-                          }),
-                        });
-                        setPersonaName("");
-                        setPersonaVP("");
-                        await loadAllActiveData();
-                        showNotice("Persona criada com sucesso!");
+                        if (!personaName.trim()) {
+                          showNotice("Informe o Nome da Persona antes de cadastrar.");
+                          return;
+                        }
+                        try {
+                          await apiFetch("/api/v1/marketing/personas", {
+                            method: "POST",
+                            body: JSON.stringify({
+                              name: personaName.trim(),
+                              role_segment: personaRole,
+                              value_proposition: personaVP.trim() || "Eficiência e escala com IA",
+                            }),
+                          });
+                          setPersonaName("");
+                          setPersonaVP("");
+                          await loadAllActiveData();
+                          showNotice("Persona criada com sucesso!");
+                        } catch (err: any) {
+                          showNotice(err?.message || "Erro ao cadastrar persona.");
+                        }
                       }}
-                      className="py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+                      className="py-1.5 px-3 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold h-[30px]"
                     >
                       Criar Persona
                     </button>
                   </div>
-                  {marketingData.personas.map((p: any) => (
-                    <div key={p.id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1 text-xs">
-                      <div className="font-bold text-indigo-300">{p.name}</div>
-                      <div className="text-slate-400">
-                        {p.role_segment} • {p.demographics}
+                  {marketingData.personas.length === 0 ? (
+                    <EmptyState
+                      title="Nenhuma persona cadastrada ainda"
+                      description="Cadastre quem é o seu cliente ideal acima (ex.: 'Diretor Financeiro PME') para a IA personalizar copies e campanhas."
+                    />
+                  ) : (
+                    marketingData.personas.map((p: any) => (
+                      <div key={p.id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1 text-xs">
+                        <div className="font-bold text-indigo-300">{p.name}</div>
+                        <div className="text-slate-400">
+                          {p.role_segment} • {p.demographics}
+                        </div>
+                        <div className="text-slate-200 mt-1">
+                          <strong>Proposta de Valor:</strong> {p.value_proposition}
+                        </div>
                       </div>
-                      <div className="text-slate-200 mt-1">
-                        <strong>Proposta de Valor:</strong> {p.value_proposition}
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
 
                 <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h4 className="text-sm font-bold text-white">Campanhas Ativas & ROI ({marketingData.campaigns.length})</h4>
+                    <h4 className="text-sm font-bold text-white">2. Campanhas Ativas &amp; ROI ({marketingData.campaigns.length})</h4>
                     <input
                       value={campFilter}
                       onChange={(e) => setCampFilter(e.target.value)}
-                      placeholder="Filtrar campanha, canal ou status..."
+                      placeholder="Filtrar lista abaixo..."
                       aria-label="Filtrar campanhas"
-                      className="w-full sm:w-64 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
+                      className="w-full sm:w-56 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
                     />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                    <input
-                      value={campName}
-                      onChange={(e) => setCampName(e.target.value)}
-                      placeholder="Nome da Campanha"
-                      className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                    />
-                    <select
-                      value={campType}
-                      onChange={(e) => setCampType(e.target.value)}
-                      className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                    >
-                      <option value="ACQUISITION">Aquisição</option>
-                      <option value="LAUNCH">Lançamento</option>
-                      <option value="SEASONAL">Sazonal</option>
-                      <option value="RETENTION">Retenção</option>
-                    </select>
-                    <input
-                      type="number"
-                      value={campBudget}
-                      onChange={(e) => setCampBudget(e.target.value)}
-                      placeholder="Orçamento (R$)"
-                      className="px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 items-end text-xs">
+                    <div className="lg:col-span-2">
+                      <label htmlFor="ug-camp-name-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                        Nome da Campanha *
+                      </label>
+                      <input
+                        id="ug-camp-name-input"
+                        value={campName}
+                        onChange={(e) => setCampName(e.target.value)}
+                        placeholder="Ex.: Captação Leads B2B Q4"
+                        className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="ug-camp-channel-select" className="block text-[11px] font-medium text-slate-300 mb-1">
+                        Canal Principal
+                      </label>
+                      <select
+                        id="ug-camp-channel-select"
+                        value={campChannel}
+                        onChange={(e) => setCampChannel(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                      >
+                        <option value="Organic SEO + LinkedIn">SEO + LinkedIn</option>
+                        <option value="Instagram + Facebook">Instagram + Facebook</option>
+                        <option value="Google Search + YouTube">Google + YouTube</option>
+                        <option value="Email & CRM">E-mail &amp; CRM</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="ug-camp-type-select" className="block text-[11px] font-medium text-slate-300 mb-1">
+                        Objetivo / Tipo
+                      </label>
+                      <select
+                        id="ug-camp-type-select"
+                        value={campType}
+                        onChange={(e) => setCampType(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                      >
+                        <option value="ACQUISITION">Aquisição de Leads</option>
+                        <option value="LAUNCH">Lançamento</option>
+                        <option value="SEASONAL">Sazonal</option>
+                        <option value="RETENTION">Retenção</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label htmlFor="ug-camp-budget-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                        Orçamento Planejado (R$)
+                      </label>
+                      <input
+                        id="ug-camp-budget-input"
+                        type="number"
+                        value={campBudget}
+                        onChange={(e) => setCampBudget(e.target.value)}
+                        placeholder="Ex.: 5000"
+                        className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                      />
+                    </div>
                     <button
+                      type="button"
                       onClick={async () => {
-                        if (!campName) return;
-                        const res = await apiFetch("/api/v1/marketing/campaigns", {
-                          method: "POST",
-                          body: JSON.stringify({
-                            name: campName,
-                            campaign_type: campType,
-                            channel: campChannel,
-                            objective: "Aquisição e conversão de leads",
-                            budget_planned: Number(campBudget) || 0,
-                          }),
-                        });
-                        setCampName("");
-                        await loadAllActiveData();
-                        showNotice(res.message || "Campanha criada com sucesso!");
+                        if (!campName.trim()) {
+                          showNotice("Informe o Nome da Campanha antes de salvar.");
+                          return;
+                        }
+                        try {
+                          const res = await apiFetch("/api/v1/marketing/campaigns", {
+                            method: "POST",
+                            body: JSON.stringify({
+                              name: campName.trim(),
+                              campaign_type: campType,
+                              channel: campChannel,
+                              objective: "Aquisição e conversão de leads",
+                              budget_planned: Number(campBudget) || 0,
+                            }),
+                          });
+                          setCampName("");
+                          await loadAllActiveData();
+                          showNotice(res.message || "Campanha criada com sucesso!");
+                        } catch (err: any) {
+                          showNotice(err?.message || "Erro ao criar campanha.");
+                        }
                       }}
-                      className="py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                      className="lg:col-span-3 py-1.5 px-4 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold h-[30px]"
                     >
                       Criar Campanha
                     </button>
                   </div>
-                  {marketingData.campaigns
-                    .filter((c: any) => {
+                  {(() => {
+                    const visibleCamps = marketingData.campaigns.filter((c: any) => {
                       const q = campFilter.trim().toLowerCase();
                       if (!q) return true;
                       return `${c.name || ""} ${c.channel || ""} ${c.status || ""} ${c.objective || ""}`
                         .toLowerCase()
                         .includes(q);
-                    })
-                    .map((c: any) => (
-                    <div key={c.id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-white">{c.name}</span>
-                        <OriginBadge origin={c.data_origin} />
+                    });
+                    if (visibleCamps.length === 0) {
+                      return (
+                        <EmptyState
+                          title={marketingData.campaigns.length === 0 ? "Nenhuma campanha criada" : "Nenhuma campanha corresponde à busca"}
+                          description="Preencha o Nome da Campanha acima e clique em Criar Campanha para começar a mensurar ROI."
+                        />
+                      );
+                    }
+                    return visibleCamps.map((c: any) => (
+                      <div key={c.id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-white">{c.name}</span>
+                          <OriginBadge origin={c.data_origin} />
+                        </div>
+                        <div className="text-slate-400">
+                          Canal: {c.channel} • Tipo: {c.campaign_type} • ROI:{" "}
+                          <strong className="text-emerald-400">{c.roi_pct}%</strong>
+                        </div>
+                        <div className="text-slate-300">
+                          Orçamento Planejado: R$ {c.budget_planned} | Gasto Real: R$ {c.spend_real} | Receita Atribuída: R${" "}
+                          {c.revenue_attributed}
+                        </div>
                       </div>
-                      <div className="text-slate-400">
-                        Canal: {c.channel} • Tipo: {c.campaign_type} • ROI:{" "}
-                        <strong className="text-emerald-400">{c.roi_pct}%</strong>
-                      </div>
-                      <div className="text-slate-300">
-                        Orçamento: R$ {c.budget_planned} | Gasto Real: R$ {c.spend_real} | Receita Atribuída: R${" "}
-                        {c.revenue_attributed}
-                      </div>
-                    </div>
-                  ))}
+                    ));
+                  })()}
                 </div>
               </div>
             </div>
@@ -1520,120 +1631,187 @@ export default function UnionGrowthOSPortal() {
           {(activeMenu === "social" || activeMenu === "calendar") && (
             <div className="space-y-6">
               <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 className="text-sm font-bold text-white">
-                      AGENTE 04 — AI Social Media Director & Central de Publicação
+                      Calendário Editorial &amp; Publicações Individuais (Modo Assistido + Aprovação)
                     </h3>
                     <p className="text-xs text-slate-400">
-                      Instagram, Facebook, TikTok, YouTube, LinkedIn e Pinterest com validação e aprovação humana.
+                      Crie um post individual agora ou gere 30 publicações de uma vez na Fábrica de Conteúdo. Sem OAuth conectado, prepara pacotes em 1 clique sem simular publicação.
                     </p>
                   </div>
-                  <button
-                    onClick={async () => {
-                      await apiFetch("/api/v1/agents/AGENT_04_SOCIAL/execute", {
-                        method: "POST",
-                        body: JSON.stringify({}),
-                      });
-                      await loadAllActiveData();
-                      showNotice("Calendário multicanal gerado pelo AI Social Media Director!");
-                    }}
-                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
-                  >
-                    Gerar Lote de Posts Multicanal com IA
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigateTo("content_factory")}
+                      className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-semibold"
+                    >
+                      Ir para Fábrica (30 peças) →
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await apiFetch("/api/v1/agents/AGENT_04_SOCIAL/execute", {
+                            method: "POST",
+                            body: JSON.stringify({}),
+                          });
+                          await loadAllActiveData();
+                          showNotice("Calendário multicanal gerado pelo AI Social Media Director!");
+                        } catch (err: any) {
+                          showNotice(err?.message || "Erro ao gerar calendário automático.");
+                        }
+                      }}
+                      className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                    >
+                      Gerar Lote de Posts Multicanal com IA
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3 pt-2 border-t border-slate-800">
-                  <input
-                    value={calTitle}
-                    onChange={(e) => setCalTitle(e.target.value)}
-                    placeholder="Título da Publicação"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <select
-                    value={calPlatform}
-                    onChange={(e) => setCalPlatform(e.target.value)}
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  >
-                    <option value="instagram">Instagram</option>
-                    <option value="linkedin">LinkedIn</option>
-                    <option value="tiktok">TikTok</option>
-                    <option value="youtube">YouTube</option>
-                    <option value="facebook">Facebook</option>
-                    <option value="pinterest">Pinterest</option>
-                  </select>
-                  <select
-                    value={calFormat}
-                    onChange={(e) => setCalFormat(e.target.value)}
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  >
-                    <option value="CAROUSEL">Carrossel</option>
-                    <option value="POST">Post Único</option>
-                    <option value="REELS_SHORT">Reels / Short / TikTok</option>
-                    <option value="VIDEO">Vídeo Longo</option>
-                  </select>
-                  <input
-                    value={calDate}
-                    onChange={(e) => setCalDate(e.target.value)}
-                    placeholder="YYYY-MM-DD HH:MM"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3 pt-3 border-t border-slate-800 items-end text-xs">
+                  <div>
+                    <label htmlFor="ug-cal-title-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Título da Publicação *
+                    </label>
+                    <input
+                      id="ug-cal-title-input"
+                      value={calTitle}
+                      onChange={(e) => setCalTitle(e.target.value)}
+                      placeholder="Ex.: 3 formas de reduzir retrabalho com IA"
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="ug-cal-platform-select" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Rede Social
+                    </label>
+                    <select
+                      id="ug-cal-platform-select"
+                      value={calPlatform}
+                      onChange={(e) => setCalPlatform(e.target.value)}
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    >
+                      <option value="instagram">Instagram</option>
+                      <option value="linkedin">LinkedIn</option>
+                      <option value="tiktok">TikTok</option>
+                      <option value="youtube">YouTube</option>
+                      <option value="facebook">Facebook</option>
+                      <option value="pinterest">Pinterest</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="ug-cal-format-select" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Formato
+                    </label>
+                    <select
+                      id="ug-cal-format-select"
+                      value={calFormat}
+                      onChange={(e) => setCalFormat(e.target.value)}
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    >
+                      <option value="CAROUSEL">Carrossel</option>
+                      <option value="POST">Post Único</option>
+                      <option value="REELS_SHORT">Reels / Short / TikTok</option>
+                      <option value="VIDEO">Vídeo Longo</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="ug-cal-date-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Data e Hora (AAAA-MM-DD HH:MM)
+                    </label>
+                    <input
+                      id="ug-cal-date-input"
+                      value={calDate}
+                      onChange={(e) => setCalDate(e.target.value)}
+                      placeholder="Ex.: 2026-12-01 09:00"
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                  </div>
                   <button
+                    type="button"
                     onClick={async () => {
-                      if (!calTitle) return;
-                      await apiFetch("/api/v1/social/calendar", {
-                        method: "POST",
-                        body: JSON.stringify({
-                          title: calTitle,
-                          platform: calPlatform,
-                          content_format: calFormat,
-                          scheduled_for: calDate,
-                          auto_generate_copy: true,
-                        }),
-                      });
-                      setCalTitle("");
-                      await loadAllActiveData();
-                      showNotice("Publicação agendada e enviada para validação!");
+                      if (!calTitle.trim()) {
+                        showNotice("Informe o Título da Publicação antes de agendar.");
+                        return;
+                      }
+                      try {
+                        await apiFetch("/api/v1/social/calendar", {
+                          method: "POST",
+                          body: JSON.stringify({
+                            title: calTitle.trim(),
+                            platform: calPlatform,
+                            content_format: calFormat,
+                            scheduled_for: calDate,
+                            auto_generate_copy: true,
+                          }),
+                        });
+                        setCalTitle("");
+                        await loadAllActiveData();
+                        showNotice("Publicação agendada e enviada para sua revisão/aprovação!");
+                      } catch (err: any) {
+                        showNotice(err?.message || "Erro ao agendar publicação.");
+                      }
                     }}
-                    className="py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+                    className="py-2 px-3 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold h-[34px]"
                   >
                     Agendar no Calendário
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {calendarData.map((item: any) => (
-                  <div key={item.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold uppercase text-[10px]">
-                        {item.platform} • {item.content_format}
-                      </span>
-                      <span className="text-slate-400 font-mono">{item.scheduled_for}</span>
+              {calendarData.length === 0 ? (
+                <EmptyState
+                  title="Nenhuma publicação no calendário ainda"
+                  description="Digite o título de um post acima e clique em 'Agendar no Calendário', ou gere 30 peças completas na Fábrica de Conteúdo."
+                  actionLabel="Abrir Fábrica de Conteúdo"
+                  onAction={() => navigateTo("content_factory")}
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {calendarData.map((item: any) => (
+                    <div key={item.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-2 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold uppercase text-[10px]">
+                          {item.platform} • {item.content_format}
+                        </span>
+                        <span className="text-slate-400 font-mono">{item.scheduled_for}</span>
+                      </div>
+                      <div className="font-bold text-white text-sm">{item.title}</div>
+                      <p className="text-slate-300 whitespace-pre-line">{item.caption}</p>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-800 gap-2">
+                        <span className="text-[11px] text-amber-300">
+                          Aprovação:{" "}
+                          <strong>{item.approval_status === "APPROVED" ? "Aprovado" : "Aguardando"}</strong> • Envio:{" "}
+                          <strong>
+                            {item.publish_status === "PUBLISHED"
+                              ? "Publicado"
+                              : item.publish_status === "PENDING_CREDENTIALS"
+                              ? "Modo Assistido (sem OAuth)"
+                              : item.publish_status}
+                          </strong>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const r = await apiFetch(`/api/v1/social/calendar/${item.id}/publish`, { method: "POST" });
+                              await loadAllActiveData();
+                              showNotice(r.message || "Status de publicação atualizado.");
+                            } catch (err: any) {
+                              showNotice(err?.message || "Erro ao tentar publicar.");
+                            }
+                          }}
+                          className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] shrink-0"
+                        >
+                          Aprovar &amp; Verificar Envio
+                        </button>
+                      </div>
+                      {item.last_error && <div className="text-[11px] text-amber-400/90">{item.last_error}</div>}
                     </div>
-                    <div className="font-bold text-white text-sm">{item.title}</div>
-                    <p className="text-slate-300 whitespace-pre-line">{item.caption}</p>
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-                      <span className="text-[11px] text-amber-300">
-                        Aprovação: <strong>{item.approval_status}</strong> | Status:{" "}
-                        <strong>{item.publish_status}</strong>
-                      </span>
-                      <button
-                        onClick={async () => {
-                          const r = await apiFetch(`/api/v1/social/calendar/${item.id}/publish`, { method: "POST" });
-                          await loadAllActiveData();
-                          showNotice(r.message || "Status de publicação atualizado.");
-                        }}
-                        className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px]"
-                      >
-                        Aprovar & Publicar
-                      </button>
-                    </div>
-                    {item.last_error && <div className="text-[11px] text-amber-400/90">{item.last_error}</div>}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1643,32 +1821,42 @@ export default function UnionGrowthOSPortal() {
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-[#0f1629] border border-indigo-500/30 p-5 rounded-xl">
                 <div>
                   <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <span>🏭</span> UNION Content Factory — Produção Mensal Multicanal (30 Dias)
+                    <span>🏭</span> Fábrica de Conteúdo — Produção Mensal (30 Publicações Prontas)
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">
-                    Geração coordenada de 30 publicações estratégicas (Posts, Carrosséis, Reels/Shorts, Vídeos Longos YouTube, Artigos SEO, E-mails e Lançamentos) com validação de qualidade editorial e anti-duplicação.
+                    Gera 30 peças multicanal prontas com CTA e legenda. Sem conta social OAuth conectada, use <strong>Pacote 1-Clique</strong> para copiar e postar manualmente sem atrito.
                   </p>
                 </div>
-                <button
-                  onClick={async () => {
-                    setLoading(true);
-                    try {
-                      const res = await apiFetch("/api/v1/content-factory/generate-batch", {
-                        method: "POST",
-                        body: JSON.stringify({ count: 30 }),
-                      });
-                      await loadAllActiveData();
-                      showNotice(`Content Factory: ${res.total_generated} conteúdos gerados com score médio de ${res.average_quality_score}/100!`);
-                    } catch (e: any) {
-                      showNotice(e.message || "Erro ao gerar lote");
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs shadow-lg flex items-center gap-2 whitespace-nowrap"
-                >
-                  <span>⚡</span> Gerar Lote de 30 Publicações
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => navigateTo("calendar")}
+                    className="px-3.5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold"
+                  >
+                    Criar 1 Post Manual →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        const res = await apiFetch("/api/v1/content-factory/generate-batch", {
+                          method: "POST",
+                          body: JSON.stringify({ count: 30 }),
+                        });
+                        await loadAllActiveData();
+                        showNotice(`Fábrica de Conteúdo: ${res.total_generated} conteúdos gerados (nota média ${res.average_quality_score}/100)!`);
+                      } catch (e: any) {
+                        showNotice(e.message || "Erro ao gerar lote");
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs shadow-lg flex items-center gap-2 whitespace-nowrap"
+                  >
+                    <span>⚡</span> Gerar Lote de 30 Publicações
+                  </button>
+                </div>
               </div>
 
               {/* Filtro de Canais */}
@@ -1689,65 +1877,79 @@ export default function UnionGrowthOSPortal() {
               </div>
 
               {/* Lista de Itens da Content Factory */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {contentFactoryItems
-                  .filter((it: any) => cfFilter === "ALL" || it.channel === cfFilter)
-                  .map((it: any) => (
-                    <div key={it.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-3 text-xs flex flex-col justify-between">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold uppercase text-[10px]">
-                            {it.channel} • {it.content_type}
-                          </span>
-                          <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
-                            Nota {it.quality_score}/100
-                          </span>
+              {(() => {
+                const visibleCf = contentFactoryItems.filter((it: any) => cfFilter === "ALL" || it.channel === cfFilter);
+                if (visibleCf.length === 0) {
+                  return (
+                    <EmptyState
+                      title="Nenhum conteúdo encontrado neste canal"
+                      description="Clique em 'Gerar Lote de 30 Publicações' acima para preencher automaticamente todos os canais ou selecione 'Todos os Canais'."
+                      actionLabel={cfFilter !== "ALL" ? "Ver Todos os Canais" : undefined}
+                      onAction={cfFilter !== "ALL" ? () => setCfFilter("ALL") : undefined}
+                    />
+                  );
+                }
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {visibleCf.map((it: any) => (
+                      <div key={it.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-3 text-xs flex flex-col justify-between">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold uppercase text-[10px]">
+                              {it.channel} • {it.content_type}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
+                              Nota {it.quality_score}/100
+                            </span>
+                          </div>
+                          <div className="font-bold text-white text-sm line-clamp-2">{it.title}</div>
+                          <p className="text-slate-300 line-clamp-4 whitespace-pre-line text-[11px]">{it.body_text}</p>
+                          <div className="p-2 rounded bg-slate-900/80 border border-slate-800 text-[11px] text-indigo-300">
+                            <strong>CTA:</strong> {it.cta}
+                          </div>
                         </div>
-                        <div className="font-bold text-white text-sm line-clamp-2">{it.title}</div>
-                        <p className="text-slate-300 line-clamp-4 whitespace-pre-line text-[11px]">{it.body_text}</p>
-                        <div className="p-2 rounded bg-slate-900/80 border border-slate-800 text-[11px] text-indigo-300">
-                          <strong>CTA:</strong> {it.cta}
-                        </div>
-                      </div>
 
-                      <div className="pt-3 border-t border-slate-800 space-y-2">
-                        <div className="flex items-center justify-between text-[10px] text-slate-400">
-                          <span>Data: <strong>{it.scheduled_for?.split("T")[0]}</strong></span>
-                          <span>Status: <strong className="text-amber-300">{it.status}</strong></span>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={async () => {
-                              try {
-                                const pkg = await apiFetch(`/api/v1/content-factory/assisted-export/${it.id}`);
-                                setAssistedPackage(pkg);
-                              } catch (e: any) {
-                                showNotice(e.message || "Erro ao exportar");
-                              }
-                            }}
-                            className="flex-1 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 text-[11px] font-medium"
-                          >
-                            📋 Pacote 1-Clique
-                          </button>
-                          <button
-                            onClick={async () => {
-                              try {
-                                await apiFetch(`/api/v1/content-factory/items/${it.id}/publish`, { method: "POST" });
-                                await loadAllActiveData();
-                                showNotice("Status atualizado para Publicado!");
-                              } catch (e: any) {
-                                showNotice(e.message || "Erro ao publicar");
-                              }
-                            }}
-                            className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-medium"
-                          >
-                            ✓
-                          </button>
+                        <div className="pt-3 border-t border-slate-800 space-y-2">
+                          <div className="flex items-center justify-between text-[10px] text-slate-400">
+                            <span>Data: <strong>{it.scheduled_for?.split("T")[0]}</strong></span>
+                            <span>Status: <strong className="text-amber-300">{it.status === "PUBLISHED" ? "Publicado" : "Pronto para uso"}</strong></span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const pkg = await apiFetch(`/api/v1/content-factory/assisted-export/${it.id}`);
+                                  setAssistedPackage(pkg);
+                                } catch (e: any) {
+                                  showNotice(e.message || "Erro ao exportar");
+                                }
+                              }}
+                              className="flex-1 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 text-[11px] font-medium"
+                            >
+                              📋 Pacote 1-Clique
+                            </button>
+                            <button
+                              aria-label={`Marcar ${it.title} como publicado`}
+                              onClick={async () => {
+                                try {
+                                  await apiFetch(`/api/v1/content-factory/items/${it.id}/publish`, { method: "POST" });
+                                  await loadAllActiveData();
+                                  showNotice("Status atualizado para Publicado!");
+                                } catch (e: any) {
+                                  showNotice(e.message || "Erro ao publicar");
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-medium"
+                            >
+                              ✓
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-              </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -2447,68 +2649,128 @@ export default function UnionGrowthOSPortal() {
           {activeMenu === "crm" && crmData && (
             <div className="space-y-6">
               <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                <h4 className="text-sm font-bold text-white">
-                  AGENTE 08 — Captura de Leads, Qualificação e Lead Scoring (Consentimento LGPD Obrigatório)
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-                  <input
-                    value={leadName}
-                    onChange={(e) => setLeadName(e.target.value)}
-                    placeholder="Nome do Contato"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <input
-                    value={leadEmail}
-                    onChange={(e) => setLeadEmail(e.target.value)}
-                    placeholder="E-mail Corporativo"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <input
-                    value={leadPhone}
-                    onChange={(e) => setLeadPhone(e.target.value)}
-                    placeholder="WhatsApp / Telefone"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <input
-                    value={leadCompany}
-                    onChange={(e) => setLeadCompany(e.target.value)}
-                    placeholder="Empresa"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <input
-                    type="number"
-                    value={leadValue}
-                    onChange={(e) => setLeadValue(e.target.value)}
-                    placeholder="Valor Estimado (R$)"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
+                <div>
+                  <h4 className="text-sm font-bold text-white">
+                    Capturar e Qualificar Novo Lead (CRM com IA &amp; LGPD)
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Ao registrar, a IA calcula automaticamente a pontuação (0 a 100) e agenda uma tarefa de retorno comercial.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 items-end text-xs">
+                  <div>
+                    <label htmlFor="ug-lead-name-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Nome do Contato *
+                    </label>
+                    <input
+                      id="ug-lead-name-input"
+                      value={leadName}
+                      onChange={(e) => setLeadName(e.target.value)}
+                      placeholder="Ex.: Maria Oliveira"
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="ug-lead-email-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      E-mail Corporativo *
+                    </label>
+                    <input
+                      id="ug-lead-email-input"
+                      type="email"
+                      value={leadEmail}
+                      onChange={(e) => setLeadEmail(e.target.value)}
+                      placeholder="Ex.: maria@empresa.com.br"
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="ug-lead-phone-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      WhatsApp / Telefone
+                    </label>
+                    <input
+                      id="ug-lead-phone-input"
+                      value={leadPhone}
+                      onChange={(e) => setLeadPhone(e.target.value)}
+                      placeholder="Ex.: +55 11 99999-0000"
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="ug-lead-company-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Empresa
+                    </label>
+                    <input
+                      id="ug-lead-company-input"
+                      value={leadCompany}
+                      onChange={(e) => setLeadCompany(e.target.value)}
+                      placeholder="Ex.: Alpha Soluções"
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="ug-lead-value-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Valor Estimado (R$)
+                    </label>
+                    <input
+                      id="ug-lead-value-input"
+                      type="number"
+                      value={leadValue}
+                      onChange={(e) => setLeadValue(e.target.value)}
+                      placeholder="Ex.: 15000"
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                  </div>
                   <button
+                    type="button"
                     onClick={async () => {
-                      if (!leadName || !leadEmail) return;
-                      await apiFetch("/api/v1/crm/leads", {
-                        method: "POST",
-                        body: JSON.stringify({
-                          full_name: leadName,
-                          email: leadEmail,
-                          phone: leadPhone,
-                          company_name: leadCompany,
-                          buy_intent: "URGENT",
-                          estimated_value: Number(leadValue) || 0,
-                          consent_lgpd: true,
-                          data_origin: "REAL",
-                        }),
-                      });
-                      setLeadName("");
-                      setLeadEmail("");
-                      setLeadPhone("");
-                      setLeadCompany("");
-                      await loadAllActiveData();
-                      showNotice("Lead cadastrado, pontuado pelo AI Sales Director e follow-up criado!");
+                      if (!leadName.trim() || !leadEmail.trim()) {
+                        showNotice("Preencha o Nome do Contato e o E-mail Corporativo para registrar o lead.");
+                        return;
+                      }
+                      if (!leadLgpdConsent) {
+                        showNotice("Marque a confirmação de consentimento LGPD antes de cadastrar o lead.");
+                        return;
+                      }
+                      try {
+                        await apiFetch("/api/v1/crm/leads", {
+                          method: "POST",
+                          body: JSON.stringify({
+                            full_name: leadName.trim(),
+                            email: leadEmail.trim(),
+                            phone: leadPhone.trim(),
+                            company_name: leadCompany.trim(),
+                            buy_intent: "URGENT",
+                            estimated_value: Number(leadValue) || 0,
+                            consent_lgpd: true,
+                            data_origin: "REAL",
+                          }),
+                        });
+                        setLeadName("");
+                        setLeadEmail("");
+                        setLeadPhone("");
+                        setLeadCompany("");
+                        await loadAllActiveData();
+                        showNotice("Lead cadastrado, pontuado pelo AI Sales Director e follow-up criado!");
+                      } catch (err: any) {
+                        showNotice(err?.message || "Erro ao registrar lead.");
+                      }
                     }}
-                    className="py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
+                    className="py-2 px-3 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold h-[34px]"
                   >
-                    Qualificar & Registrar
+                    Qualificar &amp; Registrar
                   </button>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    id="ug-lead-lgpd-checkbox"
+                    type="checkbox"
+                    checked={leadLgpdConsent}
+                    onChange={(e) => setLeadLgpdConsent(e.target.checked)}
+                    className="rounded border-slate-700"
+                  />
+                  <label htmlFor="ug-lead-lgpd-checkbox" className="text-[11px] text-slate-300 cursor-pointer">
+                    Confirmo que o contato autorizou o tratamento comercial destes dados conforme a LGPD.
+                  </label>
                 </div>
               </div>
 
@@ -2517,6 +2779,7 @@ export default function UnionGrowthOSPortal() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <h4 className="text-sm font-bold text-white">Base de Leads Qualificados ({crmData.leads.length})</h4>
                     <input
+                      id="ug-crm-search-input"
                       value={crmLeadFilter}
                       onChange={(e) => setCrmLeadFilter(e.target.value)}
                       placeholder="Buscar lead por nome, empresa ou status..."
@@ -2524,50 +2787,83 @@ export default function UnionGrowthOSPortal() {
                       className="w-full sm:w-64 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
                     />
                   </div>
-                  {crmData.leads
-                    .filter((l: any) => {
+                  {(() => {
+                    const visibleLeads = crmData.leads.filter((l: any) => {
                       const q = crmLeadFilter.trim().toLowerCase();
                       if (!q) return true;
-                      return `${l.name || ""} ${l.company || ""} ${l.email || ""} ${l.status || ""}`.toLowerCase().includes(q);
-                    })
-                    .map((l: any) => (
-                    <div
-                      key={l.id}
-                      className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs flex justify-between items-center"
-                    >
-                      <div>
-                        <div className="font-bold text-white">
-                          {l.full_name} ({l.company_name || "Direto"})
+                      return `${l.full_name || ""} ${l.company_name || ""} ${l.email || ""} ${l.qualification_status || ""} ${l.pipeline_stage || ""}`
+                        .toLowerCase()
+                        .includes(q);
+                    });
+                    if (visibleLeads.length === 0) {
+                      return (
+                        <EmptyState
+                          title={crmData.leads.length === 0 ? "Nenhum lead cadastrado ainda" : "Nenhum lead corresponde à busca"}
+                          description={
+                            crmData.leads.length === 0
+                              ? "Use o formulário acima para registrar seu primeiro contato qualificado."
+                              : "Tente outro nome, empresa ou limpe o campo de busca."
+                          }
+                          actionLabel={crmLeadFilter ? "Limpar busca" : undefined}
+                          onAction={crmLeadFilter ? () => setCrmLeadFilter("") : undefined}
+                        />
+                      );
+                    }
+                    return visibleLeads.map((l: any) => (
+                      <div
+                        key={l.id}
+                        className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs flex justify-between items-center gap-3"
+                      >
+                        <div>
+                          <div className="font-bold text-white">
+                            {l.full_name} ({l.company_name || "Direto"})
+                          </div>
+                          <div className="text-slate-400">
+                            {l.email} {l.phone ? `• ${l.phone}` : ""} • Origem: {l.source_channel}
+                          </div>
+                          <div className="text-indigo-300 mt-1">
+                            Status: {l.qualification_status} • Etapa: {l.pipeline_stage} • Valor Est.: R${" "}
+                            {l.estimated_value}
+                          </div>
                         </div>
-                        <div className="text-slate-400">
-                          {l.email} • {l.phone} • Origem: {l.source_channel}
-                        </div>
-                        <div className="text-indigo-300 mt-1">
-                          Status: {l.qualification_status} • Estágio: {l.pipeline_stage} • Valor Est.: R${" "}
-                          {l.estimated_value}
+                        <div className="text-right space-y-1 shrink-0">
+                          <div className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                            Score: {l.lead_score}/100
+                          </div>
+                          <OriginBadge origin={l.data_origin} />
                         </div>
                       </div>
-                      <div className="text-right space-y-1">
-                        <div className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold">
-                          Score: {l.lead_score}/100
-                        </div>
-                        <OriginBadge origin={l.data_origin} />
-                      </div>
-                    </div>
-                  ))}
+                    ));
+                  })()}
                 </div>
 
                 <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
-                  <h4 className="text-sm font-bold text-white">Atividades & Tarefas de Follow-up</h4>
-                  {crmData.activities.map((a: any) => (
-                    <div key={a.id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1">
-                      <div className="flex justify-between font-bold text-indigo-300">
-                        <span>{a.subject}</span>
-                        <span>Prazo: {a.due_date}</span>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-white">Atividades &amp; Tarefas de Acompanhamento</h4>
+                    <button
+                      type="button"
+                      onClick={() => navigateTo("commercial")}
+                      className="text-xs font-semibold text-indigo-400 hover:underline"
+                    >
+                      Avançar no Funil →
+                    </button>
+                  </div>
+                  {crmData.activities.length === 0 ? (
+                    <EmptyState
+                      title="Nenhuma tarefa de retorno aberta"
+                      description="Ao registrar um lead ao lado, o AI Sales Director cria automaticamente o próximo passo de acompanhamento."
+                    />
+                  ) : (
+                    crmData.activities.map((a: any) => (
+                      <div key={a.id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs space-y-1">
+                        <div className="flex justify-between font-bold text-indigo-300">
+                          <span>{a.subject}</span>
+                          <span>Prazo: {a.due_date}</span>
+                        </div>
+                        <div className="text-slate-300">{a.description}</div>
                       </div>
-                      <div className="text-slate-300">{a.description}</div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -2582,17 +2878,17 @@ export default function UnionGrowthOSPortal() {
                   <div className="text-2xl font-bold text-white">{crmData.commercial_summary.open_deals_count}</div>
                 </div>
                 <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
-                  <div className="text-xs text-slate-400">Negociações Ganhas (WON)</div>
+                  <div className="text-xs text-slate-400">Vendas Fechadas</div>
                   <div className="text-2xl font-bold text-emerald-400">{crmData.commercial_summary.won_deals_count}</div>
                 </div>
                 <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
-                  <div className="text-xs text-slate-400">Receita Fechada (CLOSED_WON)</div>
+                  <div className="text-xs text-slate-400">Receita Fechada</div>
                   <div className="text-2xl font-bold text-indigo-400">
                     R$ {crmData.commercial_summary.won_revenue_brl.toLocaleString("pt-BR")}
                   </div>
                 </div>
                 <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
-                  <div className="text-xs text-slate-400">Previsão Ponderada Pipeline</div>
+                  <div className="text-xs text-slate-400">Previsão Ponderada do Funil</div>
                   <div className="text-2xl font-bold text-amber-400">
                     R$ {crmData.commercial_summary.weighted_forecast_brl.toLocaleString("pt-BR")}
                   </div>
@@ -2600,92 +2896,161 @@ export default function UnionGrowthOSPortal() {
               </div>
 
               <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                <h4 className="text-sm font-bold text-white">Nova Oportunidade / Proposta no Pipeline</h4>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  <input
-                    value={dealTitle}
-                    onChange={(e) => setDealTitle(e.target.value)}
-                    placeholder="Título da Negociação / Proposta"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <input
-                    type="number"
-                    value={dealValue}
-                    onChange={(e) => setDealValue(e.target.value)}
-                    placeholder="Valor do Contrato (R$)"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <select
-                    value={dealStage}
-                    onChange={(e) => setDealStage(e.target.value)}
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  >
-                    {PIPELINE_STAGES.map((st) => (
-                      <option key={st} value={st}>
-                        {st}
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h4 className="text-sm font-bold text-white">Nova Negociação no Pipeline</h4>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Cadastre oportunidades para acompanhar etapa por etapa até o fechamento.
+                    </p>
+                  </div>
                   <button
-                    onClick={async () => {
-                      if (!dealTitle) return;
-                      await apiFetch("/api/v1/crm/deals", {
-                        method: "POST",
-                        body: JSON.stringify({
-                          title: dealTitle,
-                          stage: dealStage,
-                          value: Number(dealValue) || 0,
-                          probability_pct: 70,
-                          data_origin: "REAL",
-                        }),
-                      });
-                      setDealTitle("");
-                      await loadAllActiveData();
-                      showNotice("Negociação adicionada ao Pipeline Comercial!");
-                    }}
-                    className="py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                    type="button"
+                    onClick={() => navigateTo("multibusiness")}
+                    className="text-xs font-semibold text-indigo-400 hover:underline"
                   >
-                    Criar Proposta no Pipeline
+                    Gerar Proposta com PDF →
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end text-xs">
+                  <div>
+                    <label htmlFor="ug-deal-title-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Título da Negociação *
+                    </label>
+                    <input
+                      id="ug-deal-title-input"
+                      value={dealTitle}
+                      onChange={(e) => setDealTitle(e.target.value)}
+                      placeholder="Ex.: Projeto Automação IA — Sul Logística"
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="ug-deal-value-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Valor do Contrato (R$)
+                    </label>
+                    <input
+                      id="ug-deal-value-input"
+                      type="number"
+                      value={dealValue}
+                      onChange={(e) => setDealValue(e.target.value)}
+                      placeholder="Ex.: 25000"
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="ug-deal-stage-select" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Etapa Atual
+                    </label>
+                    <select
+                      id="ug-deal-stage-select"
+                      value={dealStage}
+                      onChange={(e) => setDealStage(e.target.value)}
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    >
+                      {[
+                        { id: "NEW_LEAD", label: "Novo Lead" },
+                        { id: "QUALIFICATION", label: "Qualificação" },
+                        { id: "PROPOSAL", label: "Proposta Enviada" },
+                        { id: "NEGOTIATION", label: "Em Negociação" },
+                        { id: "CLOSED_WON", label: "Venda Ganha" },
+                        { id: "CLOSED_LOST", label: "Perdida" },
+                      ].map((st) => (
+                        <option key={st.id} value={st.id}>
+                          {st.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!dealTitle.trim()) {
+                        showNotice("Informe o Título da Negociação antes de adicionar ao funil.");
+                        return;
+                      }
+                      try {
+                        await apiFetch("/api/v1/crm/deals", {
+                          method: "POST",
+                          body: JSON.stringify({
+                            title: dealTitle.trim(),
+                            stage: dealStage,
+                            value: Number(dealValue) || 0,
+                            probability_pct: 70,
+                            data_origin: "REAL",
+                          }),
+                        });
+                        setDealTitle("");
+                        await loadAllActiveData();
+                        showNotice("Negociação adicionada ao Pipeline Comercial!");
+                      } catch (err: any) {
+                        showNotice(err?.message || "Erro ao registrar negociação.");
+                      }
+                    }}
+                    className="py-2 px-3 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold h-[34px]"
+                  >
+                    Adicionar Negociação ao Funil
                   </button>
                 </div>
               </div>
 
               {/* Pipeline Kanban Visual */}
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                {PIPELINE_STAGES.map((stage) => {
+                {[
+                  { id: "NEW_LEAD", label: "Novo Lead" },
+                  { id: "QUALIFICATION", label: "Qualificação" },
+                  { id: "PROPOSAL", label: "Proposta Enviada" },
+                  { id: "NEGOTIATION", label: "Em Negociação" },
+                  { id: "CLOSED_WON", label: "Venda Ganha" },
+                  { id: "CLOSED_LOST", label: "Perdida" },
+                ].map((stageObj) => {
+                  const stage = stageObj.id;
                   const stageDeals = crmData.deals.filter((d: any) => d.stage === stage);
                   return (
                     <div key={stage} className="bg-[#0f1629] border border-slate-800 rounded-xl p-3 space-y-2">
                       <div className="text-[11px] font-bold text-indigo-300 flex justify-between">
-                        <span>{stage}</span>
+                        <span>{stageObj.label}</span>
                         <span>({stageDeals.length})</span>
                       </div>
-                      {stageDeals.map((d: any) => (
-                        <div key={d.id} className="p-2.5 rounded bg-slate-900 border border-slate-800 text-xs space-y-1.5">
-                          <div className="font-bold text-white">{d.title}</div>
-                          <div className="text-emerald-400 font-semibold">
-                            R$ {d.value.toLocaleString("pt-BR")}
-                          </div>
-                          <select
-                            value={d.stage}
-                            onChange={async (e) => {
-                              await apiFetch(`/api/v1/crm/deals/${d.id}/stage`, {
-                                method: "PUT",
-                                body: JSON.stringify({ stage: e.target.value }),
-                              });
-                              await loadAllActiveData();
-                              showNotice(`Negociação movida para ${e.target.value}!`);
-                            }}
-                            className="w-full px-1.5 py-1 rounded bg-slate-950 border border-slate-700 text-[10px] text-slate-200"
-                          >
-                            {PIPELINE_STAGES.map((s) => (
-                              <option key={s} value={s}>
-                                Mover: {s}
-                              </option>
-                            ))}
-                          </select>
+                      {stageDeals.length === 0 ? (
+                        <div className="py-4 text-center text-[11px] text-slate-500 border border-dashed border-slate-800 rounded-lg">
+                          Sem itens nesta etapa
                         </div>
-                      ))}
+                      ) : (
+                        stageDeals.map((d: any) => (
+                          <div key={d.id} className="p-2.5 rounded bg-slate-900 border border-slate-800 text-xs space-y-1.5">
+                            <div className="font-bold text-white">{d.title}</div>
+                            <div className="text-emerald-400 font-semibold">
+                              R$ {d.value.toLocaleString("pt-BR")}
+                            </div>
+                            <select
+                              aria-label={`Mover etapa de ${d.title}`}
+                              value={d.stage}
+                              onChange={async (e) => {
+                                await apiFetch(`/api/v1/crm/deals/${d.id}/stage`, {
+                                  method: "PUT",
+                                  body: JSON.stringify({ stage: e.target.value }),
+                                });
+                                await loadAllActiveData();
+                                showNotice(`Negociação movida para ${e.target.value}!`);
+                              }}
+                              className="w-full px-1.5 py-1 rounded bg-slate-950 border border-slate-700 text-[10px] text-slate-200"
+                            >
+                              {[
+                                { id: "NEW_LEAD", label: "Mover: Novo Lead" },
+                                { id: "QUALIFICATION", label: "Mover: Qualificação" },
+                                { id: "PROPOSAL", label: "Mover: Proposta" },
+                                { id: "NEGOTIATION", label: "Mover: Negociação" },
+                                { id: "CLOSED_WON", label: "Mover: Ganha" },
+                                { id: "CLOSED_LOST", label: "Mover: Perdida" },
+                              ].map((s) => (
+                                <option key={s.id} value={s.id}>
+                                  {s.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ))
+                      )}
                     </div>
                   );
                 })}
@@ -3255,81 +3620,124 @@ export default function UnionGrowthOSPortal() {
                     if (intgStatusFilter === "PENDING") return intg.status !== "CONNECTED";
                     return true;
                   })
-                  .map((intg: any) => (
-                  <div
-                    key={intg.provider_key}
-                    className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-2 text-xs"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white text-sm">{intg.provider_name}</span>
-                      <span
-                        className={`px-2 py-0.5 rounded font-bold text-[10px] ${
-                          intg.status === "CONNECTED"
-                            ? "bg-emerald-500/20 text-emerald-300"
-                            : "bg-amber-500/20 text-amber-300"
-                        }`}
+                  .map((intg: any) => {
+                    const reqFields: string[] = intg.setup_guide?.required_credentials || ["api_key"];
+                    const provMap = credFieldInputs[intg.provider_key] || {};
+                    const isConn = intg.status === "CONNECTED";
+                    return (
+                      <div
+                        key={intg.provider_key}
+                        className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-2.5 text-xs"
                       >
-                        {intg.status}
-                      </span>
-                    </div>
-                    <div className="text-slate-300">
-                      <strong>Funcionalidade Habilitada:</strong> {intg.setup_guide.features_unlocked}
-                    </div>
-                    <div className="text-slate-400">
-                      <strong>Credenciais Necessárias:</strong> {intg.setup_guide.required_credentials.join(", ")}
-                    </div>
-                    <div className="text-slate-400">
-                      <strong>Onde Obter:</strong> {intg.setup_guide.where_to_obtain}
-                    </div>
-                    <div className="text-slate-400">
-                      <strong>Escopos Oficiais:</strong> {intg.setup_guide.permissions_required.join(", ")}
-                    </div>
-                    {intg.last_error && <div className="text-amber-400 text-[11px]">{intg.last_error}</div>}
-                    <div className="pt-2 flex gap-2">
-                      <input
-                        value={credInputs[intg.provider_key] || ""}
-                        onChange={(e) =>
-                          setCredInputs({ ...credInputs, [intg.provider_key]: e.target.value })
-                        }
-                        placeholder={`Token / Chave para ${intg.provider_key}`}
-                        className="flex-1 px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                      />
-                      <button
-                        onClick={async () => {
-                          const raw = credInputs[intg.provider_key] || "";
-                          const credsObj: Record<string, string> = {};
-                          for (const reqKey of intg.setup_guide.required_credentials) {
-                            credsObj[reqKey] = raw;
-                          }
-                          const r = await apiFetch("/api/v1/integrations/connect", {
-                            method: "POST",
-                            body: JSON.stringify({
-                              provider_key: intg.provider_key,
-                              credentials: credsObj,
-                            }),
-                          });
-                          await loadAllActiveData();
-                          showNotice(`${intg.provider_name}: ${r.message}`);
-                        }}
-                        className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
-                      >
-                        Salvar & Testar
-                      </button>
-                      <button
-                        onClick={async () => {
-                          const r = await apiFetch(`/api/v1/integrations/${intg.provider_key}/test`, {
-                            method: "POST",
-                          });
-                          await loadAllActiveData();
-                          showNotice(`${intg.provider_name}: ${r.message}`);
-                        }}
-                        className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-white"
-                      >
-                        Testar
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-white text-sm">{intg.provider_name}</span>
+                          <StatusPill
+                            status={isConn ? "EXECUTED" : intg.status === "ERROR" ? "FAILED" : "NEEDS_CREDENTIALS"}
+                            label={isConn ? "Conectada" : intg.status === "ERROR" ? "Falha na Conexão" : "Aguardando Conexão"}
+                          />
+                        </div>
+                        <div className="text-slate-300">
+                          <strong>O que habilita:</strong> {intg.setup_guide.features_unlocked}
+                        </div>
+                        <div className="text-slate-400">
+                          <strong>Onde conseguir:</strong> {intg.setup_guide.where_to_obtain}
+                        </div>
+                        {!isConn && (
+                          <div className="p-2 rounded-lg bg-slate-900/90 border border-slate-800 text-[11px] text-slate-300">
+                            <strong className="text-indigo-300">Sem esta integração:</strong> o sistema continua operando no <strong>Modo Assistido</strong> (prepara conteúdos, análises e pacotes 1-clique sem envio externo automático).
+                          </div>
+                        )}
+                        <details className="text-[11px] text-slate-400">
+                          <summary className="cursor-pointer hover:text-slate-200">
+                            Ver permissões / escopos técnicos ({reqFields.length} credencial(is))
+                          </summary>
+                          <div className="pt-1 text-slate-400">
+                            Campos exigidos: {reqFields.join(", ")} • Escopos: {intg.setup_guide.permissions_required.join(", ")}
+                          </div>
+                        </details>
+                        {intg.last_error && <div className="text-amber-400 text-[11px]">{intg.last_error}</div>}
+                        <div className="pt-1 space-y-2">
+                          <div className="grid grid-cols-1 gap-2">
+                            {reqFields.map((rk) => {
+                              const inputId = `ug-intg-${intg.provider_key}-${rk}`;
+                              const val = provMap[rk] ?? "";
+                              return (
+                                <div key={rk}>
+                                  <label htmlFor={inputId} className="block text-[10px] font-medium text-slate-300 mb-0.5">
+                                    {rk.replace(/_/g, " ").toUpperCase()}
+                                  </label>
+                                  <input
+                                    id={inputId}
+                                    type={rk.includes("secret") || rk.includes("token") || rk.includes("key") ? "password" : "text"}
+                                    value={val}
+                                    onChange={(e) =>
+                                      setCredFieldInputs({
+                                        ...credFieldInputs,
+                                        [intg.provider_key]: { ...provMap, [rk]: e.target.value },
+                                      })
+                                    }
+                                    placeholder={`Ex.: cole ${rk} de ${intg.provider_name}`}
+                                    className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const credsObj: Record<string, string> = {};
+                                const missing: string[] = [];
+                                for (const rk of reqFields) {
+                                  const v = (provMap[rk] || credInputs[intg.provider_key] || "").trim();
+                                  if (!v) missing.push(rk);
+                                  credsObj[rk] = v;
+                                }
+                                if (missing.length > 0) {
+                                  showNotice(`Preencha os campos obrigatórios de ${intg.provider_name}: ${missing.join(", ")}.`);
+                                  return;
+                                }
+                                try {
+                                  const r = await apiFetch("/api/v1/integrations/connect", {
+                                    method: "POST",
+                                    body: JSON.stringify({
+                                      provider_key: intg.provider_key,
+                                      credentials: credsObj,
+                                    }),
+                                  });
+                                  await loadAllActiveData();
+                                  showNotice(`${intg.provider_name}: ${r.message}`);
+                                } catch (err: any) {
+                                  showNotice(err?.message || `Erro ao conectar ${intg.provider_name}.`);
+                                }
+                              }}
+                              className="flex-1 px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
+                            >
+                              Salvar &amp; Testar Conexão
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const r = await apiFetch(`/api/v1/integrations/${intg.provider_key}/test`, {
+                                    method: "POST",
+                                  });
+                                  await loadAllActiveData();
+                                  showNotice(`${intg.provider_name}: ${r.message}`);
+                                } catch (err: any) {
+                                  showNotice(err?.message || `Falha ao testar ${intg.provider_name}.`);
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-white font-medium"
+                            >
+                              Testar Conexão
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           )}
@@ -3337,8 +3745,113 @@ export default function UnionGrowthOSPortal() {
           {/* 19. CONFIGURAÇÕES, AUTONOMIA & PLANOS SAAS */}
           {activeMenu === "settings" && meData && (
             <div className="space-y-6">
+              {/* FLUXO 1 — CONFIGURAR EMPRESA E MARCA ATIVA */}
               <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                <h3 className="text-sm font-bold text-white">Nível de Autonomia Operacional da IA</h3>
+                <div>
+                  <h3 className="text-sm font-bold text-white">1. Identidade da Empresa &amp; Marca Ativa</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Preencha como sua empresa atua para que todos os agentes, propostas e conteúdos usem sua marca corretamente.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <label htmlFor="ug-edit-company-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Nome Oficial da Empresa *
+                    </label>
+                    <input
+                      id="ug-edit-company-input"
+                      value={editCompanyName}
+                      onChange={(e) => setEditCompanyName(e.target.value)}
+                      placeholder="Ex.: Union Soluções Digitais Ltda"
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="ug-edit-brand-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Nome da Marca (exibição) *
+                    </label>
+                    <input
+                      id="ug-edit-brand-input"
+                      value={editBrandName}
+                      onChange={(e) => setEditBrandName(e.target.value)}
+                      placeholder="Ex.: Union Tech"
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="ug-edit-domain-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Site / Domínio Principal
+                    </label>
+                    <input
+                      id="ug-edit-domain-input"
+                      value={editDomain}
+                      onChange={(e) => setEditDomain(e.target.value)}
+                      placeholder="Ex.: https://suaempresa.com.br"
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="ug-edit-niche-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Nicho / Segmento de Atuação
+                    </label>
+                    <input
+                      id="ug-edit-niche-input"
+                      value={editNiche}
+                      onChange={(e) => setEditNiche(e.target.value)}
+                      placeholder="Ex.: Automação Comercial & IA B2B"
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label htmlFor="ug-edit-audience-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Público-Alvo Principal (quem compra de você)
+                    </label>
+                    <input
+                      id="ug-edit-audience-input"
+                      value={editAudience}
+                      onChange={(e) => setEditAudience(e.target.value)}
+                      placeholder="Ex.: Diretores e gestores de empresas com 10 a 200 funcionários"
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <span className="text-[11px] text-slate-400">
+                    Empresa ativa: <strong className="text-indigo-300">{meData.active_tenant?.brand_name}</strong> • Alterações afetam apenas a empresa selecionada no topo.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!editCompanyName.trim() || !editBrandName.trim()) {
+                        showNotice("Preencha o Nome Oficial da Empresa e o Nome da Marca antes de salvar.");
+                        return;
+                      }
+                      try {
+                        await apiFetch("/api/v1/tenants/current", {
+                          method: "PUT",
+                          body: JSON.stringify({
+                            name: editCompanyName.trim(),
+                            brand_name: editBrandName.trim(),
+                            domain: editDomain.trim(),
+                            niche: editNiche.trim(),
+                            target_audience: editAudience.trim(),
+                          }),
+                        });
+                        await loadAllActiveData();
+                        showNotice("Identidade da empresa e marca atualizada com sucesso!");
+                      } catch (err: any) {
+                        showNotice(err?.message || "Erro ao salvar dados da empresa.");
+                      }
+                    }}
+                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                  >
+                    Salvar Identidade da Empresa
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
+                <h3 className="text-sm font-bold text-white">2. Nível de Autonomia Operacional da IA</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {[
                     {
@@ -3384,7 +3897,7 @@ export default function UnionGrowthOSPortal() {
               {meData.plans_catalog && (
                 <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
                   <h3 className="text-sm font-bold text-white">
-                    Arquitetura de Planos para Comercialização SaaS (Cobrança Desativada por Padrão)
+                    3. Arquitetura de Planos para Comercialização SaaS (Cobrança Desativada por Padrão)
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {Object.values(meData.plans_catalog).map((pl: any) => (
@@ -3425,20 +3938,25 @@ export default function UnionGrowthOSPortal() {
               )}
 
               <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                <h3 className="text-sm font-bold text-white">Criar Nova Empresa no Grupo (Multi-Tenant Isolado)</h3>
-                <div className="flex gap-3">
+                <h3 className="text-sm font-bold text-white">4. Criar Nova Empresa no Grupo (Multi-Tenant Isolado)</h3>
+                <div className="flex flex-wrap gap-3">
                   <input
                     value={newTenantName}
                     onChange={(e) => setNewTenantName(e.target.value)}
-                    placeholder="Nome da Nova Empresa / Filial"
-                    className="flex-1 px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                    placeholder="Ex.: Nova Unidade Comercial Ltda"
+                    aria-label="Nome da Nova Empresa ou Filial"
+                    className="flex-1 min-w-[220px] px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
                   />
                   <button
+                    type="button"
                     onClick={async () => {
-                      if (!newTenantName) return;
+                      if (!newTenantName.trim()) {
+                        showNotice("Informe o nome da nova empresa antes de adicionar.");
+                        return;
+                      }
                       await apiFetch("/api/v1/tenants", {
                         method: "POST",
-                        body: JSON.stringify({ name: newTenantName, brand_name: newTenantName }),
+                        body: JSON.stringify({ name: newTenantName.trim(), brand_name: newTenantName.trim() }),
                       });
                       setNewTenantName("");
                       await loadAllActiveData();
@@ -3683,127 +4201,196 @@ export default function UnionGrowthOSPortal() {
 
               {/* Gerador de Propostas Comerciais & Fechamento */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
-                  <h3 className="text-sm font-bold text-white">Gerador de Propostas Comerciais (Com Trava de Governança)</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <input
-                      value={propClientName}
-                      onChange={(e) => setPropClientName(e.target.value)}
-                      placeholder="Nome do Decisor / Contato"
-                      className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                    />
-                    <input
-                      value={propClientCompany}
-                      onChange={(e) => setPropClientCompany(e.target.value)}
-                      placeholder="Empresa Cliente"
-                      className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                    />
-                    <input
-                      value={propClientEmail}
-                      onChange={(e) => setPropClientEmail(e.target.value)}
-                      placeholder="E-mail Corporativo"
-                      className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                    />
-                    <select
-                      value={propServiceCode}
-                      onChange={(e) => setPropServiceCode(e.target.value)}
-                      className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Gerador de Propostas Comerciais &amp; Fechamento</h3>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        1. Gere a proposta → 2. Abra o PDF seguro → 3. Clique em Aprovar &amp; Fechar → 4. Acompanhe no Pipeline.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigateTo("commercial")}
+                      className="text-xs font-semibold text-indigo-400 hover:underline"
                     >
-                      {(mbDashboard.services_catalog || []).map((s: any) => (
-                        <option key={s.service_code} value={s.service_code}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
+                      Ver Pipeline de Vendas →
+                    </button>
                   </div>
-                  <textarea
-                    value={propProblem}
-                    onChange={(e) => setPropProblem(e.target.value)}
-                    placeholder="Problema operacional identificado no cliente..."
-                    className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white h-16"
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
+                    <div>
+                      <label htmlFor="ug-prop-client-name" className="block text-[11px] font-medium text-slate-300 mb-1">
+                        Nome do Decisor / Contato *
+                      </label>
+                      <input
+                        id="ug-prop-client-name"
+                        value={propClientName}
+                        onChange={(e) => setPropClientName(e.target.value)}
+                        placeholder="Ex.: Carlos Eduardo Silva"
+                        className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="ug-prop-client-company" className="block text-[11px] font-medium text-slate-300 mb-1">
+                        Empresa Cliente *
+                      </label>
+                      <input
+                        id="ug-prop-client-company"
+                        value={propClientCompany}
+                        onChange={(e) => setPropClientCompany(e.target.value)}
+                        placeholder="Ex.: Sul Logística Ltda"
+                        className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="ug-prop-client-email" className="block text-[11px] font-medium text-slate-300 mb-1">
+                        E-mail Corporativo do Cliente *
+                      </label>
+                      <input
+                        id="ug-prop-client-email"
+                        type="email"
+                        value={propClientEmail}
+                        onChange={(e) => setPropClientEmail(e.target.value)}
+                        placeholder="Ex.: carlos@sullogistica.com.br"
+                        className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="ug-prop-service-select" className="block text-[11px] font-medium text-slate-300 mb-1">
+                        Serviço / Solução Ofertada
+                      </label>
+                      <select
+                        id="ug-prop-service-select"
+                        value={propServiceCode}
+                        onChange={(e) => setPropServiceCode(e.target.value)}
+                        className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                      >
+                        {(mbDashboard.services_catalog || []).map((s: any) => (
+                          <option key={s.service_code} value={s.service_code}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="ug-prop-problem-input" className="block text-[11px] font-medium text-slate-300 mb-1">
+                      Problema do cliente que esta proposta resolve
+                    </label>
+                    <textarea
+                      id="ug-prop-problem-input"
+                      value={propProblem}
+                      onChange={(e) => setPropProblem(e.target.value)}
+                      placeholder="Ex.: Leads demoram 4h para serem respondidos e planilhas atrasam o acompanhamento comercial."
+                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white h-16"
+                    />
+                  </div>
                   <button
+                    type="button"
                     onClick={async () => {
-                      if (!propClientName || !propClientCompany || !propClientEmail) return;
-                      await apiFetch("/api/v1/commercial/proposals", {
-                        method: "POST",
-                        body: JSON.stringify({
-                          business_unit_code: "UNION_TECH",
-                          service_code: propServiceCode,
-                          client_name: propClientName,
-                          client_company: propClientCompany,
-                          client_email: propClientEmail,
-                          identified_problem: propProblem || "Gargalos manuais em atendimento e integração de dados.",
-                        }),
-                      });
-                      setPropClientName("");
-                      setPropClientCompany("");
-                      setPropClientEmail("");
-                      setPropProblem("");
-                      const res = await apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`);
-                      setMbDashboard(res);
-                      showNotice("Proposta comercial gerada em status PENDING_APPROVAL!");
+                      if (!propClientName.trim() || !propClientCompany.trim() || !propClientEmail.trim()) {
+                        showNotice("Preencha Nome do Decisor, Empresa Cliente e E-mail Corporativo para gerar a proposta.");
+                        return;
+                      }
+                      try {
+                        await apiFetch("/api/v1/commercial/proposals", {
+                          method: "POST",
+                          body: JSON.stringify({
+                            business_unit_code: "UNION_TECH",
+                            service_code: propServiceCode,
+                            client_name: propClientName.trim(),
+                            client_company: propClientCompany.trim(),
+                            client_email: propClientEmail.trim(),
+                            identified_problem: propProblem.trim() || "Gargalos manuais em atendimento e integração de dados.",
+                          }),
+                        });
+                        setPropClientName("");
+                        setPropClientCompany("");
+                        setPropClientEmail("");
+                        setPropProblem("");
+                        const res = await apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`);
+                        setMbDashboard(res);
+                        showNotice("Proposta comercial gerada e enviada para aprovação humana!");
+                      } catch (err: any) {
+                        showNotice(err?.message || "Erro ao gerar proposta comercial.");
+                      }
                     }}
                     className="w-full py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
                   >
-                    Gerar Proposta Comercial e Enviar para Fila de Aprovação
+                    Gerar Proposta Comercial (Aguardará Sua Aprovação)
                   </button>
 
                   <div className="space-y-2 max-h-64 overflow-y-auto pt-2">
-                    {(mbDashboard.proposals || []).map((p: any) => (
-                      <div key={p.id} className="p-3 rounded bg-slate-900 border border-slate-800 text-xs flex justify-between items-center gap-2">
-                        <div>
-                          <div className="font-bold text-white">
-                            {p.proposal_number} • {p.client_company}
+                    {(mbDashboard.proposals || []).length === 0 ? (
+                      <EmptyState
+                        title="Nenhuma proposta gerada ainda"
+                        description="Preencha os campos acima com nome, empresa e e-mail do cliente para criar sua primeira proposta em PDF."
+                      />
+                    ) : (
+                      (mbDashboard.proposals || []).map((p: any) => (
+                        <div key={p.id} className="p-3 rounded bg-slate-900 border border-slate-800 text-xs flex justify-between items-center gap-2">
+                          <div>
+                            <div className="font-bold text-white">
+                              {p.proposal_number} • {p.client_company}
+                            </div>
+                            <div className="text-slate-400">
+                              Implantação: R$ {p.setup_price_brl} • Mensalidade: R$ {p.monthly_price_brl}/mês •{" "}
+                              <span className={p.status === "ACCEPTED" ? "text-emerald-300 font-semibold" : "text-amber-300 font-semibold"}>
+                                {p.status === "ACCEPTED" ? "Aprovada & Fechada" : p.status === "PENDING_APPROVAL" ? "Aguardando Aprovação" : p.status}
+                              </span>
+                            </div>
                           </div>
-                          <div className="text-slate-400">
-                            Setup: R$ {p.setup_price_brl} • MRR: R$ {p.monthly_price_brl}/mês • Status: <span className="text-amber-300 font-semibold">{p.status}</span>
-                          </div>
-                        </div>
-                        <div className="flex gap-1.5">
-                          <button
-                            onClick={async () => {
-                              try {
-                                const hdrs: Record<string, string> = {};
-                                if (token) hdrs["Authorization"] = `Bearer ${token}`;
-                                if (activeTenantId) hdrs["X-Tenant-Id"] = String(activeTenantId);
-                                const resp = await fetch(p.pdf_url, { headers: hdrs });
-                                if (!resp.ok) {
-                                  showNotice(`Falha ao abrir PDF da proposta (HTTP ${resp.status}).`);
-                                  return;
-                                }
-                                const htmlText = await resp.text();
-                                const blob = new Blob([htmlText], { type: "text/html;charset=utf-8" });
-                                const blobUrl = URL.createObjectURL(blob);
-                                window.open(blobUrl, "_blank", "noopener,noreferrer");
-                                setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-                              } catch (err: any) {
-                                showNotice(err?.message || "Erro ao carregar PDF da proposta.");
-                              }
-                            }}
-                            className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 font-semibold"
-                          >
-                            PDF
-                          </button>
-                          {p.status !== "ACCEPTED" && (
+                          <div className="flex gap-1.5 shrink-0">
                             <button
+                              type="button"
                               onClick={async () => {
-                                await apiFetch(`/api/v1/commercial/proposals/${p.id}/status`, {
-                                  method: "PUT",
-                                  body: JSON.stringify({ status: "ACCEPTED", owner_approve: true }),
-                                });
-                                const res = await apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`);
-                                setMbDashboard(res);
-                                showNotice(`Proposta ${p.proposal_number} aprovada e fechada (ACCEPTED)!`);
+                                try {
+                                  const hdrs: Record<string, string> = {};
+                                  if (token) hdrs["Authorization"] = `Bearer ${token}`;
+                                  if (activeTenantId) hdrs["X-Tenant-Id"] = String(activeTenantId);
+                                  const resp = await fetch(p.pdf_url, { headers: hdrs });
+                                  if (!resp.ok) {
+                                    showNotice(`Falha ao abrir PDF da proposta (HTTP ${resp.status}).`);
+                                    return;
+                                  }
+                                  const htmlText = await resp.text();
+                                  const blob = new Blob([htmlText], { type: "text/html;charset=utf-8" });
+                                  const blobUrl = URL.createObjectURL(blob);
+                                  window.open(blobUrl, "_blank", "noopener,noreferrer");
+                                  setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+                                } catch (err: any) {
+                                  showNotice(err?.message || "Erro ao carregar PDF da proposta.");
+                                }
                               }}
-                              className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+                              className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 font-semibold"
                             >
-                              Aprovar & Fechar
+                              PDF
                             </button>
-                          )}
+                            {p.status !== "ACCEPTED" && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  try {
+                                    await apiFetch(`/api/v1/commercial/proposals/${p.id}/status`, {
+                                      method: "PUT",
+                                      body: JSON.stringify({ status: "ACCEPTED", owner_approve: true }),
+                                    });
+                                    const res = await apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`);
+                                    setMbDashboard(res);
+                                    showNotice(`Proposta ${p.proposal_number} aprovada e fechada!`);
+                                  } catch (err: any) {
+                                    showNotice(err?.message || "Erro ao aprovar proposta.");
+                                  }
+                                }}
+                                className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+                              >
+                                Aprovar &amp; Fechar
+                              </button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
 

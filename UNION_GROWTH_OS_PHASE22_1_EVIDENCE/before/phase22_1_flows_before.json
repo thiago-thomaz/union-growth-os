@@ -1,0 +1,127 @@
+{
+  "mode": "before",
+  "prod_url": "https://automacao.projetosunion.cloud",
+  "flows": {
+    "F1_configurar_empresa_e_marca": {
+      "profile": "Iniciante",
+      "steps_count": 2,
+      "clicks_count": 2,
+      "duration_ms": 1897.8,
+      "hasBrandField": false,
+      "hasNicheField": false,
+      "hasContextGuide": false,
+      "inputsCount": 1,
+      "brand_saved": false,
+      "status": "FAIL"
+    },
+    "F2_configurar_agentes": {
+      "profile": "Avançado / Iniciante",
+      "steps_count": 3,
+      "clicks_count": 2,
+      "duration_ms": 1872.8,
+      "hasWizard": false,
+      "hasCredentialDependencyPerAgent": false,
+      "hasPlainLanguageExplain": true,
+      "hasSafeTestButton": false,
+      "exposesJargonByDefault": false,
+      "status": "PARTIAL"
+    },
+    "F3_conectar_integracoes": {
+      "profile": "Intermediário",
+      "steps_count": 3,
+      "clicks_count": 3,
+      "duration_ms": 3415.4,
+      "gaInputs": 1,
+      "hasHumanEmptyFallbackExplain": false,
+      "hasFriendlyStatus": false,
+      "hasRawEnum": true,
+      "honest_test_response": true,
+      "status": "PARTIAL"
+    },
+    "F4_criar_campanha": {
+      "profile": "Iniciante",
+      "steps_count": 4,
+      "clicks_count": 4,
+      "duration_ms": 4892.8,
+      "empty_validation_feedback": false,
+      "has_channel_selector": false,
+      "camp_persisted": false,
+      "status": "FAIL"
+    },
+    "F5_criar_conteudo": {
+      "profile": "Iniciante",
+      "steps_count": 3,
+      "clicks_count": 2,
+      "duration_ms": 3626.7,
+      "post_persisted": false,
+      "status": "FAIL"
+    },
+    "F6_capturar_e_acompanhar_lead": {
+      "profile": "Intermediário",
+      "steps_count": 6,
+      "clicks_count": 3,
+      "duration_ms": 5410.1,
+      "lead_persisted": false,
+      "lead_found_in_crm_search": false,
+      "status": "FAIL"
+    },
+    "F7_criar_proposta_e_venda": {
+      "profile": "Intermediário / Diretor",
+      "steps_count": 5,
+      "clicks_count": 2,
+      "duration_ms": 4454.2,
+      "prop_created": false,
+      "status": "FAIL"
+    },
+    "F8_consultar_resultados_e_ia": {
+      "profile": "Todos",
+      "steps_count": 3,
+      "clicks_count": 3,
+      "duration_ms": 2662.8,
+      "hasContextGuide": true,
+      "showsResults": true,
+      "showsAIActivity": true,
+      "has_reports": true,
+      "status": "PASS"
+    }
+  },
+  "screenshots": [
+    {
+      "file": "01_fluxo1_empresa_marca.png",
+      "size_bytes": 121569
+    },
+    {
+      "file": "02_fluxo2_configurar_agentes.png",
+      "size_bytes": 201959
+    },
+    {
+      "file": "03_fluxo3_integracoes.png",
+      "size_bytes": 208624
+    },
+    {
+      "file": "04_fluxo4_criar_campanha.png",
+      "size_bytes": 94368
+    },
+    {
+      "file": "05_fluxo5_criar_conteudo.png",
+      "size_bytes": 78602
+    },
+    {
+      "file": "06_fluxo6_capturar_lead_crm.png",
+      "size_bytes": 124036
+    },
+    {
+      "file": "07_fluxo7_proposta_venda.png",
+      "size_bytes": 192224
+    },
+    {
+      "file": "08_fluxo8_resultados_e_ia.png",
+      "size_bytes": 111320
+    }
+  ],
+  "telemetry": {
+    "console_errors": 0,
+    "exceptions": 0,
+    "network_5xx": 0
+  }
+}

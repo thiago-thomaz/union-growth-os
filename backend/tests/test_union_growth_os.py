@@ -11,6 +11,7 @@ import tempfile
 _TMP_DB = Path(tempfile.mkdtemp(prefix="ugos_test_")) / "test.db"
 os.environ["DATABASE_URL"] = f"sqlite:///{_TMP_DB.as_posix()}"
 os.environ["ADMIN_INITIAL_PASSWORD"] = "Init#Admin2026Test!"
+os.environ.setdefault("RATE_LIMIT_PER_MINUTE", "2000")
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))

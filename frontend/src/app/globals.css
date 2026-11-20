@@ -101,6 +101,9 @@ html.light .bg-slate-800\/60 {
 html.light .bg-emerald-500\/10 {
   background-color: #ecfdf5 !important;
 }
+html.light .bg-amber-500\/10 {
+  background-color: #fffbeb !important;
+}
 html.light .border-slate-800,
 html.light .border-slate-800\/80,
 html.light .border-slate-700 {
@@ -143,8 +146,13 @@ html.light .text-emerald-400 {
   color: #065f46 !important;
 }
 html.light .text-amber-300,
-html.light .text-amber-200 {
+html.light .text-amber-200,
+html.light .text-amber-400 {
   color: #92400e !important;
+}
+html.light .text-sky-300,
+html.light .text-purple-300 {
+  color: #1d4ed8 !important;
 }
 html.light [role="dialog"] .bg-\[\#0d1425\],
 html.light [role="dialog"].bg-\[\#0d1425\] {
