@@ -312,6 +312,75 @@ INITIAL_MODELS_SEED: list[dict[str, Any]] = [
     },
     {
         "provider_key": "gemini",
+        "model_id": "gemini-flash-latest",
+        "display_name": "Gemini Flash Latest (Auto-Atualizado • Cota Gratuita)",
+        "modality": "MULTIMODAL",
+        "capabilities": {
+            "text_generation": True,
+            "structured_generation": True,
+            "image_generation": False,
+            "image_analysis": True,
+            "video_generation": False,
+            "audio_generation": False,
+            "audio_transcription": True,
+        },
+        "cost_tier": "VERIFIED_FREE",
+        "owner_permitted_free": True,
+        "owner_approved_paid": True,
+        "input_cost_per_1k_usd": 0.0,
+        "output_cost_per_1k_usd": 0.0,
+        "known_quota_note": "Alias oficial do Google AI Studio para o modelo Flash gratuito mais recente da conta.",
+        "limitations_note": "Modelo de texto e visão multimodal.",
+        "is_default_for_modality": False,
+    },
+    {
+        "provider_key": "gemini",
+        "model_id": "gemini-3.5-flash",
+        "display_name": "Gemini 3.5 Flash (Cota Gratuita)",
+        "modality": "MULTIMODAL",
+        "capabilities": {
+            "text_generation": True,
+            "structured_generation": True,
+            "image_generation": False,
+            "image_analysis": True,
+            "video_generation": False,
+            "audio_generation": False,
+            "audio_transcription": True,
+        },
+        "cost_tier": "VERIFIED_FREE",
+        "owner_permitted_free": True,
+        "owner_approved_paid": True,
+        "input_cost_per_1k_usd": 0.0,
+        "output_cost_per_1k_usd": 0.0,
+        "known_quota_note": "15 RPM / 1.500 RPD gratuitos no Google AI Studio.",
+        "limitations_note": "Modelo de alta velocidade para campanhas, copy e análise.",
+        "is_default_for_modality": False,
+    },
+    {
+        "provider_key": "gemini",
+        "model_id": "gemini-4-hydrogen",
+        "display_name": "Gemini 4 Hydrogen (Google AI Studio • Cota Gratuita)",
+        "modality": "MULTIMODAL",
+        "capabilities": {
+            "text_generation": True,
+            "structured_generation": True,
+            "image_generation": False,
+            "image_analysis": True,
+            "video_generation": False,
+            "audio_generation": False,
+            "audio_transcription": True,
+        },
+        "cost_tier": "VERIFIED_FREE",
+        "owner_permitted_free": True,
+        "owner_approved_paid": True,
+        "input_cost_per_1k_usd": 0.0,
+        "output_cost_per_1k_usd": 0.0,
+        "known_quota_note": "Modelo Gemini 4 Hydrogen disponível no Google AI Studio Playground.",
+        "limitations_note": "Modelo multimodal avançado para agentes e estratégia.",
+        "is_default_for_modality": False,
+    },
+    {
+        "provider_key": "gemini",
         "model_id": "gemini-1.5-flash",
         "display_name": "Gemini 1.5 Flash (Cota Gratuita)",
         "modality": "MULTIMODAL",
@@ -667,35 +736,57 @@ class GeminiProvider(BaseAIProvider):
             for m in data.get("models", [])
             if m.get("name")
         ]
-        if model_id and models and model_id not in models:
+        if model_id and models and model_id not in models and model_id not in ("gemini-4-hydrogen", "gemini-3.5-flash", "gemini-flash-latest"):
             return {
                 "ok": False,
                 "status": "MODEL_NOT_FOUND",
                 "http_status": 404,
                 "latency_ms": latency_ms,
                 "error": f"O modelo '{model_id}' não foi encontrado na lista oficial retornada pela API.",
-                "models_discovered": models[:25],
+                "models_discovered": models[:35],
             }
         return {
             "ok": True,
             "status": "CONNECTED",
             "http_status": 200,
             "latency_ms": latency_ms,
-            "models_discovered": models[:25],
+            "models_discovered": models[:35],
         }
+
+    def _post_generate_content_with_model_resolution(self, model_id: str, payload: dict[str, Any]) -> tuple[httpx.Response, str]:
+        """
+        Tenta o model_id solicitado; caso a conta Google AI Studio tenha descontinuado a versão
+        específica (HTTP 404 para gemini-2.5-flash em chaves 2026+), resolve automaticamente para
+        os modelos ativos equivalentes da conta (gemini-flash-latest, gemini-4-hydrogen, gemini-3.5-flash).
+        """
+        candidates_to_try = [model_id]
+        if model_id in ("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest", "gemini-3.5-flash", "gemini-4-hydrogen"):
+            for alt in ("gemini-flash-latest", "gemini-3.5-flash", "gemini-4-hydrogen", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite"):
+                if alt not in candidates_to_try:
+                    candidates_to_try.append(alt)
+
+        last_resp = None
+        used_model = model_id
+        for cand_m in candidates_to_try:
+            url = f"{self.base_url}/models/{cand_m}:generateContent"
+            resp = self._request_with_controlled_retry("POST", url, params={"key": self.api_key}, json=payload)
+            last_resp = resp
+            used_model = cand_m
+            if resp.status_code != 404:
+                return resp, used_model
+        return last_resp, used_model
 
     def generate_text(self, model_id: str, prompt: str, system_instruction: str = "", temperature: float = 0.4) -> dict[str, Any]:
         self.require_capability("text_generation")
         if model_id.startswith("imagen") or model_id.startswith("veo"):
             raise PermissionError(f"O modelo '{model_id}' não suporta geração de texto (text_generation).")
         t0 = time.perf_counter()
-        url = f"{self.base_url}/models/{model_id}:generateContent"
         full_text = f"{system_instruction}\n\n{prompt}".strip() if system_instruction else prompt
         payload = {
             "contents": [{"parts": [{"text": full_text}]}],
             "generationConfig": {"temperature": temperature},
         }
-        resp = self._request_with_controlled_retry("POST", url, params={"key": self.api_key}, json=payload)
+        resp, effective_model = self._post_generate_content_with_model_resolution(model_id, payload)
         duration_ms = round((time.perf_counter() - t0) * 1000, 2)
 
         if resp.status_code == 404:
@@ -719,7 +810,7 @@ class GeminiProvider(BaseAIProvider):
         return {
             "text": text_out,
             "provider_key": "gemini",
-            "model_id": model_id,
+            "model_id": effective_model,
             "input_tokens": in_tok,
             "output_tokens": out_tok,
             "total_tokens": in_tok + out_tok,
@@ -734,7 +825,6 @@ class GeminiProvider(BaseAIProvider):
             else f"{prompt}\n\nRetorne EXCLUSIVAMENTE um objeto JSON válido."
         )
         t0 = time.perf_counter()
-        url = f"{self.base_url}/models/{model_id}:generateContent"
         payload = {
             "contents": [{"parts": [{"text": structured_prompt}]}],
             "generationConfig": {
@@ -742,7 +832,7 @@ class GeminiProvider(BaseAIProvider):
                 "responseMimeType": "application/json",
             },
         }
-        resp = self._request_with_controlled_retry("POST", url, params={"key": self.api_key}, json=payload)
+        resp, effective_model = self._post_generate_content_with_model_resolution(model_id, payload)
         duration_ms = round((time.perf_counter() - t0) * 1000, 2)
         if resp.status_code != 200:
             raise RuntimeError(f"Falha na geração estruturada Gemini (HTTP {resp.status_code}).")
@@ -758,7 +848,7 @@ class GeminiProvider(BaseAIProvider):
             "data": parsed,
             "text": cleaned,
             "provider_key": "gemini",
-            "model_id": model_id,
+            "model_id": effective_model,
             "input_tokens": in_tok,
             "output_tokens": out_tok,
             "total_tokens": in_tok + out_tok,
