@@ -1,0 +1,32 @@
+{
+  "executed_at_utc": "2026-11-20T16:49:13.431788+00:00",
+  "primary_url": "https://automacao.projetosunion.cloud",
+  "alt_url": "https://uniongrowth.72.62.13.62.sslip.io",
+  "git_commit": "32be93315e62c09701d6607aa4f40e0f0a055842",
+  "security_passed": true,
+  "e2e_scenarios_count": 15,
+  "performance_summary": {
+    "p50_ms": 1639.51,
+    "p95_ms": 2492.83,
+    "avg_ms": 1642.95,
+    "success_rate_pct": 100.0
+  },
+  "screenshots_captured": [
+    {
+      "file": "01_production_login_and_app.png",
+      "size_bytes": 37032
+    },
+    {
+      "file": "02_public_landing_page_agentes_ia.png",
+      "size_bytes": 88934
+    },
+    {
+      "file": "03_public_landing_page_union_tech.png",
+      "size_bytes": 98023
+    },
+    {
+      "file": "04_proposal_printable_pdf_view.png",
+      "size_bytes": 85421
+    }
+  ]
+}

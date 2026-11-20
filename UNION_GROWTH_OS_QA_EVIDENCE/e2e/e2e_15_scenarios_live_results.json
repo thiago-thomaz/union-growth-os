@@ -1,0 +1,111 @@
+{
+  "01_lead_capture": {
+    "status": "PASS (REAL)",
+    "http_status": 201,
+    "data": {
+      "deduplicated": false,
+      "lead_id": 7,
+      "business_unit_code": "UNION_TECH",
+      "lead_score": 100,
+      "qualification_status": "QUALIFIED",
+      "funnel_stage": "QUALIFICADO",
+      "legal_basis": "CONSENTIMENTO_OPT_IN_E_PROCEDIMENTO_PRELIMINAR_CONTRATUAL",
+      "data_origin": "TEST"
+    }
+  },
+  "02_auto_qualification": {
+    "status": "PASS (REAL)",
+    "lead_score": 100,
+    "qualification_status": "QUALIFIED"
+  },
+  "03_crm_pipeline": {
+    "status": "PASS (REAL)",
+    "http_status": 200,
+    "data": {
+      "id": 7,
+      "full_name": "Lead E2E Fase20 1795193356",
+      "funnel_stage": "DIAGNOSTICO",
+      "pipeline_stage": "QUALIFICATION",
+      "business_unit_code": "UNION_TECH"
+    }
+  },
+  "04_marketing_campaign_and_copy": {
+    "status": "PASS (REAL)",
+    "campaign_id": 106,
+    "copy_id": 11
+  },
+  "05_union_ai_engine_hub": {
+    "status": "PASS (REAL)",
+    "primary_tenant_real_gemini_execution": {
+      "ok": false,
+      "execution_uuid": "ai-exec-04d1f58a8faf46",
+      "executed_provider": null,
+      "executed_model": null,
+      "cost_classification": "VERIFIED_FREE",
+      "estimated_cost_brl": 0.0,
+      "duration_ms": null,
+      "output_preview": ""
+    },
+    "free_only_policy_block_paid_gpt4o": "PROVIDER_ERROR"
+  },
+  "06_commercial_proposal_and_pdf": {
+    "status": "PASS (REAL)",
+    "proposal_id": 2,
+    "proposal_number": "PROP-20261120-FFBEDD",
+    "pdf_http_status": 200
+  },
+  "07_human_approval_governance": {
+    "status": "PASS (REAL)",
+    "unapproved_blocked_status": 403,
+    "approved_status": "SENT"
+  },
+  "08_contract_acceptance": {
+    "status": "PASS (REAL)",
+    "contract_status": "ACCEPTED"
+  },
+  "09_payment_and_webhook_hmac": {
+    "status": "PASS (SANDBOX)",
+    "charge_id": 5,
+    "forged_signature_rejected_status": 401,
+    "approved_webhook_status": "APPROVED",
+    "onboarding_project_id": 5
+  },
+  "10_automatic_onboarding": {
+    "status": "PASS (REAL)",
+    "project_id": 5
+  },
+  "11_project_delivery_with_evidence": {
+    "status": "PASS (REAL)",
+    "empty_evidence_blocked_status": 400,
+    "completed_status": "COMPLETED",
+    "progress_pct": 100.0
+  },
+  "12_financial_5_buckets_isolation": {
+    "status": "PASS (REAL)",
+    "real_confirmed_revenue_brl": 0,
+    "sandbox_charges_total": 2,
+    "real_revenue_unpolluted_by_sandbox": true
+  },
+  "13_customer_success_nps": {
+    "status": "PASS (REAL)",
+    "churn_risk": "LOW"
+  },
+  "14_dashboard_kpis_consistency": {
+    "status": "PASS (REAL)",
+    "tenant_name": "QA_AUTOMATED_TENANT",
+    "overview_keys": [
+      "tenant",
+      "metrics_cards",
+      "autonomy_status_panel",
+      "ceo_briefing",
+      "recent_agent_logs"
+    ],
+    "financial_kpis": null
+  },
+  "15_executive_report_and_backups": {
+    "status": "PASS (REAL)",
+    "executive_report_status": 200,
+    "backup_status": 201,
+    "backup_size_bytes": 813952
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "total_requests": 20,
+  "success_rate_pct": 100.0,
+  "min_latency_ms": 823.39,
+  "p50_latency_ms": 1639.51,
+  "p95_latency_ms": 2492.83,
+  "max_latency_ms": 2492.83,
+  "avg_latency_ms": 1642.95,
+  "samples": [
+    {
+      "url": "/health",
+      "status": 200,
+      "latency_ms": 2344.03
+    },
+    {
+      "url": "/ready",
+      "status": 200,
+      "latency_ms": 2339.62
+    },
+    {
+      "url": "/lp/agentes-ia",
+      "status": 200,
+      "latency_ms": 2462.09
+    },
+    {
+      "url": "/api/v1/dashboard/overview",
+      "status": 200,
+      "latency_ms": 2442.43
+    },
+    {
+      "url": "/api/v1/ai-engine-hub/overview",
+      "status": 200,
+      "latency_ms": 2374.01
+    },
+    {
+      "url": "/health",
+      "status": 200,
+      "latency_ms": 1639.51
+    },
+    {
+      "url": "/ready",
+      "status": 200,
+      "latency_ms": 1680.85
+    },
+    {
+      "url": "/lp/agentes-ia",
+      "status": 200,
+      "latency_ms": 2492.83
+    },
+    {
+      "url": "/api/v1/dashboard/overview",
+      "status": 200,
+      "latency_ms": 1691.23
+    },
+    {
+      "url": "/api/v1/ai-engine-hub/overview",
+      "status": 200,
+      "latency_ms": 1660.15
+    },
+    {
+      "url": "/health",
+      "status": 200,
+      "latency_ms": 1131.6
+    },
+    {
+      "url": "/ready",
+      "status": 200,
+      "latency_ms": 1086.23
+    },
+    {
+      "url": "/lp/agentes-ia",
+      "status": 200,
+      "latency_ms": 1337.05
+    },
+    {
+      "url": "/api/v1/dashboard/overview",
+      "status": 200,
+      "latency_ms": 1261.2
+    },
+    {
+      "url": "/api/v1/ai-engine-hub/overview",
+      "status": 200,
+      "latency_ms": 1175.75
+    },
+    {
+      "url": "/health",
+      "status": 200,
+      "latency_ms": 1250.73
+    },
+    {
+      "url": "/ready",
+      "status": 200,
+      "latency_ms": 1250.35
+    },
+    {
+      "url": "/lp/agentes-ia",
+      "status": 200,
+      "latency_ms": 1254.03
+    },
+    {
+      "url": "/api/v1/dashboard/overview",
+      "status": 200,
+      "latency_ms": 1161.86
+    },
+    {
+      "url": "/api/v1/ai-engine-hub/overview",
+      "status": 200,
+      "latency_ms": 823.39
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "prod_health_status": 200,
+  "prod_health_body": {
+    "status": "ok",
+    "service": "UNION GROWTH OS",
+    "version": "1.0.0",
+    "git_commit": "32be93315e62c09701d6607aa4f40e0f0a055842",
+    "timestamp": "2026-11-20T16:48:43.519148+00:00",
+    "database": {
+      "status": "healthy",
+      "engine": "postgresql",
+      "is_fallback": false
+    },
+    "scheduler": {
+      "running": true,
+      "jobs_count": 88,
+      "engine": "APScheduler Native Python (100% Internalized)",
+      "boot_id": "5d4937f64b7f",
+      "timezone": "America/Sao_Paulo"
+    }
+  },
+  "prod_ready_status": 200,
+  "prod_ready_body": {
+    "ready": true,
+    "service": "UNION GROWTH OS",
+    "version": "1.0.0",
+    "git_commit": "32be93315e62c09701d6607aa4f40e0f0a055842",
+    "database": {
+      "status": "healthy",
+      "engine": "postgresql",
+      "is_fallback": false
+    },
+    "scheduler": {
+      "running": true,
+      "jobs_count": 88,
+      "engine": "APScheduler Native Python (100% Internalized)",
+      "boot_id": "5d4937f64b7f",
+      "timezone": "America/Sao_Paulo"
+    }
+  },
+  "alt_health_status": 200,
+  "alt_health_commit": "32be93315e62c09701d6607aa4f40e0f0a055842",
+  "robots_status": 200,
+  "sitemap_status": 200,
+  "security_headers": {
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "strict-transport-security": "max-age=31536000; includeSubDomains",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "SAMEORIGIN",
+    "x-xss-protection": "1; mode=block"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "DEFECT_01_unmatched_api_returns_json_404": {
+    "status_code": 404,
+    "content_type": "application/json",
+    "body": {
+      "detail": "Endpoint API não encontrado: /api/v1/endpoint-inexistente-qa-fase20"
+    },
+    "passed": true
+  },
+  "DEFECT_02_cross_tenant_header_blocked_403": {
+    "cross_tenant_999999_status": 403,
+    "sqli_tenant_header_status": 403,
+    "passed": true
+  },
+  "DEFECT_04_public_landing_page_and_lgpd_enforcement": {
+    "lp_agentes_ia_status": 200,
+    "lp_content_type": "text/html; charset=utf-8",
+    "capture_without_lgpd_status": 400,
+    "passed": true
+  },
+  "DEFECT_05_pilot_7_days_history_endpoint": {
+    "status_code": 200,
+    "days_simulated": 7,
+    "passed": true
+  },
+  "AUTH_unauthenticated_blocked_401": {
+    "no_token_status": 401,
+    "forged_jwt_status": 401,
+    "passed": true
+  },
+  "DEFECT_03_proposal_pdf_browser_link_with_access_token": {
+    "status_code": 200,
+    "content_type": "text/html; charset=utf-8",
+    "passed": true
+  }
+}
