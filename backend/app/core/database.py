@@ -196,6 +196,14 @@ def create_database_backup(db: Session, tenant_id: int | None = None) -> dict:
         AffiliateConversion,
         PaymentTransaction,
         ServiceDeliveryProject,
+        AIProviderRecord,
+        AIModelRecord,
+        AICredentialRecord,
+        AIEngineConfigurationRecord,
+        AIEngineExecutionRecord,
+        AIFallbackRecord,
+        AICampaignPackageRecord,
+        AIMediaGenerationRecord,
     )
 
     backup_dir = Path(settings.BACKUP_DIR)
@@ -370,6 +378,14 @@ def restore_database_from_backup(
         AffiliateConversion,
         PaymentTransaction,
         ServiceDeliveryProject,
+        AIProviderRecord,
+        AIModelRecord,
+        AICredentialRecord,
+        AIEngineConfigurationRecord,
+        AIEngineExecutionRecord,
+        AIFallbackRecord,
+        AICampaignPackageRecord,
+        AIMediaGenerationRecord,
     )
 
     path = Path(backup_path)

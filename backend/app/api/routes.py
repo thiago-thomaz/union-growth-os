@@ -3628,5 +3628,165 @@ def commercial_phase18_1_executive_panel(
     return build_phase18_1_executive_panel(db, tenant_id=tid)
 
 
+# ==============================================================================
+# FASE 19 — UNION AI ENGINE HUB (PROVIDERS, MODELS, CREDENTIALS, ROUTER, CAMPAIGNS, IMAGE & VIDEO STUDIO)
+# ==============================================================================
+@router.get("/ai-engine-hub/overview")
+@router.get("/ai-engines/config")
+def ai_engine_hub_get_overview(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.ai_engines_hub import get_ai_engine_hub_overview
+
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    return get_ai_engine_hub_overview(db, tenant)
+
+
+@router.put("/ai-engine-hub/configuration")
+@router.put("/ai-engines/config")
+def ai_engine_hub_update_configuration(
+    payload: dict[str, Any],
+    user: User = Depends(require_roles("owner", "admin", "manager")),
+    db: Session = Depends(get_db),
+):
+    from app.services.ai_engines_hub import update_ai_engine_hub_configuration_service
+
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    res = update_ai_engine_hub_configuration_service(db, tenant, payload)
+    record_audit_log(
+        db,
+        tenant_id=tid,
+        user_id=user.id,
+        actor=user.email,
+        action="AI_ENGINE_HUB_CONFIG_UPDATED",
+        resource_type="ai_engine_hub",
+        resource_id=res["configuration"]["default_provider_key"],
+    )
+    return res
+
+
+@router.post("/ai-engine-hub/credentials")
+def ai_engine_hub_save_credential(
+    payload: dict[str, Any],
+    user: User = Depends(require_roles("owner", "admin")),
+    db: Session = Depends(get_db),
+):
+    from app.services.ai_engines_hub import save_ai_provider_credential
+
+    tid = get_active_tenant_id(user)
+    _get_tenant_or_404(db, tid)
+    provider_key = str(payload.get("provider_key") or "gemini").strip().lower()
+    api_key = str(payload.get("api_key") or "")
+    custom_endpoint_url = str(payload.get("custom_endpoint_url") or "")
+    is_active = bool(payload.get("is_active", True))
+
+    res = save_ai_provider_credential(
+        db=db,
+        tenant_id=tid,
+        user_id=user.id,
+        provider_key=provider_key,
+        api_key=api_key,
+        custom_endpoint_url=custom_endpoint_url,
+        is_active=is_active,
+    )
+    record_audit_log(
+        db,
+        tenant_id=tid,
+        user_id=user.id,
+        actor=user.email,
+        action="AI_CREDENTIAL_SAVED_ENCRYPTED",
+        resource_type="ai_credential",
+        resource_id=provider_key,
+    )
+    return res
+
+
+@router.post("/ai-engine-hub/test-connection")
+def ai_engine_hub_test_connection(
+    payload: dict[str, Any],
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.ai_engines_hub import test_ai_provider_connection_service
+
+    tid = get_active_tenant_id(user)
+    _get_tenant_or_404(db, tid)
+    provider_key = str(payload.get("provider_key") or "gemini").strip().lower()
+    model_id = str(payload.get("model_id") or "").strip()
+    try:
+        return test_ai_provider_connection_service(db, tenant_id=tid, provider_key=provider_key, model_id=model_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/ai-engine-hub/route-execute")
+def ai_engine_hub_route_execute(
+    payload: dict[str, Any],
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.ai_engines_hub import AIRouter
+
+    tid = get_active_tenant_id(user)
+    _get_tenant_or_404(db, tid)
+    res = AIRouter.route_and_execute(
+        db=db,
+        tenant_id=tid,
+        task_type=str(payload.get("task_type") or "text_generation"),
+        required_capability=str(payload.get("required_capability") or "text_generation"),
+        prompt=sanitize_text(str(payload.get("prompt") or "")),
+        agent_id=str(payload.get("agent_id") or "AI_ENGINE_HUB"),
+        preferred_provider=str(payload.get("provider_key") or ""),
+        preferred_model=str(payload.get("model_id") or ""),
+        system_instruction=str(payload.get("system_instruction") or ""),
+        schema_hint=str(payload.get("schema_hint") or ""),
+        aspect_ratio=str(payload.get("aspect_ratio") or "1:1"),
+    )
+    return res
+
+
+@router.post("/ai-engine-hub/campaigns/generate")
+def ai_engine_hub_generate_campaign(
+    payload: dict[str, Any],
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.ai_engines_hub import generate_ai_campaign_package_service
+
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    return generate_ai_campaign_package_service(db, tenant, payload)
+
+
+@router.post("/ai-engine-hub/image-studio/generate")
+def ai_engine_hub_generate_image(
+    payload: dict[str, Any],
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.ai_engines_hub import generate_ai_image_studio_service
+
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    return generate_ai_image_studio_service(db, tenant, payload)
+
+
+@router.post("/ai-engine-hub/video-studio/generate")
+def ai_engine_hub_generate_video(
+    payload: dict[str, Any],
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.ai_engines_hub import generate_ai_video_studio_service
+
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    return generate_ai_video_studio_service(db, tenant, payload)
+
+
+
 
 

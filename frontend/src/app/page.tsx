@@ -27,7 +27,8 @@ type MenuId =
   | "reports"
   | "integrations"
   | "settings"
-  | "audit";
+  | "audit"
+  | "ai_engines";
 
 const MENU_ITEMS: { id: MenuId; num: string; label: string }[] = [
   { id: "overview", num: "01", label: "Visão Geral" },
@@ -55,6 +56,7 @@ const MENU_ITEMS: { id: MenuId; num: string; label: string }[] = [
   { id: "integrations", num: "22", label: "Integrações" },
   { id: "settings", num: "23", label: "Configurações & Planos" },
   { id: "audit", num: "24", label: "Auditoria e Logs" },
+  { id: "ai_engines", num: "25", label: "🧠 UNION AI ENGINE HUB" },
 ];
 
 const PIPELINE_STAGES = [
@@ -230,6 +232,22 @@ export default function UnionGrowthOSPortal() {
   const [brandColorPrimary, setBrandColorPrimary] = useState("#6366F1");
   const [brandColorSecondary, setBrandColorSecondary] = useState("#10B981");
 
+  // MENU 25 — UNION AI ENGINE HUB (FASE 19)
+  const [aiEnginesConfig, setAiEnginesConfig] = useState<any>(null);
+  const [aiHubSubmenu, setAiHubSubmenu] = useState<string>("dashboard_ai");
+  const [aiKeyInputs, setAiKeyInputs] = useState<Record<string, string>>({});
+  const [aiEndpointInputs, setAiEndpointInputs] = useState<Record<string, string>>({});
+  const [aiGenTopic, setAiGenTopic] = useState("Campanha de Agentes de IA e Automação Comercial B2B");
+  const [aiGenPlatform, setAiGenPlatform] = useState("Multi-Channel (LinkedIn, Instagram & SEO)");
+  const [aiGenMode, setAiGenMode] = useState("FULL_CAMPAIGN");
+  const [aiPieceType, setAiPieceType] = useState("ALL");
+  const [aiImgPrompt, setAiImgPrompt] = useState("Dashboard executivo futurista de Inteligência Artificial B2B");
+  const [aiImgMode, setAiImgMode] = useState("PROMPT_ONLY");
+  const [aiVidPrompt, setAiVidPrompt] = useState("Como automatizar o funil comercial da sua empresa com IA");
+  const [aiVidStage, setAiVidStage] = useState("SCRIPT_AND_STORYBOARD");
+  const [aiGenLoading, setAiGenLoading] = useState(false);
+  const [aiGenResult, setAiGenResult] = useState<any>(null);
+
   const showNotice = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(""), 5500);
@@ -309,15 +327,16 @@ export default function UnionGrowthOSPortal() {
       setIntegrationsData(intg);
       setAuditData(aud);
 
-      // Carregar dados da FASE 14
+      // Carregar dados da FASE 14 e MENU 25 (Motores de IA)
       try {
-        const [cfItems, cPlan, opDash, sAlerts, rCosts, mbDash] = await Promise.all([
+        const [cfItems, cPlan, opDash, sAlerts, rCosts, mbDash, aiCfg] = await Promise.all([
           apiFetch("/api/v1/content-factory/items").catch(() => []),
           apiFetch("/api/v1/ceo/daily-plan").catch(() => null),
           apiFetch("/api/v1/system/operational-dashboard").catch(() => null),
           apiFetch("/api/v1/system/alerts").catch(() => []),
           apiFetch("/api/v1/system/resource-costs").catch(() => null),
           apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`).catch(() => null),
+          apiFetch("/api/v1/ai-engines/config").catch(() => null),
         ]);
         setContentFactoryItems(cfItems || []);
         setCeoDailyPlan(cPlan);
@@ -325,6 +344,7 @@ export default function UnionGrowthOSPortal() {
         setSystemAlerts(sAlerts || []);
         setResourceCosts(rCosts);
         setMbDashboard(mbDash);
+        setAiEnginesConfig(aiCfg);
       } catch (e) {
         // silencioso para não interromper carga base
       }
@@ -3554,6 +3574,578 @@ export default function UnionGrowthOSPortal() {
                   ))}
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* 25. FASE 19 — UNION AI ENGINE HUB */}
+          {activeMenu === "ai_engines" && aiEnginesConfig && (
+            <div className="space-y-6">
+              {/* Cabeçalho UNION AI ENGINE HUB + Botões Rápidos */}
+              <div className="bg-gradient-to-r from-[#0f1629] via-indigo-950/60 to-[#0f1629] border border-indigo-500/40 rounded-xl p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold">
+                        GEMINI PRIORITÁRIO (COTA GRATUITA OFICIAL)
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-[10px] font-bold">
+                        MODO ATUAL: {aiEnginesConfig.configuration?.cost_policy_mode || "FREE_ONLY"}
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold text-white mt-2">
+                      UNION AI ENGINE HUB — Central Multimotor de Inteligência Artificial
+                    </h3>
+                    <p className="text-xs text-slate-300 mt-1">
+                      Motor Padrão: <strong>{aiEnginesConfig.configuration?.default_provider_key?.toUpperCase()}</strong> ({aiEnginesConfig.configuration?.default_text_model}) • Transparência total de capacidades, cotas, limites e custos (FREE_ONLY & OWNER_APPROVED).
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setAiHubSubmenu("providers")}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+                    >
+                      CONFIGURAR GEMINI
+                    </button>
+                    <button
+                      onClick={() => setAiHubSubmenu("tests")}
+                      className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold"
+                    >
+                      TESTAR MOTOR
+                    </button>
+                    <button
+                      onClick={() => setAiHubSubmenu("campaigns_ai")}
+                      className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold"
+                    >
+                      GERAR CAMPANHA COMPLETA
+                    </button>
+                  </div>
+                </div>
+
+                {/* 10 Submenus do UNION AI ENGINE HUB */}
+                <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-800">
+                  {[
+                    { id: "dashboard_ai", label: "1. Dashboard AI" },
+                    { id: "providers", label: "2. Provedores" },
+                    { id: "models", label: "3. Modelos" },
+                    { id: "configuration", label: "4. Configuração & Agentes" },
+                    { id: "campaigns_ai", label: "5. Campanhas AI" },
+                    { id: "image_studio", label: "6. Image Studio" },
+                    { id: "video_studio", label: "7. Video Studio" },
+                    { id: "usage_costs", label: "8. Uso e Custos" },
+                    { id: "history", label: "9. Histórico" },
+                    { id: "tests", label: "10. Testes" },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setAiHubSubmenu(tab.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                        aiHubSubmenu === tab.id
+                          ? "bg-indigo-600 text-white shadow"
+                          : "bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* SUBMENU 1: DASHBOARD AI */}
+              {aiHubSubmenu === "dashboard_ai" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="p-4 rounded-xl bg-[#0f1629] border border-emerald-500/30">
+                      <div className="text-[11px] text-slate-400">Motor Padrão Prioritário</div>
+                      <div className="text-lg font-bold text-emerald-400 mt-1">
+                        {aiEnginesConfig.configuration?.default_provider_key?.toUpperCase()}
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        Modelo: {aiEnginesConfig.configuration?.default_text_model}
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-[#0f1629] border border-indigo-500/30">
+                      <div className="text-[11px] text-slate-400">Política de Custo Ativa</div>
+                      <div className="text-lg font-bold text-indigo-300 mt-1">
+                        {aiEnginesConfig.configuration?.cost_policy_mode}
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        Fallback Pago: {aiEnginesConfig.configuration?.allow_paid_fallback ? "Autorizado" : "Bloqueado"}
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-[#0f1629] border border-slate-800">
+                      <div className="text-[11px] text-slate-400">Requisições & Tokens</div>
+                      <div className="text-lg font-bold text-white mt-1">
+                        {aiEnginesConfig.usage_and_costs?.total_requests || 0} reqs
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        {aiEnginesConfig.usage_and_costs?.total_tokens || 0} tokens processados
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-xl bg-[#0f1629] border border-slate-800">
+                      <div className="text-[11px] text-slate-400">Provedores Cadastrados</div>
+                      <div className="text-lg font-bold text-white mt-1">
+                        {(aiEnginesConfig.providers || []).length} provedores
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        {(aiEnginesConfig.models || []).length} modelos auditados
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ações Rápidas do Dashboard AI */}
+                  <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 flex flex-wrap gap-3">
+                    <button
+                      onClick={() => setAiHubSubmenu("providers")}
+                      className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold"
+                    >
+                      CONFIGURAR GEMINI
+                    </button>
+                    <button
+                      onClick={() => setAiHubSubmenu("models")}
+                      className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold"
+                    >
+                      SELECIONAR MOTOR
+                    </button>
+                    <button
+                      onClick={() => setAiHubSubmenu("campaigns_ai")}
+                      className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold"
+                    >
+                      GERAR CAMPANHA COMPLETA
+                    </button>
+                    <button
+                      onClick={() => setAiHubSubmenu("image_studio")}
+                      className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold"
+                    >
+                      GERAR IMAGEM
+                    </button>
+                    <button
+                      onClick={() => setAiHubSubmenu("video_studio")}
+                      className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold"
+                    >
+                      GERAR ROTEIRO DE VÍDEO
+                    </button>
+                    <button
+                      onClick={() => setAiHubSubmenu("tests")}
+                      className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold"
+                    >
+                      TESTAR MOTOR
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* SUBMENU 2: PROVEDORES & CENTRAL DE CREDENCIAIS */}
+              {aiHubSubmenu === "providers" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(aiEnginesConfig.providers || []).map((p: any) => (
+                    <div key={p.provider_key} className="p-4 rounded-xl bg-[#0f1629] border border-slate-800 text-xs space-y-3">
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <div className="font-bold text-sm text-white">{p.name}</div>
+                          <div className="text-[11px] text-slate-400">Classe: {p.provider_class} • Status: {p.status}</div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-bold text-emerald-300">
+                          {p.cost_tier}
+                        </span>
+                      </div>
+
+                      <p className="text-slate-300 text-[11px]">{p.limitations_text}</p>
+                      <div className="text-[11px] text-slate-400">
+                        <strong>Custo:</strong> {p.cost_notes}
+                      </div>
+
+                      {/* Capacidades Declaradas */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {Object.entries(p.capabilities || {}).map(([cap, ok]: [string, any]) => (
+                          <span
+                            key={cap}
+                            className={`px-2 py-0.5 rounded text-[10px] ${
+                              ok ? "bg-emerald-500/15 text-emerald-300" : "bg-slate-900 text-slate-500 line-through"
+                            }`}
+                          >
+                            {cap}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Configuração Segura de API Key (Fernet) */}
+                      <div className="space-y-2 pt-2 border-t border-slate-800">
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-slate-400">
+                            Credencial: {p.has_credential ? `Configurada (${p.masked_credential})` : "Aguardando API Key"}
+                          </span>
+                          {p.last_test_status && (
+                            <span className="text-indigo-300">Último Teste: {p.last_test_status}</span>
+                          )}
+                        </div>
+                        {p.provider_key === "openai_compatible" && (
+                          <input
+                            value={aiEndpointInputs[p.provider_key] ?? p.base_url ?? ""}
+                            onChange={(e) => setAiEndpointInputs({ ...aiEndpointInputs, [p.provider_key]: e.target.value })}
+                            placeholder="Endpoint Base URL explícito (ex.: http://localhost:11434/v1)"
+                            className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                          />
+                        )}
+                        <div className="flex gap-2">
+                          <input
+                            type="password"
+                            value={aiKeyInputs[p.provider_key] || ""}
+                            onChange={(e) => setAiKeyInputs({ ...aiKeyInputs, [p.provider_key]: e.target.value })}
+                            placeholder={`Inserir API Key para ${p.name} (Criptografia Fernet)`}
+                            className="flex-1 px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
+                          />
+                          <button
+                            onClick={async () => {
+                              await apiFetch("/api/v1/ai-engine-hub/credentials", {
+                                method: "POST",
+                                body: JSON.stringify({
+                                  provider_key: p.provider_key,
+                                  api_key: aiKeyInputs[p.provider_key] || "",
+                                  custom_endpoint_url: aiEndpointInputs[p.provider_key] || p.base_url,
+                                  is_active: true,
+                                }),
+                              });
+                              setAiKeyInputs({ ...aiKeyInputs, [p.provider_key]: "" });
+                              const refreshed = await apiFetch("/api/v1/ai-engine-hub/overview");
+                              setAiEnginesConfig(refreshed);
+                              showNotice(`Credencial de ${p.name} criptografada e salva!`);
+                            }}
+                            className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                          >
+                            {p.provider_key === "gemini" ? "CONFIGURAR GEMINI" : "Salvar Chave"}
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const res = await apiFetch("/api/v1/ai-engine-hub/test-connection", {
+                                method: "POST",
+                                body: JSON.stringify({ provider_key: p.provider_key }),
+                              });
+                              const refreshed = await apiFetch("/api/v1/ai-engine-hub/overview");
+                              setAiEnginesConfig(refreshed);
+                              showNotice(`Teste ${p.name}: ${res.status} (${res.error || "OK"})`);
+                            }}
+                            className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-bold"
+                          >
+                            TESTAR MOTOR
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* SUBMENU 3: MODELOS */}
+              {aiHubSubmenu === "models" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {(aiEnginesConfig.models || []).map((m: any) => {
+                    const isDefault = aiEnginesConfig.configuration?.default_text_model === m.model_id;
+                    return (
+                      <div key={`${m.provider_key}:${m.model_id}`} className="p-4 rounded-xl bg-[#0f1629] border border-slate-800 text-xs space-y-2">
+                        <div className="flex justify-between items-start gap-2">
+                          <span className="font-bold text-white">{m.display_name}</span>
+                          <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-emerald-300 font-bold">
+                            {m.cost_tier}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          Provedor: <strong>{m.provider_key}</strong> • Modalidade: <strong>{m.modality}</strong>
+                        </div>
+                        <p className="text-[11px] text-slate-300">{m.known_quota_note}</p>
+                        <p className="text-[10px] text-amber-300/90">{m.limitations_note}</p>
+                        <button
+                          onClick={async () => {
+                            const updated = await apiFetch("/api/v1/ai-engine-hub/configuration", {
+                              method: "PUT",
+                              body: JSON.stringify({
+                                default_provider_key: m.provider_key,
+                                default_text_model: m.model_id,
+                              }),
+                            });
+                            setAiEnginesConfig(updated);
+                            showNotice(`Motor selecionado: ${m.provider_key} / ${m.model_id}`);
+                          }}
+                          className={`w-full py-1.5 rounded font-bold ${
+                            isDefault ? "bg-emerald-600 text-white" : "bg-indigo-600 hover:bg-indigo-500 text-white"
+                          }`}
+                        >
+                          {isDefault ? "✓ MOTOR SELECIONADO" : "SELECIONAR MOTOR"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* SUBMENU 4: CONFIGURAÇÃO GLOBAL, POLÍTICA FREE_ONLY / OWNER_APPROVED E AGENTES */}
+              {aiHubSubmenu === "configuration" && (
+                <div className="space-y-4">
+                  <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3 text-xs">
+                    <h4 className="text-sm font-bold text-white">Política de Custos do AI Router (FREE_ONLY vs OWNER_APPROVED)</h4>
+                    <div className="flex flex-wrap gap-3">
+                      {["FREE_ONLY", "OWNER_APPROVED"].map((mode) => (
+                        <button
+                          key={mode}
+                          onClick={async () => {
+                            const updated = await apiFetch("/api/v1/ai-engine-hub/configuration", {
+                              method: "PUT",
+                              body: JSON.stringify({ cost_policy_mode: mode }),
+                            });
+                            setAiEnginesConfig(updated);
+                            showNotice(`Política de custos atualizada para ${mode}!`);
+                          }}
+                          className={`px-4 py-2 rounded-lg font-bold ${
+                            aiEnginesConfig.configuration?.cost_policy_mode === mode
+                              ? "bg-emerald-600 text-white"
+                              : "bg-slate-900 border border-slate-700 text-slate-300"
+                          }`}
+                        >
+                          Modo {mode}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3 text-xs">
+                    <h4 className="text-sm font-bold text-white">Configuração Individual por Agente (12 Agentes)</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {Object.values(aiEnginesConfig.configuration?.agent_routing || {}).map((ag: any) => (
+                        <div key={ag.agent_id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1.5">
+                          <div className="font-bold text-indigo-300">{ag.agent_name} ({ag.agent_id})</div>
+                          <div className="text-slate-300">
+                            Motor: <strong>{ag.provider_key}</strong> • Modelo: <strong>{ag.model_id}</strong>
+                          </div>
+                          <div className="text-slate-400 text-[11px]">
+                            Fallback: {ag.fallback_provider} • Limite: {ag.daily_limit}/dia • Temp: {ag.temperature}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SUBMENU 5: CAMPANHAS AI (GERAR CAMPANHA COMPLETA & PEÇA INDIVIDUAL) */}
+              {aiHubSubmenu === "campaigns_ai" && (
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4 text-xs">
+                  <h4 className="text-sm font-bold text-white">Motor de Campanhas AI (25 Componentes ou Peça Individual)</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <input
+                      value={aiGenTopic}
+                      onChange={(e) => setAiGenTopic(e.target.value)}
+                      placeholder="Nome / Oferta da Campanha"
+                      className="md:col-span-2 px-3 py-2 rounded bg-slate-900 border border-slate-700 text-white"
+                    />
+                    <select
+                      value={aiGenMode}
+                      onChange={(e) => setAiGenMode(e.target.value)}
+                      className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-white"
+                    >
+                      <option value="FULL_CAMPAIGN">GERAR CAMPANHA COMPLETA (25 Itens)</option>
+                      <option value="SINGLE_PIECE">GERAR PEÇA INDIVIDUAL</option>
+                    </select>
+                    <select
+                      value={aiPieceType}
+                      onChange={(e) => setAiPieceType(e.target.value)}
+                      className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-white"
+                    >
+                      {["ALL", "POST", "IMAGE", "VIDEO", "COPY", "EMAIL", "ARTICLE", "LANDING_PAGE", "CAROUSEL", "AD", "SCRIPT", "SEO", "CTA"].map((pt) => (
+                        <option key={pt} value={pt}>{pt}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    disabled={aiGenLoading}
+                    onClick={async () => {
+                      setAiGenLoading(true);
+                      try {
+                        const res = await apiFetch("/api/v1/ai-engine-hub/campaigns/generate", {
+                          method: "POST",
+                          body: JSON.stringify({
+                            generation_scope: aiGenMode,
+                            piece_type: aiPieceType,
+                            campaign_name: aiGenTopic,
+                            product_or_offer: aiGenTopic,
+                            channel: aiGenPlatform,
+                          }),
+                        });
+                        setAiGenResult(res);
+                        const refreshed = await apiFetch("/api/v1/ai-engine-hub/overview");
+                        setAiEnginesConfig(refreshed);
+                        showNotice(res.ok ? "Campanha gerada pelo motor de IA!" : `Aviso: ${res.status} — ${res.error}`);
+                      } finally {
+                        setAiGenLoading(false);
+                      }
+                    }}
+                    className="px-5 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-bold"
+                  >
+                    GERAR CAMPANHA COMPLETA
+                  </button>
+                  {aiGenResult && (
+                    <pre className="p-3 rounded bg-slate-950 text-slate-200 max-h-80 overflow-y-auto whitespace-pre-wrap text-[11px]">
+                      {JSON.stringify(aiGenResult, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              )}
+
+              {/* SUBMENU 6: AI IMAGE STUDIO */}
+              {aiHubSubmenu === "image_studio" && (
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4 text-xs">
+                  <h4 className="text-sm font-bold text-white">AI IMAGE STUDIO (Verificação Real de Capacidade & Custo)</h4>
+                  <p className="text-slate-400">
+                    Nota de Transparência: Modelos de texto gratuitos (como Gemini 2.5 Flash) geram prompts detalhados de imagem (`PROMPT_ONLY`). A renderização direta de pixels via Imagen 3 ou DALL-E 3 é paga e exige modo `OWNER_APPROVED` + faturamento ativo no provedor.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input
+                      value={aiImgPrompt}
+                      onChange={(e) => setAiImgPrompt(e.target.value)}
+                      placeholder="Prompt da imagem..."
+                      className="md:col-span-2 px-3 py-2 rounded bg-slate-900 border border-slate-700 text-white"
+                    />
+                    <select
+                      value={aiImgMode}
+                      onChange={(e) => setAiImgMode(e.target.value)}
+                      className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-white"
+                    >
+                      <option value="GENERATE_IMAGE">Renderizar Imagem via Modelo de Imagem (Imagen 3 / DALL-E 3)</option>
+                      <option value="PROMPT_ONLY">Gerar Prompt Técnico de Imagem (Gratuito via Gemini Flash)</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const res = await apiFetch("/api/v1/ai-engine-hub/image-studio/generate", {
+                        method: "POST",
+                        body: JSON.stringify({ prompt: aiImgPrompt, operation_mode: aiImgMode }),
+                      });
+                      setAiGenResult(res);
+                      const refreshed = await apiFetch("/api/v1/ai-engine-hub/overview");
+                      setAiEnginesConfig(refreshed);
+                      showNotice(res.ok ? `Image Studio: ${res.delivery_stage}` : `Bloqueado/Aviso: ${res.status}`);
+                    }}
+                    className="px-5 py-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold"
+                  >
+                    GERAR IMAGEM
+                  </button>
+                  {aiGenResult && (
+                    <pre className="p-3 rounded bg-slate-950 text-slate-200 max-h-72 overflow-y-auto whitespace-pre-wrap text-[11px]">
+                      {JSON.stringify(aiGenResult, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              )}
+
+              {/* SUBMENU 7: AI VIDEO STUDIO */}
+              {aiHubSubmenu === "video_studio" && (
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4 text-xs">
+                  <h4 className="text-sm font-bold text-white">
+                    AI VIDEO STUDIO (Separação Estrita: Roteiro • Storyboard • Vídeo Renderizado)
+                  </h4>
+                  <p className="text-slate-400">
+                    O sistema jamais declara um vídeo como gerado quando apenas um roteiro ou storyboard tiver sido produzido.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input
+                      value={aiVidPrompt}
+                      onChange={(e) => setAiVidPrompt(e.target.value)}
+                      placeholder="Tema ou prompt do vídeo..."
+                      className="md:col-span-2 px-3 py-2 rounded bg-slate-900 border border-slate-700 text-white"
+                    />
+                    <select
+                      value={aiVidStage}
+                      onChange={(e) => setAiVidStage(e.target.value)}
+                      className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-white"
+                    >
+                      <option value="SCRIPT_AND_STORYBOARD">Roteiro + Storyboard + Legendas (STORYBOARD_ONLY)</option>
+                      <option value="SCRIPT_ONLY">Apenas Roteiro Narrativo (SCRIPT_ONLY)</option>
+                      <option value="DIRECT_VIDEO_GENERATION">Vídeo Direto via API de Vídeo (Requer Veo 2 + OWNER_APPROVED)</option>
+                    </select>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      const res = await apiFetch("/api/v1/ai-engine-hub/video-studio/generate", {
+                        method: "POST",
+                        body: JSON.stringify({ prompt: aiVidPrompt, target_stage: aiVidStage }),
+                      });
+                      setAiGenResult(res);
+                      const refreshed = await apiFetch("/api/v1/ai-engine-hub/overview");
+                      setAiEnginesConfig(refreshed);
+                      showNotice(res.ok ? `Video Studio: ${res.delivery_stage}` : `Bloqueado/Aviso: ${res.status}`);
+                    }}
+                    className="px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold"
+                  >
+                    GERAR ROTEIRO DE VÍDEO
+                  </button>
+                  {aiGenResult && (
+                    <pre className="p-3 rounded bg-slate-950 text-slate-200 max-h-72 overflow-y-auto whitespace-pre-wrap text-[11px]">
+                      {JSON.stringify(aiGenResult, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              )}
+
+              {/* SUBMENU 8: AI USAGE & COSTS */}
+              {aiHubSubmenu === "usage_costs" && (
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4 text-xs">
+                  <h4 className="text-sm font-bold text-white">
+                    AI USAGE & COSTS — Separação Estrita de Gratuidade e Custos
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                    {Object.entries(aiEnginesConfig.usage_and_costs?.by_cost_classification || {}).map(([bucket, info]: [string, any]) => (
+                      <div key={bucket} className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1">
+                        <div className="font-bold text-indigo-300">{bucket}</div>
+                        <div className="text-white">Requisições: <strong>{info.requests}</strong></div>
+                        <div className="text-slate-400">Tokens: {info.tokens}</div>
+                        <div className="text-emerald-400">
+                          Custo Est.: {info.estimated_cost_brl === null ? "DESCONHECIDO" : `R$ ${info.estimated_cost_brl}`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* SUBMENU 9 & 10: HISTÓRICO & TESTES */}
+              {(aiHubSubmenu === "history" || aiHubSubmenu === "tests") && (
+                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3 text-xs">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-sm font-bold text-white">Histórico de Execuções, Testes de Conexão e Fallbacks</h4>
+                    <button
+                      onClick={async () => {
+                        const res = await apiFetch("/api/v1/ai-engine-hub/test-connection", {
+                          method: "POST",
+                          body: JSON.stringify({
+                            provider_key: aiEnginesConfig.configuration?.default_provider_key || "gemini",
+                            model_id: aiEnginesConfig.configuration?.default_text_model || "gemini-2.5-flash",
+                          }),
+                        });
+                        const refreshed = await apiFetch("/api/v1/ai-engine-hub/overview");
+                        setAiEnginesConfig(refreshed);
+                        showNotice(`Teste do motor padrão: ${res.status}`);
+                      }}
+                      className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold"
+                    >
+                      TESTAR MOTOR
+                    </button>
+                  </div>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {(aiEnginesConfig.recent_executions || []).map((ex: any) => (
+                      <div key={ex.execution_uuid} className="p-3 rounded bg-slate-900 border border-slate-800 flex justify-between items-center">
+                        <div>
+                          <div className="font-bold text-white">
+                            {ex.task_type} • Solicitado: {ex.requested_provider}:{ex.requested_model} → Executado: {ex.executed_provider || "NENHUM"}:{ex.executed_model || "-"}
+                          </div>
+                          <div className="text-slate-400">
+                            Origem: {ex.execution_origin} • Classificação: {ex.cost_classification} • Tokens: {ex.total_tokens}
+                          </div>
+                          {ex.error_message && <div className="text-amber-400 text-[11px]">{ex.error_message}</div>}
+                        </div>
+                        <span className="px-2 py-0.5 rounded bg-slate-800 font-bold text-indigo-300">{ex.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </main>

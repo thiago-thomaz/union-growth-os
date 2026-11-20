@@ -1032,4 +1032,233 @@ class ServiceDeliveryProject(Base):
     completed_at = Column(DateTime, nullable=True)
 
 
+# ==============================================================================
+# FASE 19 — UNION AI ENGINE HUB (PROVIDERS, MODELS, CREDENTIALS, ROUTER, USAGE, MEDIA)
+# ==============================================================================
+class AIProviderRecord(Base):
+    """Registro central de provedores de Inteligência Artificial por Tenant."""
+
+    __tablename__ = "ai_provider_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    provider_key = Column(String(60), index=True, nullable=False)  # gemini, openai, anthropic, groq, openrouter, openai_compatible
+    name = Column(String(160), nullable=False)
+    provider_class = Column(String(100), nullable=False)  # GeminiProvider, OpenAIProvider, AnthropicProvider, GroqProvider, OpenRouterProvider, GenericOpenAICompatibleProvider
+    base_url = Column(String(500), default="")
+    is_enabled = Column(Boolean, default=True)
+    is_priority_default = Column(Boolean, default=False)
+    # VERIFIED_FREE, OWNER_DECLARED_FREE, PAID, UNKNOWN_COST
+    cost_tier = Column(String(40), default="UNKNOWN_COST")
+    owner_permitted_free = Column(Boolean, default=False)
+    owner_approved_paid = Column(Boolean, default=False)
+    status = Column(String(40), default="PENDING_API_KEY")  # CONNECTED, READY_WITH_KEY, PENDING_API_KEY, DISABLED, ERROR
+    capabilities_json = Column(Text, default="{}")
+    known_quotas_json = Column(Text, default="{}")
+    limitations_text = Column(Text, default="")
+    cost_notes = Column(Text, default="")
+    daily_request_limit = Column(Integer, default=500)
+    monthly_request_limit = Column(Integer, default=10000)
+    daily_token_limit = Column(Integer, default=250000)
+    last_tested_at = Column(DateTime, nullable=True)
+    last_test_status = Column(String(40), default="NOT_TESTED")
+    last_error = Column(Text, default="")
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow)
+
+
+class AIModelRecord(Base):
+    """Catálogo configurável e atualizável de modelos de IA e suas capacidades individuais."""
+
+    __tablename__ = "ai_model_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    provider_key = Column(String(60), index=True, nullable=False)
+    model_id = Column(String(140), index=True, nullable=False)
+    display_name = Column(String(180), nullable=False)
+    modality = Column(String(40), default="TEXT")  # TEXT, IMAGE, VIDEO, AUDIO, MULTIMODAL
+    capabilities_json = Column(Text, default="{}")
+    # VERIFIED_FREE, OWNER_DECLARED_FREE, PAID, UNKNOWN_COST
+    cost_tier = Column(String(40), default="UNKNOWN_COST")
+    owner_permitted_free = Column(Boolean, default=False)
+    owner_approved_paid = Column(Boolean, default=False)
+    input_cost_per_1k_usd = Column(Float, nullable=True)
+    output_cost_per_1k_usd = Column(Float, nullable=True)
+    image_unit_cost_usd = Column(Float, nullable=True)
+    video_second_cost_usd = Column(Float, nullable=True)
+    known_quota_note = Column(Text, default="")
+    limitations_note = Column(Text, default="")
+    commercial_use_allowed = Column(Boolean, default=True)
+    is_enabled = Column(Boolean, default=True)
+    is_default_for_modality = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=utcnow)
+
+
+class AICredentialRecord(Base):
+    """Central de Credenciais de IA com criptografia Fernet em repouso e isolamento multi-tenant."""
+
+    __tablename__ = "ai_credential_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    provider_key = Column(String(60), index=True, nullable=False)
+    label = Column(String(140), default="Chave Principal")
+    encrypted_api_key = Column(Text, default="")
+    masked_key_preview = Column(String(100), default="")
+    custom_endpoint_url = Column(String(500), default="")
+    extra_headers_json = Column(Text, default="{}")
+    is_active = Column(Boolean, default=True)
+    last_tested_at = Column(DateTime, nullable=True)
+    last_test_status = Column(String(40), default="NOT_TESTED")
+    last_error = Column(Text, default="")
+    updated_by_user_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow)
+
+
+class AIEngineConfigurationRecord(Base):
+    """Configuração global, por tarefa e por agente do AI Router e políticas FREE_ONLY / OWNER_APPROVED."""
+
+    __tablename__ = "ai_engine_configurations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    default_provider_key = Column(String(60), default="gemini")
+    default_text_model = Column(String(140), default="gemini-2.5-flash")
+    default_image_provider = Column(String(60), default="gemini")
+    default_image_model = Column(String(140), default="imagen-3.0-generate-002")
+    default_video_provider = Column(String(60), default="gemini")
+    default_video_model = Column(String(140), default="veo-2.0-generate-001")
+    # FREE_ONLY or OWNER_APPROVED
+    cost_policy_mode = Column(String(40), default="FREE_ONLY")
+    allow_fallback = Column(Boolean, default=True)
+    allow_paid_fallback = Column(Boolean, default=False)
+    fallback_order_json = Column(Text, default='["gemini", "groq", "openrouter"]')
+    task_routing_json = Column(Text, default="{}")
+    agent_routing_json = Column(Text, default="{}")
+    limits_json = Column(Text, default="{}")
+    updated_at = Column(DateTime, default=utcnow)
+
+
+class AIEngineExecutionRecord(Base):
+    """Rastreabilidade completa de cada execução de IA, tokens, tempo, status e classificação de custo."""
+
+    __tablename__ = "ai_engine_executions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    execution_uuid = Column(String(80), unique=True, index=True, nullable=False)
+    task_type = Column(String(80), index=True, nullable=False)
+    modality = Column(String(40), default="TEXT")
+    agent_id = Column(String(60), default="AI_ENGINE_HUB")
+    requested_provider = Column(String(60), nullable=False)
+    requested_model = Column(String(140), nullable=False)
+    executed_provider = Column(String(60), default="")
+    executed_model = Column(String(140), default="")
+    fallback_used = Column(Boolean, default=False)
+    # VERIFIED_FREE, OWNER_DECLARED_FREE, PAID, UNKNOWN_COST, SIMULATION
+    cost_classification = Column(String(40), default="VERIFIED_FREE")
+    # REAL_PROVIDER_API, BLOCKED_POLICY, BLOCKED_CAPABILITY, FAILED_PROVIDER
+    execution_origin = Column(String(60), default="REAL_PROVIDER_API")
+    input_tokens = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
+    total_tokens = Column(Integer, default=0)
+    images_generated = Column(Integer, default=0)
+    videos_generated = Column(Integer, default=0)
+    estimated_cost_usd = Column(Float, nullable=True)
+    estimated_cost_brl = Column(Float, nullable=True)
+    confirmed_cost_brl = Column(Float, nullable=True)
+    duration_ms = Column(Float, default=0.0)
+    status = Column(String(50), default="SUCCESS")  # SUCCESS, FAILED, BLOCKED_FREE_ONLY, BLOCKED_CAPABILITY, BLOCKED_LIMIT, PENDING_API_KEY
+    error_message = Column(Text, default="")
+    prompt_preview = Column(Text, default="")
+    output_preview = Column(Text, default="")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class AIFallbackRecord(Base):
+    """Registro auditável de tentativas de fallback entre provedores."""
+
+    __tablename__ = "ai_fallback_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    execution_uuid = Column(String(80), index=True, nullable=False)
+    task_type = Column(String(80), default="text_generation")
+    primary_provider = Column(String(60), nullable=False)
+    primary_model = Column(String(140), nullable=False)
+    failure_reason = Column(Text, nullable=False)
+    fallback_provider = Column(String(60), default="")
+    fallback_model = Column(String(140), default="")
+    fallback_authorized = Column(Boolean, default=False)
+    final_status = Column(String(50), default="FAILED")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class AICampaignPackageRecord(Base):
+    """Pacotes completos de campanha e peças individuais gerados pelo UNION AI ENGINE HUB."""
+
+    __tablename__ = "ai_campaign_packages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    package_uuid = Column(String(80), unique=True, index=True, nullable=False)
+    generation_scope = Column(String(40), default="FULL_CAMPAIGN")  # FULL_CAMPAIGN, SINGLE_PIECE
+    piece_type = Column(String(50), default="ALL")  # ALL, POST, IMAGE, VIDEO, COPY, EMAIL, ARTICLE, LANDING_PAGE, CAROUSEL, AD, SCRIPT, SEO, CTA
+    campaign_name = Column(String(240), nullable=False)
+    objective = Column(String(180), default="")
+    target_audience = Column(Text, default="")
+    product_or_offer = Column(String(240), default="")
+    channel = Column(String(80), default="Multi-Channel")
+    provider_used = Column(String(60), default="")
+    model_used = Column(String(140), default="")
+    execution_origin = Column(String(60), default="REAL_PROVIDER_API")
+    cost_classification = Column(String(40), default="VERIFIED_FREE")
+    package_data_json = Column(Text, default="{}")
+    status = Column(String(40), default="GENERATED")
+    linked_campaign_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+
+
+class AIMediaGenerationRecord(Base):
+    """
+    Histórico do AI IMAGE STUDIO e AI VIDEO STUDIO.
+    Separa estritamente:
+    - Para vídeo: SCRIPT_ONLY, STORYBOARD_ONLY, PIPELINE_ASSEMBLED_VIDEO, RENDERED_VIDEO, PROVIDER_GENERATED_VIDEO, WAITING_PROCESSING.
+    - Para imagem: PROVIDER_GENERATED_IMAGE, PROMPT_ONLY, FAILED.
+    """
+
+    __tablename__ = "ai_media_generations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    media_uuid = Column(String(80), unique=True, index=True, nullable=False)
+    media_type = Column(String(30), index=True, nullable=False)  # IMAGE, VIDEO
+    delivery_stage = Column(String(50), nullable=False)  # SCRIPT_ONLY, STORYBOARD_ONLY, PIPELINE_ASSEMBLED_VIDEO, RENDERED_VIDEO, PROVIDER_GENERATED_VIDEO, WAITING_PROCESSING, PROVIDER_GENERATED_IMAGE, PROMPT_ONLY
+    provider_key = Column(String(60), nullable=False)
+    model_id = Column(String(140), nullable=False)
+    prompt = Column(Text, nullable=False)
+    style = Column(String(80), default="Corporate Modern")
+    format_ext = Column(String(30), default="PNG")
+    aspect_ratio = Column(String(30), default="1:1")
+    resolution = Column(String(40), default="1024x1024")
+    variations_count = Column(Integer, default=1)
+    commercial_use_allowed = Column(Boolean, default=True)
+    license_summary = Column(String(255), default="Subject to Provider Terms")
+    file_url = Column(String(500), default="")
+    preview_data_uri = Column(Text, default="")
+    script_text = Column(Text, default="")
+    storyboard_json = Column(Text, default="[]")
+    narration_text = Column(Text, default="")
+    subtitles_json = Column(Text, default="[]")
+    linked_campaign_id = Column(Integer, nullable=True)
+    linked_editorial_id = Column(Integer, nullable=True)
+    cost_classification = Column(String(40), default="VERIFIED_FREE")
+    status = Column(String(40), default="COMPLETED")
+    error_message = Column(Text, default="")
+    created_at = Column(DateTime, default=utcnow)
+
+
+
 

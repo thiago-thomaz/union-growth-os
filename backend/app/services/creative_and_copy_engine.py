@@ -301,6 +301,27 @@ def generate_persuasive_copy(
     var_a, ok_a = _sanitize_ethical_copy(var_a)
     var_b, ok_b = _sanitize_ethical_copy(var_b)
 
+    # Enriquecimento automático via AI Router (Menu 25 — UNION AI ENGINE HUB) quando chave ativa
+    try:
+        from app.services.ai_engines_hub import AIRouter
+        if settings.ENVIRONMENT != "test":
+            ai_prompt = (
+                f"Escreva uma copy persuasiva de alta conversão no formato {fw} para '{offer}' da marca '{tenant.brand_name}'. "
+                f"Público-alvo: {aud}. Benefício principal: {benefit}. Tipo de peça: {ctype}. Tom: {tone}."
+            )
+            ai_res = AIRouter.route_and_execute(
+                db=db,
+                tenant_id=tenant.id,
+                task_type="copywriting",
+                required_capability="text_generation",
+                prompt=ai_prompt,
+                agent_id="AGENT_06_COPYWRITER",
+            )
+            if ai_res.get("ok") and ai_res.get("output", {}).get("text"):
+                var_a, ok_a = _sanitize_ethical_copy(ai_res["output"]["text"])
+    except Exception:
+        pass
+
     hypothesis = (
         f"Testar se a abordagem da Variante A (foco direto em '{benefit}') gera maior CTR/Conversão "
         f"do que a Variante B (foco em redução de custo de oportunidade) junto ao público '{aud}'."

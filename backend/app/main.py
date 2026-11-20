@@ -102,6 +102,11 @@ def readiness_endpoint():
 
 app.include_router(api_v1_router)
 
+# Serve AI generated assets (images & MP4 videos)
+ASSETS_STORAGE_DIR = Path(settings.ASSETS_DIR)
+ASSETS_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/assets", StaticFiles(directory=str(ASSETS_STORAGE_DIR)), name="generated_assets")
+
 # Static frontend serving (Next.js static export in frontend/out or static/)
 FRONTEND_OUT_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "out"
 if FRONTEND_OUT_DIR.exists():

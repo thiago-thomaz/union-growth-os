@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     OPENAI_COMPATIBLE_BASE_URL: str = ""
     OPENAI_COMPATIBLE_API_KEY: str = ""
     OPENAI_COMPATIBLE_MODEL: str = ""
-    ENABLE_FREE_PUBLIC_LLM: bool = False
+    ENABLE_FREE_PUBLIC_LLM: bool = True
     AI_DAILY_TOKEN_LIMIT: int = 250000
     AI_DAILY_CALL_LIMIT: int = 500
     PAGESPEED_API_KEY: str = ""
