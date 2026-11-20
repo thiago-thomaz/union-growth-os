@@ -8,3 +8,5 @@ frontend/.next/
 data/
 *.log
 
+
+docs/manual/.chrome_tmp_profile_full/

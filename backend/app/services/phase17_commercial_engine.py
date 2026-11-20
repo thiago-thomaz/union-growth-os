@@ -1161,7 +1161,16 @@ def capture_lead_from_landing_page(
     )
     unit_code = lp.business_unit_code if lp else "UNION_TECH"
 
-    clean_email = payload.email.strip().lower()
+    from app.core.security import sanitize_text
+
+    clean_email = sanitize_text(payload.email.strip().lower())
+    clean_name = sanitize_text(payload.full_name.strip())
+    clean_phone = sanitize_text(payload.phone.strip())
+    clean_company = sanitize_text(payload.company_name.strip())
+    clean_purpose = sanitize_text(getattr(payload, "purpose_description", "") or "Atendimento comercial e envio de proposta solicitada")
+    clean_utm = sanitize_text(getattr(payload, "utm_campaign", "") or "")
+    clean_notes = sanitize_text(getattr(payload, "notes", "") or "")
+
     existing_lead = (
         db.query(CRMLead)
         .filter(
@@ -1174,10 +1183,10 @@ def capture_lead_from_landing_page(
 
     temp_lead_for_score = CRMLead(
         tenant_id=tenant_id,
-        full_name=payload.full_name.strip(),
+        full_name=clean_name,
         email=clean_email,
-        phone=payload.phone.strip(),
-        company_name=payload.company_name.strip(),
+        phone=clean_phone,
+        company_name=clean_company,
         source_channel=f"LandingPage:{payload.landing_page_slug}",
         buy_intent=payload.buy_intent,
         estimated_value=payload.estimated_value,
@@ -1189,15 +1198,15 @@ def capture_lead_from_landing_page(
     if existing_lead:
         if existing_lead.opt_out or existing_lead.contact_blocked:
             raise ValueError("Este contato solicitou opt-out ou bloqueio de comunicações comerciais (LGPD).")
-        existing_lead.full_name = payload.full_name or existing_lead.full_name
-        existing_lead.phone = payload.phone or existing_lead.phone
-        existing_lead.company_name = payload.company_name or existing_lead.company_name
+        existing_lead.full_name = clean_name or existing_lead.full_name
+        existing_lead.phone = clean_phone or existing_lead.phone
+        existing_lead.company_name = clean_company or existing_lead.company_name
         existing_lead.buy_intent = payload.buy_intent
         existing_lead.estimated_value = max(existing_lead.estimated_value, payload.estimated_value)
         existing_lead.lead_score = max(existing_lead.lead_score, score)
         existing_lead.last_contact_at = datetime.now(timezone.utc)
-        if payload.utm_campaign:
-            existing_lead.campaign_attribution = payload.utm_campaign
+        if clean_utm:
+            existing_lead.campaign_attribution = clean_utm
         db.commit()
         db.refresh(existing_lead)
         return {
@@ -1213,10 +1222,10 @@ def capture_lead_from_landing_page(
 
     new_lead = CRMLead(
         tenant_id=tenant_id,
-        full_name=payload.full_name.strip(),
+        full_name=clean_name,
         email=clean_email,
-        phone=payload.phone.strip(),
-        company_name=payload.company_name.strip(),
+        phone=clean_phone,
+        company_name=clean_company,
         source_channel=f"LandingPage:{payload.landing_page_slug}",
         buy_intent=payload.buy_intent,
         lead_score=score,
@@ -1228,11 +1237,11 @@ def capture_lead_from_landing_page(
         consent_lgpd=True,
         consent_source=f"Landing Page /{payload.landing_page_slug}",
         legal_basis="CONSENTIMENTO_OPT_IN_E_PROCEDIMENTO_PRELIMINAR_CONTRATUAL",
-        purpose_description=payload.purpose_description,
-        campaign_attribution=payload.utm_campaign,
+        purpose_description=clean_purpose,
+        campaign_attribution=clean_utm,
         opt_out=False,
         contact_blocked=False,
-        notes=payload.notes,
+        notes=clean_notes,
         data_origin=payload.data_origin,
     )
     db.add(new_lead)
@@ -1553,6 +1562,116 @@ def serialize_proposal(prop: CommercialProposal) -> dict[str, Any]:
         "pdf_url": f"/api/v1/commercial/proposals/{prop.id}/pdf",
         "created_at": prop.created_at.isoformat() if prop.created_at else "",
     }
+
+
+def render_public_landing_page_html(lp: LandingPage) -> str:
+    benefits = json.loads(lp.benefits_json or "[]")
+    differentials = json.loads(lp.differentials_json or "[]")
+    benefits_html = "".join(f"<li>✓ {b}</li>" for b in benefits)
+    diffs_html = "".join(f"<li>★ {d}</li>" for d in differentials)
+    return f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>{lp.title} — UNION GROWTH OS</title>
+<style>
+  body {{ font-family: 'Segoe UI', Arial, sans-serif; background: #070b14; color: #f8fafc; margin: 0; padding: 0; line-height: 1.6; }}
+  .container {{ max-width: 960px; margin: 0 auto; padding: 48px 24px; }}
+  .badge {{ display: inline-block; padding: 4px 12px; border-radius: 999px; background: rgba(79,70,229,0.2); border: 1px solid #4f46e5; color: #a5b4fc; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; }}
+  h1 {{ font-size: 34px; margin: 16px 0 12px; color: #ffffff; }}
+  .subtitle {{ font-size: 18px; color: #cbd5e1; margin-bottom: 32px; }}
+  .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }}
+  @media (max-width: 768px) {{ .grid {{ grid-template-columns: 1fr; }} }}
+  .card {{ background: #0f1629; border: 1px solid #1e293b; border-radius: 12px; padding: 24px; }}
+  .card h3 {{ margin-top: 0; color: #818cf8; font-size: 16px; }}
+  ul {{ list-style: none; padding: 0; margin: 0; }}
+  li {{ padding: 6px 0; color: #e2e8f0; font-size: 14px; }}
+  .form-card {{ background: #111827; border: 1px solid #4f46e5; border-radius: 12px; padding: 28px; }}
+  input, select, textarea {{ width: 100%; box-sizing: border-box; padding: 10px 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #334155; background: #070b14; color: #fff; font-size: 14px; }}
+  button {{ width: 100%; padding: 14px; border: none; border-radius: 8px; background: #4f46e5; color: #fff; font-weight: 700; font-size: 15px; cursor: pointer; }}
+  button:hover {{ background: #4338ca; }}
+  .lgpd {{ font-size: 12px; color: #94a3b8; display: flex; align-items: flex-start; gap: 8px; margin-bottom: 16px; }}
+  .lgpd input {{ width: auto; margin-top: 3px; }}
+  #msg {{ margin-top: 12px; font-size: 14px; font-weight: 600; }}
+</style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">{lp.business_unit_code} • /{lp.slug}</span>
+    <h1>{lp.title}</h1>
+    <div class="subtitle">{lp.value_proposition}</div>
+    <div class="grid">
+      <div class="card">
+        <h3>O Desafio Operacional</h3>
+        <p style="font-size:14px;color:#cbd5e1;">{lp.problem_statement}</p>
+        <h3>Nossa Solução Técnica</h3>
+        <p style="font-size:14px;color:#cbd5e1;">{lp.solution_summary}</p>
+        <h3>Benefícios Comprovados</h3>
+        <ul>{benefits_html}</ul>
+        <h3 style="margin-top:16px;">Diferenciais</h3>
+        <ul>{diffs_html}</ul>
+      </div>
+      <div class="form-card">
+        <h3 style="margin-top:0;color:#fff;font-size:18px;">{lp.cta_text}</h3>
+        <form id="lpForm">
+          <input type="text" id="full_name" placeholder="Seu Nome Completo *" required />
+          <input type="email" id="email" placeholder="E-mail Corporativo *" required />
+          <input type="text" id="phone" placeholder="WhatsApp / Telefone *" required />
+          <input type="text" id="company_name" placeholder="Empresa / Organização *" required />
+          <select id="buy_intent">
+            <option value="HIGH">Alta Prioridade (Implantação em até 30 dias)</option>
+            <option value="URGENT">Urgente (Diagnóstico Imediato)</option>
+            <option value="MEDIUM">Avaliação Técnica / Orçamento</option>
+          </select>
+          <label class="lgpd">
+            <input type="checkbox" id="consent_lgpd" required />
+            <span>Concordo com o tratamento dos dados para contato comercial conforme a LGPD. {lp.privacy_policy_summary}</span>
+          </label>
+          <button type="submit">{lp.cta_text}</button>
+          <div id="msg"></div>
+        </form>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Caso Real em Operação</h3>
+      <p style="font-size:14px;color:#cbd5e1;margin:0;">{lp.real_example_description}</p>
+    </div>
+  </div>
+  <script>
+    document.getElementById('lpForm').addEventListener('submit', async function(e) {{
+      e.preventDefault();
+      const msg = document.getElementById('msg');
+      msg.style.color = '#93c5fd';
+      msg.textContent = 'Enviando solicitação...';
+      try {{
+        const res = await fetch('/api/v1/public/landing-pages/{lp.slug}/capture', {{
+          method: 'POST',
+          headers: {{ 'Content-Type': 'application/json' }},
+          body: JSON.stringify({{
+            landing_page_slug: '{lp.slug}',
+            full_name: document.getElementById('full_name').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            company_name: document.getElementById('company_name').value,
+            buy_intent: document.getElementById('buy_intent').value,
+            estimated_value: 6800,
+            consent_lgpd: document.getElementById('consent_lgpd').checked,
+            data_origin: 'REAL'
+          }})
+        }});
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Falha ao enviar');
+        msg.style.color = '#34d399';
+        msg.textContent = 'Solicitação registrada com sucesso! Protocolo Lead #' + data.lead_id + ' (Score: ' + data.lead_score + ').';
+      }} catch (err) {{
+        msg.style.color = '#f87171';
+        msg.textContent = err.message;
+      }}
+    }});
+  </script>
+</body>
+</html>"""
 
 
 def render_proposal_printable_html(prop: CommercialProposal) -> str:

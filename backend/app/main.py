@@ -3,9 +3,9 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router as api_v1_router
@@ -102,6 +102,36 @@ def readiness_endpoint():
 
 app.include_router(api_v1_router)
 
+
+@app.get("/lp/{slug}", include_in_schema=False)
+def public_landing_page_view(slug: str):
+    from app.models.entities import LandingPage, Tenant
+    from app.services.phase17_commercial_engine import (
+        ensure_phase17_multibusiness_seeded,
+        render_public_landing_page_html,
+    )
+
+    db = SessionLocal()
+    try:
+        primary_tenant = db.query(Tenant).order_by(Tenant.id.asc()).first()
+        if primary_tenant:
+            ensure_phase17_multibusiness_seeded(db, primary_tenant)
+        lp = (
+            db.query(LandingPage)
+            .filter(LandingPage.slug == slug, LandingPage.is_published == True)
+            .order_by(LandingPage.id.asc())
+            .first()
+        )
+        if not lp:
+            return JSONResponse(status_code=404, content={"detail": f"Landing Page '/lp/{slug}' não encontrada."})
+        lp.views_count = (lp.views_count or 0) + 1
+        db.commit()
+        db.refresh(lp)
+        return HTMLResponse(content=render_public_landing_page_html(lp), status_code=200)
+    finally:
+        db.close()
+
+
 # Serve AI generated assets (images & MP4 videos)
 ASSETS_STORAGE_DIR = Path(settings.ASSETS_DIR)
 ASSETS_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
@@ -116,6 +146,12 @@ if FRONTEND_OUT_DIR.exists():
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_spa(full_path: str):
+        normalized = full_path.strip("/")
+        if normalized == "api" or normalized.startswith("api/"):
+            return JSONResponse(
+                status_code=404,
+                content={"detail": f"Endpoint API não encontrado: /{normalized}"},
+            )
         target = FRONTEND_OUT_DIR / full_path
         if full_path and target.exists() and target.is_file():
             return FileResponse(str(target))

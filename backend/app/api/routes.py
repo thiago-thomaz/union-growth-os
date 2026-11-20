@@ -3041,6 +3041,36 @@ def commercial_capture_lead_from_lp(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.post("/public/landing-pages/{slug}/capture", status_code=status.HTTP_201_CREATED)
+def public_capture_lead_from_lp(
+    slug: str,
+    payload: LandingPageCaptureLeadRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    from app.core.security import enforce_rate_limit
+    from app.models.entities import LandingPage as _LP
+
+    enforce_rate_limit(request)
+    primary_tenant = db.query(Tenant).order_by(Tenant.id.asc()).first()
+    if not primary_tenant:
+        raise HTTPException(status_code=404, detail="Organização não configurada.")
+    ensure_phase17_multibusiness_seeded(db, primary_tenant)
+    lp = (
+        db.query(_LP)
+        .filter(_LP.slug == slug, _LP.is_published == True)
+        .order_by(_LP.id.asc())
+        .first()
+    )
+    if not lp:
+        raise HTTPException(status_code=404, detail=f"Landing Page '/lp/{slug}' não encontrada ou inativa.")
+    payload.landing_page_slug = slug
+    try:
+        return capture_lead_from_landing_page(db, tenant_id=lp.tenant_id, payload=payload)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @router.put("/crm/leads/{lead_id}/funnel-stage")
 def commercial_update_lead_funnel_stage(
     lead_id: int,

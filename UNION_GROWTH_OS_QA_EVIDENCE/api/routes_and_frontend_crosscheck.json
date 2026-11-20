@@ -1,0 +1,44 @@
+{
+  "audit_phase": "FASE 20 — Cruzamento Completo Frontend (page.tsx) x Backend (routes.py)",
+  "backend_unique_route_paths": 118,
+  "backend_total_http_methods": 130,
+  "frontend_total_apifetch_calls": 98,
+  "frontend_backend_mismatches_after_fix": 0,
+  "defects_discovered_and_fixed": [
+    {
+      "id": "DEFECT-01",
+      "severity": "P1",
+      "component": "backend/app/main.py (serve_spa)",
+      "description": "Catch-all SPA route returned HTTP 200 (index.html) for unmatched GET /api/* paths instead of JSON 404.",
+      "status": "FIXED_AND_VERIFIED"
+    },
+    {
+      "id": "DEFECT-02",
+      "severity": "P1",
+      "component": "backend/app/core/security.py (get_current_user)",
+      "description": "X-Tenant-Id header pointing to an unauthorized or non-existent tenant was silently ignored instead of raising HTTP 403 Forbidden.",
+      "status": "FIXED_AND_VERIFIED"
+    },
+    {
+      "id": "DEFECT-03",
+      "severity": "P1",
+      "component": "frontend/src/app/page.tsx & backend/app/core/security.py",
+      "description": "Proposal PDF <a target='_blank'> link opened new browser tab without Bearer token or tenant_id query parameter, returning HTTP 401/404.",
+      "status": "FIXED_AND_VERIFIED"
+    },
+    {
+      "id": "DEFECT-04",
+      "severity": "P1",
+      "component": "backend/app/main.py, backend/app/api/routes.py, backend/app/services/phase17_commercial_engine.py",
+      "description": "Public Landing Pages /lp/{slug} fell through to admin login SPA, lacked unauthenticated public lead capture endpoint, and needed explicit sanitize_text() XSS stripping on capture.",
+      "status": "FIXED_AND_VERIFIED"
+    },
+    {
+      "id": "DEFECT-05",
+      "severity": "P2",
+      "component": "frontend/src/app/page.tsx (loadAllActiveData)",
+      "description": "Menu 09 Piloto 7 Dias persisted history (/api/v1/system/pilot-7-days) was not loaded on initial dashboard boot.",
+      "status": "FIXED_AND_VERIFIED"
+    }
+  ]
+}

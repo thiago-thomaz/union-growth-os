@@ -1900,6 +1900,388 @@ def test_43_phase19_union_ai_engine_hub_complete_suite(client: TestClient, monke
     assert len(final_ov["recent_fallbacks"]) >= 1
 
 
+def test_44_phase20_qa_defects_security_and_e2e_15_scenarios(client: TestClient, monkeypatch):
+    """
+    FASE 20 — Suite Completa de Regressão (DEFECT-01 a DEFECT-05), Segurança Multi-Tenant
+    e 15 Cenários E2E Integrados no tenant isolado QA_AUTOMATED_TENANT.
+    """
+    from app.services.ai_engines_hub import GeminiProvider
+
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    # =========================================================================
+    # PARTE 1: VALIDAÇÃO DE REGRESSÃO DOS 5 DEFEITOS CORRIGIDOS NA FASE 20
+    # =========================================================================
+
+    # DEFECT-01: Rota /api/* inexistente DEVE retornar JSON 404 (e nunca index.html com HTTP 200)
+    r_bad_api = client.get("/api/v1/rota-inexistente-auditoria-fase20")
+    assert r_bad_api.status_code == 404
+    assert "application/json" in r_bad_api.headers.get("content-type", "")
+
+    # DEFECT-02: Isolamento Multi-Tenant estrito no header X-Tenant-Id
+    r_cross_tenant = client.get(
+        "/api/v1/dashboard/overview",
+        headers={**h, "X-Tenant-Id": "999999"},
+    )
+    assert r_cross_tenant.status_code == 403
+
+    r_invalid_tenant_hdr = client.get(
+        "/api/v1/dashboard/overview",
+        headers={**h, "X-Tenant-Id": "abc_sql_inject"},
+    )
+    assert r_invalid_tenant_hdr.status_code == 403
+
+    # DEFECT-04: Landing Page pública GET /lp/{slug} e captura pública POST /api/v1/public/landing-pages/{slug}/capture
+    r_public_lp = client.get("/lp/agentes-ia")
+    assert r_public_lp.status_code == 200
+    assert "text/html" in r_public_lp.headers.get("content-type", "")
+    assert "Agentes de IA" in r_public_lp.text
+    assert "lgpd" in r_public_lp.text.lower()
+
+    r_public_lp_404 = client.get("/lp/slug-inexistente-999")
+    assert r_public_lp_404.status_code == 404
+
+    # Captura pública sem consentimento LGPD deve falhar com HTTP 400
+    r_pub_no_lgpd = client.post(
+        "/api/v1/public/landing-pages/agentes-ia/capture",
+        json={
+            "landing_page_slug": "agentes-ia",
+            "full_name": "Visitante Sem Consentimento",
+            "email": f"nolgpd.{RUN_SUFFIX}@teste.com.br",
+            "phone": "+5511988887777",
+            "company_name": "Empresa Teste",
+            "buy_intent": "HIGH",
+            "estimated_value": 5000.0,
+            "consent_lgpd": False,
+            "data_origin": "TEST",
+        },
+    )
+    assert r_pub_no_lgpd.status_code == 400
+
+    # Captura pública com payload XSS deve sanitizar tags <script> e criar lead
+    r_pub_xss = client.post(
+        "/api/v1/public/landing-pages/agentes-ia/capture",
+        json={
+            "landing_page_slug": "agentes-ia",
+            "full_name": "Visitante Publico <script>alert(1)</script>",
+            "email": f"pub.xss.{RUN_SUFFIX}@teste.com.br",
+            "phone": "+5511977776666",
+            "company_name": "Corp <script>evil()</script> Ltda",
+            "buy_intent": "URGENT",
+            "estimated_value": 8500.0,
+            "consent_lgpd": True,
+            "data_origin": "TEST",
+        },
+    )
+    assert r_pub_xss.status_code == 201
+    pub_lead_id = r_pub_xss.json()["lead_id"]
+    created_pub_lead = client.get(f"/api/v1/crm/leads/{pub_lead_id}/lgpd-export", headers=h).json()["personal_data"]
+    assert "<script>" not in created_pub_lead["full_name"].lower()
+    assert "<script>" not in created_pub_lead["company_name"].lower()
+
+    # DEFECT-05: Histórico do Piloto 7 Dias disponível no GET /api/v1/system/pilot-7-days
+    r_pilot_hist = client.get("/api/v1/system/pilot-7-days", headers=h)
+    assert r_pilot_hist.status_code == 200
+    assert "days_simulated" in r_pilot_hist.json()
+
+    # =========================================================================
+    # PARTE 2: 15 CENÁRIOS E2E NO TENANT ISOLADO QA_AUTOMATED_TENANT
+    # =========================================================================
+    r_qa_tenant = client.post(
+        "/api/v1/tenants",
+        headers=h,
+        json={
+            "name": "QA_AUTOMATED_TENANT",
+            "brand_name": f"QA_AUTOMATED_TENANT_{RUN_SUFFIX}",
+            "niche": "Auditoria & QA E2E",
+            "primary_color": "#4F46E5",
+            "secondary_color": "#10B981",
+        },
+    )
+    assert r_qa_tenant.status_code == 201
+    qa_tid = r_qa_tenant.json()["id"]
+    qa_h = {**h, "X-Tenant-Id": str(qa_tid)}
+
+    # CENÁRIO 1 & 2 — CAPTAÇÃO DE LEAD + QUALIFICAÇÃO AUTOMÁTICA (Lead Score >= 65)
+    r_c1 = client.post(
+        "/api/v1/commercial/landing-pages/capture-lead",
+        headers=qa_h,
+        json={
+            "landing_page_slug": "union-tech",
+            "full_name": "Roberto Diretor QA",
+            "email": f"roberto.qa.{RUN_SUFFIX}@empresaqa.com.br",
+            "phone": "+5511991112222",
+            "company_name": f"QA Enterprise {RUN_SUFFIX} S.A.",
+            "buy_intent": "URGENT",
+            "estimated_value": 18000.0,
+            "consent_lgpd": True,
+            "utm_campaign": "qa_e2e_phase20",
+            "data_origin": "TEST",
+        },
+    )
+    assert r_c1.status_code == 201
+    c1_data = r_c1.json()
+    qa_lead_id = c1_data["lead_id"]
+    assert c1_data["lead_score"] >= 65
+    assert c1_data["qualification_status"] == "QUALIFIED"
+    assert c1_data["funnel_stage"] == "QUALIFICADO"
+
+    # CENÁRIO 3 — CRM COMPLETO (Movimentação de etapas)
+    for stage in ("DIAGNOSTICO", "PROPOSTA", "NEGOCIACAO"):
+        r_stg = client.put(
+            f"/api/v1/crm/leads/{qa_lead_id}/funnel-stage",
+            headers=qa_h,
+            json={"funnel_stage": stage, "notes": f"Avanço E2E para {stage}"},
+        )
+        assert r_stg.status_code == 200
+        assert r_stg.json()["funnel_stage"] == stage
+
+    # CENÁRIO 4 — CAMPANHA DE MARKETING + COPY + CRIATIVO + CALENDÁRIO EDITORIAL
+    r_mkt_camp = client.post(
+        "/api/v1/marketing/campaigns",
+        headers=qa_h,
+        json={
+            "name": f"Campanha E2E QA {RUN_SUFFIX}",
+            "campaign_type": "ACQUISITION",
+            "objective": "LEAD_GENERATION",
+            "channel": "LinkedIn & Google",
+            "budget_planned": 0.0,
+        },
+    )
+    assert r_mkt_camp.status_code == 201
+
+    r_copy = client.post(
+        "/api/v1/copywriter/generate",
+        headers=qa_h,
+        json={
+            "title": f"Copy QA {RUN_SUFFIX}",
+            "copy_type": "AD_COPY",
+            "framework": "PAS",
+            "product_or_offer": "Agentes de IA UNION TECH",
+            "target_audience": "CTOs e COOs",
+            "key_benefit": "Automatizar triagem comercial 24/7",
+        },
+    )
+    assert r_copy.status_code == 201
+
+    r_cre = client.post(
+        "/api/v1/creative/assets/generate",
+        headers=qa_h,
+        json={
+            "title": f"Criativo QA {RUN_SUFFIX}",
+            "asset_type": "CAROUSEL",
+            "platform": "linkedin",
+            "headline_text": "Operação Autônoma com IA",
+            "subheadline_text": "Indicadores auditáveis em tempo real",
+            "cta_text": "Solicitar Diagnóstico",
+        },
+    )
+    assert r_cre.status_code == 201
+
+    r_cal = client.post(
+        "/api/v1/social/calendar",
+        headers=qa_h,
+        json={
+            "title": f"Post Editorial QA {RUN_SUFFIX}",
+            "platform": "linkedin",
+            "content_format": "POST",
+            "caption": "Como eliminar gargalos manuais com IA nativa em Python.",
+            "hashtags": ["#IA", "#Automacao"],
+            "scheduled_for": "2026-12-01 09:00",
+        },
+    )
+    assert r_cal.status_code == 201
+
+    # CENÁRIO 5 — UNION AI ENGINE HUB (Política FREE_ONLY + Roteamento Gemini + Registro de Custo Zero)
+    def mock_gemini_e2e_text(self, model_id, prompt, system_instruction="", temperature=0.4):
+        return {
+            "text": f"[GEMINI_QA_E2E_OK] Estratégia gerada para: {prompt[:60]}",
+            "provider_key": "gemini",
+            "model_id": model_id,
+            "input_tokens": 25,
+            "output_tokens": 45,
+            "total_tokens": 70,
+            "duration_ms": 35.0,
+        }
+
+    monkeypatch.setattr(GeminiProvider, "generate_text", mock_gemini_e2e_text)
+    client.post(
+        "/api/v1/ai-engine-hub/credentials",
+        headers=qa_h,
+        json={"provider_key": "gemini", "api_key": "AIzaSyQA_Isolated_Key_1234567890", "is_active": True},
+    )
+    r_ai_exec = client.post(
+        "/api/v1/ai-engine-hub/route-execute",
+        headers=qa_h,
+        json={"task_type": "campaigns", "required_capability": "text_generation", "prompt": "Campanha E2E QA_AUTOMATED_TENANT"},
+    )
+    assert r_ai_exec.status_code == 200 and r_ai_exec.json()["ok"] is True
+    assert r_ai_exec.json()["cost_classification"] == "VERIFIED_FREE"
+
+    # CENÁRIO 6 — PROPOSTA COMERCIAL + PDF IMPRIMÍVEL (DEFECT-03 via ?access_token=)
+    r_prop = client.post(
+        "/api/v1/commercial/proposals",
+        headers=qa_h,
+        json={
+            "business_unit_code": "UNION_TECH",
+            "lead_id": qa_lead_id,
+            "service_code": "SRV_02_AGENTES_IA",
+            "client_name": "Roberto Diretor QA",
+            "client_company": f"QA Enterprise {RUN_SUFFIX} S.A.",
+            "client_email": f"roberto.qa.{RUN_SUFFIX}@empresaqa.com.br",
+            "identified_problem": "Triagem manual lenta e falta de qualificação 24/7.",
+            "setup_price_brl": 6800.0,
+            "monthly_price_brl": 690.0,
+            "data_origin": "TEST",
+        },
+    )
+    assert r_prop.status_code == 201
+    prop_id = r_prop.json()["id"]
+    assert r_prop.json()["status"] == "PENDING_APPROVAL"
+
+    # DEFECT-03: Abrir PDF em nova aba usando apenas query params ?access_token=&tenant_id= (sem headers Authorization/X-Tenant-Id)
+    r_pdf_tab = client.get(f"/api/v1/commercial/proposals/{prop_id}/pdf?access_token={token}&tenant_id={qa_tid}")
+    assert r_pdf_tab.status_code == 200
+    assert "text/html" in r_pdf_tab.headers.get("content-type", "")
+
+    # CENÁRIO 7 — APROVAÇÃO HUMANA (Bloqueio sem owner_approve=True + Aprovação com owner_approve=True)
+    r_prop_block = client.put(
+        f"/api/v1/commercial/proposals/{prop_id}/status",
+        headers=qa_h,
+        json={"status": "SENT", "owner_approve": False},
+    )
+    assert r_prop_block.status_code == 403
+
+    r_prop_approve = client.put(
+        f"/api/v1/commercial/proposals/{prop_id}/status",
+        headers=qa_h,
+        json={"status": "SENT", "owner_approve": True, "acceptance_evidence": "Aprovado para envio formal pela Diretoria"},
+    )
+    assert r_prop_approve.status_code == 200
+    assert r_prop_approve.json()["status"] == "SENT"
+    assert r_prop_approve.json()["owner_approved"] is True
+
+    # CENÁRIO 8 — CONTRATO / ACEITE FORMAL
+    r_contract = client.put(
+        f"/api/v1/commercial/proposals/{prop_id}/status",
+        headers=qa_h,
+        json={
+            "status": "ACCEPTED",
+            "owner_approve": True,
+            "acceptance_evidence": "Aceite digital E2E QA_AUTOMATED_TENANT IP 127.0.0.1",
+        },
+    )
+    assert r_contract.status_code == 200
+    assert r_contract.json()["status"] == "ACCEPTED"
+
+    # CENÁRIO 9 — COBRANÇA SANDBOX, WEBHOOK HMAC-SHA256, IDEMPOTÊNCIA E ESTORNO
+    r_charge = client.post(
+        "/api/v1/commercial/payments/charge",
+        headers=qa_h,
+        json={
+            "business_unit_code": "UNION_TECH",
+            "proposal_id": prop_id,
+            "client_name": "Roberto Diretor QA",
+            "client_company": f"QA Enterprise {RUN_SUFFIX} S.A.",
+            "client_email": f"roberto.qa.{RUN_SUFFIX}@empresaqa.com.br",
+            "amount_brl": 6800.0,
+            "payment_method": "PIX",
+            "idempotency_key": f"qa-e2e-idem-{RUN_SUFFIX}",
+            "sandbox_mode": True,
+            "owner_approved": True,
+            "data_origin": "TEST",
+        },
+    )
+    assert r_charge.status_code == 201
+    charge_obj = r_charge.json()
+
+    r_wh = client.post(
+        "/api/v1/commercial/payments/webhook",
+        headers=qa_h,
+        json={
+            "external_reference": charge_obj["external_reference"],
+            "provider_payment_id": charge_obj["provider_payment_id"],
+            "new_status": "APPROVED",
+            "signature": charge_obj["webhook_test_signature_for_approved"],
+        },
+    )
+    assert r_wh.status_code == 200
+    wh_obj = r_wh.json()
+    assert wh_obj["status"] == "APPROVED"
+    assert wh_obj["onboarding_project_id"] is not None
+    qa_proj_id = wh_obj["onboarding_project_id"]
+
+    # CENÁRIO 10 & 11 — ONBOARDING AUTOMÁTICO E ENTREGA COM EVIDÊNCIA OBRIGATÓRIA
+    r_proj_list = client.get("/api/v1/commercial/delivery-projects", headers=qa_h)
+    assert r_proj_list.status_code == 200
+    assert any(p["id"] == qa_proj_id for p in r_proj_list.json())
+
+    # Tentar concluir sem evidência deve bloquear com HTTP 400
+    r_deliv_blk = client.put(
+        f"/api/v1/commercial/delivery-projects/{qa_proj_id}",
+        headers=qa_h,
+        json={"status": "COMPLETED", "delivery_evidence": ""},
+    )
+    assert r_deliv_blk.status_code == 400
+
+    # Concluir com evidência auditável
+    r_deliv_ok = client.put(
+        f"/api/v1/commercial/delivery-projects/{qa_proj_id}",
+        headers=qa_h,
+        json={
+            "completed_checklist_step": "Kickoff e levantamento de requisitos",
+            "deliverable_submitted": "Agente de IA configurado e homologado",
+            "delivery_evidence": "https://automacao.projetosunion.cloud/evidencia-entrega-qa-fase20",
+            "status": "COMPLETED",
+            "client_validation_status": "APPROVED_BY_CLIENT",
+            "client_validation_notes": "Homologado no teste E2E da Fase 20.",
+        },
+    )
+    assert r_deliv_ok.status_code == 200
+    assert r_deliv_ok.json()["status"] == "COMPLETED"
+    assert r_deliv_ok.json()["progress_pct"] == 100.0
+
+    # CENÁRIO 12 — FINANCEIRO (Separação estrita entre Receita Real, Simulação/Teste e Estorno nos 5 Buckets)
+    r_panel = client.get("/api/v1/commercial/phase18-1-executive-panel", headers=qa_h)
+    assert r_panel.status_code == 200
+    panel = r_panel.json()
+    for bucket in ("REAL", "ESTIMATIVA", "PROJECAO", "META", "SIMULACAO"):
+        assert bucket in panel
+    assert panel["REAL"]["receita_recebida_confirmada_brl"] == 0.0
+    assert panel["SIMULACAO"]["cobrancas_sandbox_total"] >= 1
+
+    # CENÁRIO 13 — PÓS-VENDA / CUSTOMER SUCCESS (NPS)
+    r_cs = client.post(
+        "/api/v1/customer-success/feedbacks",
+        headers=qa_h,
+        json={
+            "customer_name": f"QA Enterprise {RUN_SUFFIX} S.A.",
+            "customer_email": f"roberto.qa.{RUN_SUFFIX}@empresaqa.com.br",
+            "nps_score": 10,
+            "csat_score": 5,
+            "feedback_text": "Entrega impecável e auditável na Fase 20.",
+        },
+    )
+    assert r_cs.status_code == 201
+    assert r_cs.json()["churn_risk"] == "LOW"
+
+    # CENÁRIO 14 — DASHBOARD E KPIs (Consistência com o banco de dados do tenant QA)
+    r_ov = client.get("/api/v1/dashboard/overview", headers=qa_h)
+    assert r_ov.status_code == 200
+    ov_data = r_ov.json()
+    assert ov_data["tenant"]["name"] == "QA_AUTOMATED_TENANT"
+
+    # CENÁRIO 15 — RELATÓRIO EXECUTIVO E BACKUP
+    r_rep = client.get("/api/v1/reports/executive", headers=qa_h)
+    assert r_rep.status_code == 200
+    r_bkp = client.post("/api/v1/system/backup", headers=h)
+    assert r_bkp.status_code == 201
+    assert r_bkp.json()["size_bytes"] > 100
+
+
+
+
 
 
 

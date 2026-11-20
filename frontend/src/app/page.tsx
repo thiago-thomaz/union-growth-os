@@ -327,9 +327,9 @@ export default function UnionGrowthOSPortal() {
       setIntegrationsData(intg);
       setAuditData(aud);
 
-      // Carregar dados da FASE 14 e MENU 25 (Motores de IA)
+      // Carregar dados da FASE 14, Piloto 7 Dias e MENU 25 (Motores de IA)
       try {
-        const [cfItems, cPlan, opDash, sAlerts, rCosts, mbDash, aiCfg] = await Promise.all([
+        const [cfItems, cPlan, opDash, sAlerts, rCosts, mbDash, aiCfg, pilotRes] = await Promise.all([
           apiFetch("/api/v1/content-factory/items").catch(() => []),
           apiFetch("/api/v1/ceo/daily-plan").catch(() => null),
           apiFetch("/api/v1/system/operational-dashboard").catch(() => null),
@@ -337,6 +337,7 @@ export default function UnionGrowthOSPortal() {
           apiFetch("/api/v1/system/resource-costs").catch(() => null),
           apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`).catch(() => null),
           apiFetch("/api/v1/ai-engines/config").catch(() => null),
+          apiFetch("/api/v1/system/pilot-7-days").catch(() => null),
         ]);
         setContentFactoryItems(cfItems || []);
         setCeoDailyPlan(cPlan);
@@ -345,6 +346,7 @@ export default function UnionGrowthOSPortal() {
         setResourceCosts(rCosts);
         setMbDashboard(mbDash);
         setAiEnginesConfig(aiCfg);
+        if (pilotRes) setPilotData(pilotRes);
       } catch (e) {
         // silencioso para não interromper carga base
       }
@@ -3308,7 +3310,7 @@ export default function UnionGrowthOSPortal() {
                         </div>
                         <div className="flex gap-1.5">
                           <a
-                            href={p.pdf_url}
+                            href={`${p.pdf_url}?access_token=${encodeURIComponent(token || "")}${activeTenantId ? `&tenant_id=${activeTenantId}` : ""}`}
                             target="_blank"
                             rel="noreferrer"
                             className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 font-semibold"

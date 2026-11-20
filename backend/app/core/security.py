@@ -202,12 +202,13 @@ def get_current_user(
     from app.models.entities import User
 
     enforce_rate_limit(request)
-    if not credentials or not credentials.credentials:
+    token_str = credentials.credentials if (credentials and credentials.credentials) else request.query_params.get("access_token")
+    if not token_str:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Autenticação necessária. Forneça Bearer Token.",
         )
-    payload = decode_access_token(credentials.credentials)
+    payload = decode_access_token(token_str)
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token sem identificador de usuário.")
@@ -221,14 +222,28 @@ def get_current_user(
             detail="PASSWORD_CHANGE_REQUIRED: defina uma nova senha forte em /api/v1/auth/change-password antes de continuar.",
         )
 
-    header_tenant = request.headers.get("X-Tenant-Id")
-    if header_tenant and header_tenant.isdigit():
-        requested_tid = int(header_tenant)
-        if requested_tid != user.tenant_id and user.role == "owner":
+    header_tenant = request.headers.get("X-Tenant-Id") or request.query_params.get("tenant_id")
+    if header_tenant is not None and str(header_tenant).strip() != "":
+        if not str(header_tenant).strip().isdigit():
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="X-Tenant-Id inválido (Isolamento Multi-Tenant).",
+            )
+        requested_tid = int(str(header_tenant).strip())
+        if requested_tid != user.tenant_id:
+            if user.role != "owner":
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Acesso negado ao Tenant solicitado (Isolamento Multi-Tenant).",
+                )
             from app.models.entities import Tenant
             t = db.query(Tenant).filter(Tenant.id == requested_tid, Tenant.owner_email == user.email).first()
-            if t:
-                user.active_tenant_override = requested_tid
+            if not t:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Acesso negado ao Tenant solicitado: organização não pertence ao usuário autenticado.",
+                )
+            user.active_tenant_override = requested_tid
     return user
 
 
