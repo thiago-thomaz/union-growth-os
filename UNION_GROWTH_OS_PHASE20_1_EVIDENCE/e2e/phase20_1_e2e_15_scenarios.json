@@ -1,0 +1,125 @@
+{
+  "run_id": "p201-8b05cfd6",
+  "audited_at_utc": "2026-11-20T17:29:21.278526+00:00",
+  "scenarios": {
+    "01_lead_capture_and_xss_readback": {
+      "status": "PASS (REAL)",
+      "http_status": 201,
+      "lead_id": 8,
+      "sanitized_name_persisted": "Auditor  p201-8b05cfd6"
+    },
+    "02_auto_qualification": {
+      "status": "PASS (REAL)",
+      "lead_score": 100,
+      "qualification_status": "QUALIFIED"
+    },
+    "03_crm_pipeline": {
+      "status": "PASS (REAL)",
+      "http_status": 200,
+      "funnel_stage": "PROPOSTA"
+    },
+    "04_marketing_campaign_and_copy": {
+      "status": "PASS (REAL)",
+      "campaign_id": 107,
+      "copy_id": 12
+    },
+    "05_union_ai_engine_hub": {
+      "status": "BLOCKED (QUOTA_OR_BILLING_REQUIRED)",
+      "free_only_all_5_blocked": true,
+      "free_only_matrix": {
+        "openai_gpt4o_paid": {
+          "ok": false,
+          "status": "BLOCKED_FREE_ONLY",
+          "error": "Bloqueado pela política FREE_ONLY: o modelo 'gpt-4o' (openai) possui classificação de custo 'PAID' e não está autorizado para uso gratuito.",
+          "blocked_properly": true
+        },
+        "anthropic_claude_paid": {
+          "ok": false,
+          "status": "BLOCKED_FREE_ONLY",
+          "error": "Bloqueado pela política FREE_ONLY: o modelo 'claude-3-7-sonnet-latest' (anthropic) possui classificação de custo 'PAID' e não está autorizado para uso gratuito.",
+          "blocked_properly": true
+        },
+        "openai_compatible_unknown": {
+          "ok": false,
+          "status": "BLOCKED_FREE_ONLY",
+          "error": "Provedor 'openai_compatible' está desativado.",
+          "blocked_properly": true
+        },
+        "google_imagen3_paid": {
+          "ok": false,
+          "status": "BLOCKED_FREE_ONLY",
+          "blocked_properly": true
+        },
+        "google_veo2_paid": {
+          "ok": false,
+          "status": "BLOCKED_FREE_ONLY",
+          "blocked_properly": true
+        }
+      },
+      "gemini_connection_test": {
+        "ok": true,
+        "status": "CONNECTED",
+        "latency_ms": 322.32
+      },
+      "gemini_live_generation": {
+        "status_classification": "BLOCKED (QUOTA_OR_BILLING_REQUIRED)",
+        "ok": false,
+        "status": "QUOTA_OR_BILLING_REQUIRED",
+        "executed_model": null,
+        "estimated_cost_brl": 0.0,
+        "error": "Cota gratuita esgotada ou faturamento exigido pela Google (HTTP 402 Payment Required). Nenhuma cobrança foi realizada. Utilize uma chave padrão Free Tier ('AIzaSy...') gerada em https://aistudio.google.com/apikey."
+      }
+    },
+    "06_commercial_proposal_and_secure_pdf": {
+      "status": "PASS (REAL)",
+      "proposal_id": 3,
+      "proposal_number": "PROP-20261120-91BD89",
+      "zero_url_token_enforced": true
+    },
+    "07_human_approval_governance": {
+      "status": "PASS (REAL)",
+      "unapproved_http": 403,
+      "approved_status": "SENT"
+    },
+    "08_contract_acceptance": {
+      "status": "PASS (REAL)",
+      "status_persisted": "ACCEPTED"
+    },
+    "09_payment_and_webhook_hmac": {
+      "status": "PASS (SANDBOX)",
+      "charge_id": 6,
+      "forged_sig_http": 401,
+      "duplicate_idempotent": true,
+      "onboarding_project_id": 6
+    },
+    "10_automatic_onboarding": {
+      "status": "PASS (REAL)",
+      "project_id": 6
+    },
+    "11_project_delivery_with_evidence": {
+      "status": "PASS (REAL)",
+      "empty_evidence_http": 400,
+      "completed_progress_pct": 100.0
+    },
+    "12_financial_5_buckets_isolation": {
+      "status": "PASS (REAL)",
+      "real_confirmed_revenue_brl": 0,
+      "sandbox_charges_total": 3
+    },
+    "13_customer_success_nps": {
+      "status": "PASS (REAL)",
+      "churn_risk": "LOW"
+    },
+    "14_dashboard_kpis_consistency": {
+      "status": "PASS (REAL)",
+      "tenant_name": "QA_AUTOMATED_TENANT",
+      "real_leads_card_excluding_test": 0
+    },
+    "15_executive_report_and_backups": {
+      "status": "PASS (REAL)",
+      "report_http": 200,
+      "backup_http": 201,
+      "backup_size_bytes": 818049
+    }
+  }
+}

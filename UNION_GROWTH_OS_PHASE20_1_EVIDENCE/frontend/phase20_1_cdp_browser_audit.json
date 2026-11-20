@@ -1,0 +1,250 @@
+{
+  "prod_url": "https://automacao.projetosunion.cloud",
+  "steps": {
+    "01_open_login": {
+      "passed": true,
+      "preview": "UG\nUNION GROWTH OS\n\nAI Business, CEO, Marketing, SEO & CRM Platform\n\nEntrar no Sistema\nNova Empresa (Multi-Tenant)\nE-mail Corporativo\nSenha de Acesso\nAcessar Central Executiva\n\nCre"
+    },
+    "02_login_and_dashboard": {
+      "submit_result": "SUBMITTED",
+      "logged_in": true,
+      "leads_kpi_rendered": "Leads no CRM\nDADO REAL\n2\nConversões: 1 (50.0%)",
+      "passed": true
+    },
+    "04_menu17m_secure_blob_pdf_click": {
+      "switched_to_qa_tenant": true,
+      "found_pdf_button": true,
+      "pdf_buttons_count": 3,
+      "opened_urls": [
+        "blob:https://automacao.projetosunion.cloud/2fd09ae9-b060-4688-bee8-b6e9df465591"
+      ],
+      "uses_blob_url": true,
+      "zero_token_in_opened_url": true,
+      "passed": true
+    },
+    "03_menu09_pilot_7_days_preloaded": {
+      "passed": true,
+      "snippet": "🚀\nPiloto Operacional Autônomo de 7 Dias Consecutivos\n\nSimulação e validação ponta a ponta dos 7 dias de rotinas empresariais (Briefings diários, produção de 30 conteúdos na Content Factory, auditorias de SEO, qualificação de leads e consoli"
+    },
+    "05_menu25_ai_engine_hub": {
+      "has_free_only_badge": true,
+      "has_gemini": true,
+      "subtab_provedores_masked_key_ok": true,
+      "subtab_historico_ok": true,
+      "passed": true
+    },
+    "06_all_25_menus_navigation": {
+      "total_menus_detected": 26,
+      "menus_ok": 26,
+      "passed": true,
+      "details": [
+        {
+          "menu": "01 Visão Geral",
+          "clicked": true,
+          "rendered_chars": 2603,
+          "ok": true
+        },
+        {
+          "menu": "17M 🏢 Multinegócio (3 Unidades)",
+          "clicked": true,
+          "rendered_chars": 7516,
+          "ok": true
+        },
+        {
+          "menu": "02 AI CEO",
+          "clicked": true,
+          "rendered_chars": 1883,
+          "ok": true
+        },
+        {
+          "menu": "03 Marketing (AI CMO)",
+          "clicked": true,
+          "rendered_chars": 669,
+          "ok": true
+        },
+        {
+          "menu": "04 SEO Director",
+          "clicked": true,
+          "rendered_chars": 414,
+          "ok": true
+        },
+        {
+          "menu": "05 Redes Sociais",
+          "clicked": true,
+          "rendered_chars": 324,
+          "ok": true
+        },
+        {
+          "menu": "06 🏭 Content Factory 30D",
+          "clicked": true,
+          "rendered_chars": 379,
+          "ok": true
+        },
+        {
+          "menu": "07 📋 Plano Diário CEO",
+          "clicked": true,
+          "rendered_chars": 2997,
+          "ok": true
+        },
+        {
+          "menu": "08 🖥️ Painel 24/7 & Alertas",
+          "clicked": true,
+          "rendered_chars": 2211,
+          "ok": true
+        },
+        {
+          "menu": "09 🚀 Piloto 7 Dias",
+          "clicked": true,
+          "rendered_chars": 2756,
+          "ok": true
+        },
+        {
+          "menu": "10 Creative Studio",
+          "clicked": true,
+          "rendered_chars": 2466,
+          "ok": true
+        },
+        {
+          "menu": "11 Copywriter",
+          "clicked": true,
+          "rendered_chars": 8909,
+          "ok": true
+        },
+        {
+          "menu": "12 Growth Hacker",
+          "clicked": true,
+          "rendered_chars": 3298,
+          "ok": true
+        },
+        {
+          "menu": "13 CRM & Leads",
+          "clicked": true,
+          "rendered_chars": 1666,
+          "ok": true
+        },
+        {
+          "menu": "14 Comercial & Pipeline",
+          "clicked": true,
+          "rendered_chars": 673,
+          "ok": true
+        },
+        {
+          "menu": "15 Concorrentes",
+          "clicked": true,
+          "rendered_chars": 716,
+          "ok": true
+        },
+        {
+          "menu": "16 Financeiro & KPIs",
+          "clicked": true,
+          "rendered_chars": 1356,
+          "ok": true
+        },
+        {
+          "menu": "17 Customer Success",
+          "clicked": true,
+          "rendered_chars": 648,
+          "ok": true
+        },
+        {
+          "menu": "18 Calendário Editorial",
+          "clicked": true,
+          "rendered_chars": 29555,
+          "ok": true
+        },
+        {
+          "menu": "19 Automações Python",
+          "clicked": true,
+          "rendered_chars": 10056,
+          "ok": true
+        },
+        {
+          "menu": "20 Aprovações",
+          "clicked": true,
+          "rendered_chars": 177,
+          "ok": true
+        },
+        {
+          "menu": "21 Relatórios",
+          "clicked": true,
+          "rendered_chars": 3001,
+          "ok": true
+        },
+        {
+          "menu": "22 Integrações",
+          "clicked": true,
+          "rendered_chars": 7908,
+          "ok": true
+        },
+        {
+          "menu": "23 Configurações & Planos",
+          "clicked": true,
+          "rendered_chars": 1474,
+          "ok": true
+        },
+        {
+          "menu": "24 Auditoria e Logs",
+          "clicked": true,
+          "rendered_chars": 13249,
+          "ok": true
+        },
+        {
+          "menu": "25 🧠 UNION AI ENGINE HUB",
+          "clicked": true,
+          "rendered_chars": 808,
+          "ok": true
+        }
+      ]
+    },
+    "07_logout": {
+      "clicked": true,
+      "returned_to_login_form": true,
+      "passed": true
+    },
+    "08_public_landing_page_unauthenticated": {
+      "has_title": true,
+      "not_login_screen": true,
+      "has_form": true,
+      "has_required_lgpd_checkbox": true,
+      "passed": true
+    }
+  },
+  "screenshots": [
+    {
+      "file": "01_cdp_dashboard_authenticated.png",
+      "size_bytes": 166204
+    },
+    {
+      "file": "03_cdp_menu17m_multinegocio_propostas.png",
+      "size_bytes": 197041
+    },
+    {
+      "file": "03b_cdp_menu17m_qa_tenant_proposals.png",
+      "size_bytes": 193639
+    },
+    {
+      "file": "02_cdp_menu09_pilot_7_days.png",
+      "size_bytes": 161186
+    },
+    {
+      "file": "04_cdp_menu25_ai_engine_hub.png",
+      "size_bytes": 194788
+    },
+    {
+      "file": "05_cdp_public_lp_agentes_ia.png",
+      "size_bytes": 88934
+    }
+  ],
+  "telemetry": {
+    "total_network_requests_observed": 96,
+    "console_errors_count": 0,
+    "console_errors": [],
+    "runtime_exceptions_count": 0,
+    "runtime_exceptions": [],
+    "network_failures_4xx_5xx_count": 0,
+    "network_failures": [],
+    "url_token_leaks_count": 0,
+    "url_token_leaks": []
+  },
+  "all_frontend_checks_passed": true
+}

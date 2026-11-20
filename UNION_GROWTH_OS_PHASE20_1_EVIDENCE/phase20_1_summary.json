@@ -1,0 +1,48 @@
+{
+  "run_id": "p201-8b05cfd6",
+  "prod_git_commit": "bcca50ee8ad0e03770008122d24e4efa2e0f9cea",
+  "scheduler_jobs_count": 100,
+  "all_security_checks_passed": true,
+  "security_checks": {
+    "DEFECT_01_and_probes_404_json": true,
+    "DEFECT_02_multi_tenant_and_auth_enforcement": true,
+    "DEFECT_04_public_landing_pages_and_lgpd": true,
+    "DEFECT_05_pilot_7_days_persistence": true,
+    "AUDIT_20_1_QA_01_tenant1_real_leads_uncontaminated": true,
+    "DEFECT_03_hardened_zero_url_token_pdf": true
+  },
+  "e2e_status_counts": {
+    "PASS (REAL)": 13,
+    "BLOCKED (QUOTA_OR_BILLING_REQUIRED)": 1,
+    "PASS (SANDBOX)": 1
+  },
+  "e2e_per_scenario": {
+    "01_lead_capture_and_xss_readback": "PASS (REAL)",
+    "02_auto_qualification": "PASS (REAL)",
+    "03_crm_pipeline": "PASS (REAL)",
+    "04_marketing_campaign_and_copy": "PASS (REAL)",
+    "05_union_ai_engine_hub": "BLOCKED (QUOTA_OR_BILLING_REQUIRED)",
+    "06_commercial_proposal_and_secure_pdf": "PASS (REAL)",
+    "07_human_approval_governance": "PASS (REAL)",
+    "08_contract_acceptance": "PASS (REAL)",
+    "09_payment_and_webhook_hmac": "PASS (SANDBOX)",
+    "10_automatic_onboarding": "PASS (REAL)",
+    "11_project_delivery_with_evidence": "PASS (REAL)",
+    "12_financial_5_buckets_isolation": "PASS (REAL)",
+    "13_customer_success_nps": "PASS (REAL)",
+    "14_dashboard_kpis_consistency": "PASS (REAL)",
+    "15_executive_report_and_backups": "PASS (REAL)"
+  },
+  "warm_avg_ms": {
+    "/health": 78.27,
+    "/ready": 546.07,
+    "/lp/agentes-ia": 310.64,
+    "/api/v1/dashboard/overview": 1263.95,
+    "/api/v1/ai-engine-hub/overview": 270.72
+  },
+  "cold_tls_ms": {
+    "/health": 1759.57,
+    "/ready": 853.8,
+    "/lp/agentes-ia": 1001.31
+  }
+}

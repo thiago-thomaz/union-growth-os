@@ -1,0 +1,72 @@
+{
+  "run_id": "p201-8b05cfd6",
+  "warm_keepalive": [
+    {
+      "endpoint": "/health",
+      "http": 200,
+      "samples_ms": [
+        103.38,
+        82.01,
+        49.41
+      ],
+      "avg_ms": 78.27
+    },
+    {
+      "endpoint": "/ready",
+      "http": 200,
+      "samples_ms": [
+        36.66,
+        614.85,
+        986.69
+      ],
+      "avg_ms": 546.07
+    },
+    {
+      "endpoint": "/lp/agentes-ia",
+      "http": 200,
+      "samples_ms": [
+        228.47,
+        398.08,
+        305.36
+      ],
+      "avg_ms": 310.64
+    },
+    {
+      "endpoint": "/api/v1/dashboard/overview",
+      "http": 200,
+      "samples_ms": [
+        2880.43,
+        188.51,
+        722.91
+      ],
+      "avg_ms": 1263.95
+    },
+    {
+      "endpoint": "/api/v1/ai-engine-hub/overview",
+      "http": 200,
+      "samples_ms": [
+        412.25,
+        190.62,
+        209.29
+      ],
+      "avg_ms": 270.72
+    }
+  ],
+  "cold_tls": [
+    {
+      "endpoint": "/health",
+      "http": 200,
+      "cold_tls_ms": 1759.57
+    },
+    {
+      "endpoint": "/ready",
+      "http": 200,
+      "cold_tls_ms": 853.8
+    },
+    {
+      "endpoint": "/lp/agentes-ia",
+      "http": 200,
+      "cold_tls_ms": 1001.31
+    }
+  ]
+}

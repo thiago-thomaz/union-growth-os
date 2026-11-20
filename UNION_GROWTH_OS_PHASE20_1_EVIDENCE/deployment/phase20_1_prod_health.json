@@ -1,0 +1,31 @@
+{
+  "run_id": "p201-8b05cfd6",
+  "audited_at_utc": "2026-11-20T17:29:21.278526+00:00",
+  "prod_health_http": 200,
+  "prod_ready_http": 200,
+  "alt_health_http": 200,
+  "prod_git_commit": "bcca50ee8ad0e03770008122d24e4efa2e0f9cea",
+  "alt_git_commit": "bcca50ee8ad0e03770008122d24e4efa2e0f9cea",
+  "commits_match_both_domains": true,
+  "database": {
+    "status": "healthy",
+    "engine": "postgresql",
+    "is_fallback": false
+  },
+  "scheduler": {
+    "running": true,
+    "jobs_count": 100,
+    "engine": "APScheduler Native Python (100% Internalized)",
+    "boot_id": "182da457a23f",
+    "timezone": "America/Sao_Paulo"
+  },
+  "robots_http": 200,
+  "sitemap_http": 200,
+  "security_headers": {
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "strict-transport-security": "max-age=31536000; includeSubDomains",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "SAMEORIGIN",
+    "x-xss-protection": "1; mode=block"
+  }
+}

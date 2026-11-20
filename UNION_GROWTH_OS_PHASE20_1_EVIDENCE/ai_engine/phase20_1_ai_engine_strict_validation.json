@@ -1,0 +1,47 @@
+{
+  "status": "BLOCKED (QUOTA_OR_BILLING_REQUIRED)",
+  "free_only_all_5_blocked": true,
+  "free_only_matrix": {
+    "openai_gpt4o_paid": {
+      "ok": false,
+      "status": "BLOCKED_FREE_ONLY",
+      "error": "Bloqueado pela política FREE_ONLY: o modelo 'gpt-4o' (openai) possui classificação de custo 'PAID' e não está autorizado para uso gratuito.",
+      "blocked_properly": true
+    },
+    "anthropic_claude_paid": {
+      "ok": false,
+      "status": "BLOCKED_FREE_ONLY",
+      "error": "Bloqueado pela política FREE_ONLY: o modelo 'claude-3-7-sonnet-latest' (anthropic) possui classificação de custo 'PAID' e não está autorizado para uso gratuito.",
+      "blocked_properly": true
+    },
+    "openai_compatible_unknown": {
+      "ok": false,
+      "status": "BLOCKED_FREE_ONLY",
+      "error": "Provedor 'openai_compatible' está desativado.",
+      "blocked_properly": true
+    },
+    "google_imagen3_paid": {
+      "ok": false,
+      "status": "BLOCKED_FREE_ONLY",
+      "blocked_properly": true
+    },
+    "google_veo2_paid": {
+      "ok": false,
+      "status": "BLOCKED_FREE_ONLY",
+      "blocked_properly": true
+    }
+  },
+  "gemini_connection_test": {
+    "ok": true,
+    "status": "CONNECTED",
+    "latency_ms": 322.32
+  },
+  "gemini_live_generation": {
+    "status_classification": "BLOCKED (QUOTA_OR_BILLING_REQUIRED)",
+    "ok": false,
+    "status": "QUOTA_OR_BILLING_REQUIRED",
+    "executed_model": null,
+    "estimated_cost_brl": 0.0,
+    "error": "Cota gratuita esgotada ou faturamento exigido pela Google (HTTP 402 Payment Required). Nenhuma cobrança foi realizada. Utilize uma chave padrão Free Tier ('AIzaSy...') gerada em https://aistudio.google.com/apikey."
+  }
+}

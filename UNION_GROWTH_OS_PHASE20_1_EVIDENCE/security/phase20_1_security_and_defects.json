@@ -1,0 +1,89 @@
+{
+  "DEFECT_01_and_probes_404_json": {
+    "passed": true,
+    "probes": [
+      {
+        "method": "GET",
+        "path": "/api/v1/inexistente-p201-8b05cfd6",
+        "http": 404,
+        "content_type": "application/json",
+        "passed": true
+      },
+      {
+        "method": "GET",
+        "path": "/api/v2/sub/inexistente-p201-8b05cfd6",
+        "http": 404,
+        "content_type": "application/json",
+        "passed": true
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/inexistente-p201-8b05cfd6",
+        "http": 404,
+        "content_type": "application/json",
+        "passed": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/v1/inexistente-p201-8b05cfd6",
+        "http": 404,
+        "content_type": "application/json",
+        "passed": true
+      },
+      {
+        "method": "GET",
+        "path": "/wp-login.php",
+        "http": 404,
+        "content_type": "application/json",
+        "passed": true
+      },
+      {
+        "method": "GET",
+        "path": "/.env",
+        "http": 404,
+        "content_type": "application/json",
+        "passed": true
+      },
+      {
+        "method": "GET",
+        "path": "/.git/config",
+        "http": 404,
+        "content_type": "application/json",
+        "passed": true
+      }
+    ]
+  },
+  "DEFECT_02_multi_tenant_and_auth_enforcement": {
+    "passed": true,
+    "cross_tenant_999999_http": 403,
+    "sqli_tenant_header_http": 403,
+    "unauthenticated_http": 401,
+    "forged_jwt_http": 401,
+    "query_string_jwt_rejected_http": 401
+  },
+  "DEFECT_04_public_landing_pages_and_lgpd": {
+    "passed": true,
+    "lp_agentes_ia_http": 200,
+    "lp_missing_slug_http": 404,
+    "capture_no_lgpd_http": 400
+  },
+  "DEFECT_05_pilot_7_days_persistence": {
+    "passed": true,
+    "http": 200,
+    "days_simulated": 7
+  },
+  "AUDIT_20_1_QA_01_tenant1_real_leads_uncontaminated": {
+    "passed": true,
+    "total_leads_in_db": 5,
+    "expected_real_leads_excluding_test": 2,
+    "dashboard_card_leads_value": 2
+  },
+  "DEFECT_03_hardened_zero_url_token_pdf": {
+    "passed": true,
+    "query_string_token_rejected_http": 401,
+    "header_auth_pdf_http": 200,
+    "cache_control": "no-store, private, max-age=0",
+    "referrer_policy": "no-referrer",
+    "cross_tenant_pdf_http": 403
+  }
+}
