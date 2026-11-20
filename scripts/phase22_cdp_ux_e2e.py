@@ -516,7 +516,7 @@ async def run_phase22_e2e():
             ia_overview_ok = await cdp.evaluate("""
                 (() => {
                     const txt = document.querySelector('main')?.innerText || '';
-                    return txt.includes('Motor de IA Prioritário') && txt.includes('Como sua Equipe IA Opera') && txt.includes('Equipe Digital de Agentes Especializados');
+                    return txt.includes('Assistente Guiado de Configuração de IA') && txt.includes('Controle & Autonomia') && txt.includes('Equipe Digital de Agentes Especializados');
                 })()
             """)
             sh8 = await cdp.screenshot("08_ia_visao_e_agentes.png")

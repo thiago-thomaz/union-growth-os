@@ -54,7 +54,7 @@ class CDPClient:
                         resp = params.get("response", {})
                         st = resp.get("status", 0)
                         url = resp.get("url", "")
-                        if st >= 500:
+                        if st >= 400 and "favicon.ico" not in url:
                             self.network_failures.append({"status": st, "url": url})
         except asyncio.CancelledError:
             pass
@@ -236,16 +236,16 @@ async def run_flows(mode: str):
                     const main = document.querySelector('main');
                     const txt = main?.innerText || '';
                     const inputs = Array.from(main?.querySelectorAll('input') || []);
-                    const hasBrandField = inputs.some(i => ((i.getAttribute('placeholder') || '') + (i.getAttribute('aria-label') || '')).toLowerCase().includes('marca'));
-                    const hasNicheField = inputs.some(i => ((i.getAttribute('placeholder') || '') + (i.getAttribute('aria-label') || '')).toLowerCase().includes('nicho'));
-                    const hasContextGuide = txt.includes('O que você pode fazer aqui') || txt.includes('O que precisa preencher');
+                    const hasBrandField = Boolean(document.querySelector('#ug-edit-brand-input')) || txt.includes('Nome da Marca');
+                    const hasNicheField = Boolean(document.querySelector('#ug-edit-niche-input')) || txt.includes('Nicho / Segmento');
+                    const hasContextGuide = txt.includes('O que você pode fazer aqui') || txt.includes('Como começo');
                     return { hasBrandField, hasNicheField, hasContextGuide, inputsCount: inputs.length };
                 })()
             """)
             brand_saved = False
             if f1_dom and f1_dom.get("hasBrandField"):
-                await cdp.set_input_by_id_or_placeholder("#ug-edit-brand-input", "QA_AUTOMATED_TENANT Brand")
-                await cdp.set_input_by_id_or_placeholder("#ug-edit-niche-input", "Automação B2B & IA")
+                await cdp.set_input_by_id_or_placeholder("#ug-edit-brand-input", "QA_AUTOMATED_TENANT")
+                await cdp.set_input_by_id_or_placeholder("#ug-edit-niche-input", "Automação B2B e IA")
                 clicks += 2
                 if await cdp.click_by_text("main button", "Salvar Identidade"):
                     clicks += 1
@@ -512,7 +512,8 @@ async def run_flows(mode: str):
             report["telemetry"] = {
                 "console_errors": len(cdp.console_errors),
                 "exceptions": len(cdp.exceptions),
-                "network_5xx": len(cdp.network_failures),
+                "network_4xx_5xx": len(cdp.network_failures),
+                "network_failures": cdp.network_failures[:5],
             }
             await cdp.close()
     finally:

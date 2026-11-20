@@ -172,7 +172,8 @@ def clear_login_failures(request: Request, email: str) -> None:
 
 
 def enforce_rate_limit(request: Request) -> None:
-    client_ip = request.client.host if request.client else "local"
+    fwd = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+    client_ip = fwd or (request.client.host if request.client else "local")
     now = time.time()
     window_start = now - 60.0
     bucket = _rate_buckets[client_ip]

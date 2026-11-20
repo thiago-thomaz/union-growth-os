@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     BACKUP_DIR: str = str(DATA_DIR / "backups")
     ASSETS_DIR: str = str(DATA_DIR / "assets")
     DATA_RETENTION_DAYS: int = 365
-    RATE_LIMIT_PER_MINUTE: int = 180
+    RATE_LIMIT_PER_MINUTE: int = 600
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
