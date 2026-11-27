@@ -86,7 +86,7 @@
         "found": true,
         "count": 7,
         "urls": [
-          "blob:https://automacao.projetosunion.cloud/22c8854c-d85a-4560-847a-4d6975177d55"
+          "blob:https://automacao.projetosunion.cloud/9d8d1c1a-bcb8-4c04-b383-b0e7a53905d4"
         ]
       },
       "passed": true
@@ -176,15 +176,15 @@
   "screenshots": [
     {
       "file": "01_inicio_dashboard_dark.png",
-      "size_bytes": 241213
+      "size_bytes": 242005
     },
     {
       "file": "02_inicio_light_mode.png",
-      "size_bytes": 238271
+      "size_bytes": 239111
     },
     {
       "file": "03_command_center_ctrl_k.png",
-      "size_bytes": 305073
+      "size_bytes": 305993
     },
     {
       "file": "04_todos_recursos_favoritos.png",
@@ -200,11 +200,11 @@
     },
     {
       "file": "07_marketing_campanhas.png",
-      "size_bytes": 157308
+      "size_bytes": 157447
     },
     {
       "file": "08_ia_visao_e_agentes.png",
-      "size_bytes": 206424
+      "size_bytes": 205280
     },
     {
       "file": "09_ia_motores_provedores.png",
@@ -212,7 +212,7 @@
     },
     {
       "file": "10b_gestao_relatorios.png",
-      "size_bytes": 113971
+      "size_bytes": 114142
     },
     {
       "file": "10_gestao_integracoes.png",
@@ -224,11 +224,11 @@
     },
     {
       "file": "12_responsive_notebook_1366.png",
-      "size_bytes": 158023
+      "size_bytes": 158178
     },
     {
       "file": "13_responsive_tablet_768.png",
-      "size_bytes": 126426
+      "size_bytes": 126448
     },
     {
       "file": "14_responsive_mobile_390.png",

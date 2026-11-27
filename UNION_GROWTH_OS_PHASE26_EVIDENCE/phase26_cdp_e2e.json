@@ -12,7 +12,7 @@
     "oauth_integrations_ok": true,
     "plans_entitlements_readiness_ok": true,
     "light_mode_ok": true,
-    "total_elapsed_s": 57.6
+    "total_elapsed_s": 40.62
   },
   "accessibility": {
     "lang": "pt-BR",
@@ -78,15 +78,15 @@
     },
     {
       "file": "02_phase26_growth_center_0_90d.png",
-      "size_bytes": 193316
+      "size_bytes": 193231
     },
     {
       "file": "03_phase26_agents_matrix_honest.png",
-      "size_bytes": 207662
+      "size_bytes": 212752
     },
     {
       "file": "04_phase26_crm_smart_followup.png",
-      "size_bytes": 259002
+      "size_bytes": 264448
     },
     {
       "file": "05_phase26_pipeline_move_stage.png",
@@ -94,7 +94,7 @@
     },
     {
       "file": "06_phase26_seo_prioritized.png",
-      "size_bytes": 157289
+      "size_bytes": 165735
     },
     {
       "file": "07_phase26_integrations_oauth.png",
@@ -106,7 +106,7 @@
     },
     {
       "file": "09_phase26_light_mode.png",
-      "size_bytes": 178294
+      "size_bytes": 183490
     },
     {
       "file": "10_phase26_mobile_360x800.png",

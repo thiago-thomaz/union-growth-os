@@ -3,7 +3,7 @@
   "profiles": {
     "P1_Usuario_Iniciante": {
       "clicks_core_flow": 3,
-      "elapsed_s": 7.16,
+      "elapsed_s": 6.43,
       "ask_union_ok": true,
       "health_drawer_ok": true,
       "light_mode_ok": true,
@@ -15,7 +15,7 @@
       "passed": true
     },
     "P2_Usuario_Operacional": {
-      "elapsed_s": 6.07,
+      "elapsed_s": 6.02,
       "meu_trabalho_clean": true,
       "ondemand_guide_drawer": true,
       "marketing_clean": true,
@@ -23,14 +23,14 @@
       "passed": true
     },
     "P3_Usuario_Avancado": {
-      "elapsed_s": 7.5,
+      "elapsed_s": 6.22,
       "layman_simple_mode": true,
       "advanced_mode_controls": true,
       "passed": true
     }
   },
   "clutter_and_design": {
-    "total_elapsed_s": 41.23,
+    "total_elapsed_s": 43.97,
     "permanent_guide_wall_removed": true,
     "double_dashboard_eliminated": true,
     "card_in_card_eliminated": true
@@ -112,7 +112,7 @@
     },
     {
       "file": "05_phase24_meu_trabalho.png",
-      "size_bytes": 224710
+      "size_bytes": 224745
     },
     {
       "file": "06_phase24_comercial_propostas.png",
@@ -128,11 +128,11 @@
     },
     {
       "file": "09_phase24_ia_agentes.png",
-      "size_bytes": 207662
+      "size_bytes": 206516
     },
     {
       "file": "10_phase24_automacoes_avancado.png",
-      "size_bytes": 257840
+      "size_bytes": 255606
     },
     {
       "file": "11_phase24_viewport_notebook_1366x768.png",

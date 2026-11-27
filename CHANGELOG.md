@@ -1,5 +1,19 @@
 # Changelog — UNION GROWTH OS
 
+## [2.3.0 — FASE 26] — 2026-11-27
+
+### Transformação Modular, Centro de Crescimento (0–90d), Matriz de IA, Revenue Engine & DS 4.0
+- **Decomposição do Monólito Frontend (`UnionGrowthOSPortal.tsx` `4.039` → `1.741` linhas, `-56.9%`)**: extração completa das visões legadas para `GrowthExecutionCenter.tsx`, `AIAutonomyAndOpsWorkspace.tsx`, `MarketingAndSEOWorkspace.tsx`, `ManagementAndIntegrationsWorkspace.tsx` e `CustomerSuccessWorkspace`, com Login e Modal Assistido migrados para tokens Light/Dark DS 4.0.
+- **Bootstrap Executivo & Centro de Crescimento (`phase26_routes.py`, `phase26_growth_os_engine.py`)**:
+  - `GET /api/v1/growth-os/bootstrap`: consolida Onda 1 da Home de 5 requests para 1 chamada.
+  - `POST /api/v1/growth-os/growth-plan` + `/execute-step`: organiza objetivos do negócio em ações `TODAY`, `NEXT_7_DAYS`, `NEXT_30_DAYS` e `NEXT_90_DAYS` com `ESTIMATED` explícito e trava honesta para `CONNECT_OAUTH`.
+- **Matriz Transparente de IA & Uso Persistido (`orchestrator.py`, `GET /api/v1/agents/matrix`)**: `AIUsageTracker` agora consulta `AgentExecutionLog` e `AIEngineExecutionRecord` no PostgreSQL; interface exibe badges reais `HYBRID` (`4/12`) e `DETERMINISTIC` (`8/12`) com `0` agentes simulados.
+- **Revenue Engine, SEO Priorizado & Billing Readiness (`CommercialRevenueWorkspace.tsx`, `seo_and_market_engine.py`, `AIEnginesHubWorkspace.tsx`)**:
+  - `POST /api/v1/crm/deals/{deal_id}/move-stage` (`ESTIMATED`) e `/crm/leads/{lead_id}/smart-followup` (trava LGPD `opt_out` + modo manual seguro de cópia).
+  - Sinais SEO enriquecidos (`h1_count`, `internal_links_count`, `external_links_count`, `images_missing_alt_count`) + `prioritized_recommendations`.
+  - `GET /api/v1/plans/entitlements` com `billing_readiness.charge_enabled = false` e botões `OAuth 2.0` / `Desconectar` em Integrações.
+- **Qualidade, CI/CD & Cloud**: `scripts/ci_deploy_and_verify.py` endurecido com 8 tentativas durante swap no Traefik/Coolify, GitHub Actions run `46054595810` `success`, `53/53` pytest (`84.06s`) e `5/5` suítes Chrome CDP (`phase26`..`phase22`) aprovadas em produção sem erros de console/rede e `0px` overflow em `8` viewports.
+
 ## [2.2.0 — FASE 25] — 2026-11-27
 
 ### Auditoria Global, Inteligência Competitiva (32 Plataformas), PLG, Revenue Intelligence & Resiliência Cloud
