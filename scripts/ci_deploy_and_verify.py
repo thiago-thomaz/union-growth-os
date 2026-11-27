@@ -153,21 +153,44 @@ def run_production_health_checks(target_url: str, expected_commit: str = "") -> 
     with httpx.Client(timeout=20.0, follow_redirects=True) as client:
         for path, description in endpoints:
             url = f"{target_url.rstrip('/')}{path}"
-            try:
-                res = client.get(url)
-                if res.status_code == 200:
-                    print(f"  [PASS] {url} -> 200 OK ({description})")
-                else:
-                    print(f"  [FAIL] {url} -> {res.status_code} ({description})")
-                    all_passed = False
-            except Exception as e:
-                print(f"  [FAIL] {url} -> Exceção de conexão: {e}")
+            passed_endpoint = False
+            last_error = ""
+            for attempt in range(1, 5):
+                try:
+                    res = client.get(url)
+                    if res.status_code == 200:
+                        print(f"  [PASS] {url} -> 200 OK ({description})")
+                        passed_endpoint = True
+                        break
+                    last_error = f"HTTP {res.status_code}"
+                    if res.status_code in (502, 503, 504) and attempt < 4:
+                        print(f"  [RETRY {attempt}/4] {url} -> {last_error} durante swap de container; aguardando 5s...")
+                        time.sleep(5)
+                        continue
+                    break
+                except httpx.RequestError as e:
+                    last_error = f"Exceção de conexão: {e}"
+                    if attempt < 4:
+                        print(f"  [RETRY {attempt}/4] {url} -> {last_error}; aguardando 5s...")
+                        time.sleep(5)
+                        continue
+                    break
+            if not passed_endpoint:
+                print(f"  [FAIL] {url} -> {last_error} ({description})")
                 all_passed = False
 
         # Validação detalhada do endpoint /health e correspondência de commit
         try:
-            h = client.get(f"{target_url.rstrip('/')}/health")
-            if h.status_code == 200:
+            h = None
+            for attempt in range(1, 4):
+                try:
+                    h = client.get(f"{target_url.rstrip('/')}/health")
+                    if h.status_code == 200:
+                        break
+                except httpx.RequestError:
+                    pass
+                time.sleep(4)
+            if h is not None and h.status_code == 200:
                 h_data = h.json()
                 db_status = h_data.get("database", {}).get("status")
                 sched_running = h_data.get("scheduler", {}).get("running")
