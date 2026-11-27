@@ -2705,6 +2705,95 @@ def test_50_rbac_viewer_blocked_from_mutations(client: TestClient):
     assert client.get("/api/v1/growth-os/command-center", headers=vh).status_code == 200
 
 
+def test_51_phase25_plg_plans_usage_revenue_intelligence_activation_and_seo(client: TestClient):
+    """Fase 25: Testa planos PLG com medidores reais, CRM Revenue Intelligence, follow-up rápido, ativação e SEO técnico."""
+    email_25 = f"phase25.plg.{RUN_SUFFIX}@empresa.com.br"
+    r_reg = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email_25,
+            "password": "StrongPassword#2026!",
+            "full_name": "Fundador PLG Fase25",
+            "company_name": "Alfa Serviços B2B",
+            "lgpd_consent": True,
+        },
+    )
+    assert r_reg.status_code in (200, 201)
+    h = _auth_headers(r_reg.json()["access_token"])
+
+    # 1. Alterar para plano FREE (PLG) e validar medidores reais sem cobrança ativa
+    assert client.put("/api/v1/tenants/current", headers=h, json={"plan_tier": "FREE"}).status_code == 200
+    r_plans = client.get("/api/v1/plans/overview", headers=h)
+    assert r_plans.status_code == 200
+    pl = r_plans.json()
+    assert pl["active_plan"]["code"] == "FREE"
+    assert set(["FREE", "STARTER", "PRO", "BUSINESS", "ENTERPRISE"]).issubset(set(pl["plans_catalog"].keys()))
+    assert pl["charge_enabled"] is False
+    assert pl["billing_status"] == "PLG_STRUCTURE_SIMULATION_ONLY_NO_LIVE_BILLING"
+    assert "crm_leads" in pl["usage_meters"] and pl["usage_meters"]["crm_leads"]["limit"] == 100
+
+    # 2. Criar Lead quente + Negociação aberta e validar CRM Revenue Intelligence + Quick Follow-up
+    r_lead = client.post(
+        "/api/v1/crm/leads",
+        headers=h,
+        json={
+            "full_name": "Lead Decisor B2B",
+            "email": f"decisor.{RUN_SUFFIX}@cliente.com.br",
+            "phone": "+5511999997777",
+            "company_name": "Cliente B2B S.A.",
+            "buy_intent": "URGENT",
+            "estimated_value": 12000.0,
+            "consent_lgpd": True,
+            "data_origin": "REAL",
+        },
+    )
+    assert r_lead.status_code == 201
+    lead_id = r_lead.json()["id"]
+    r_deal = client.post(
+        "/api/v1/crm/deals",
+        headers=h,
+        json={"title": "Implante CRM Fase25", "stage": "PROPOSAL", "value": 12000.0, "data_origin": "REAL"},
+    )
+    assert r_deal.status_code == 201
+
+    r_rev = client.get("/api/v1/growth-os/revenue-intelligence", headers=h)
+    assert r_rev.status_code == 200
+    rev = r_rev.json()
+    assert rev["summary"]["open_deals_count"] >= 1
+    assert rev["summary"]["stalled_deals_count"] >= 1
+
+    r_fu = client.post(f"/api/v1/crm/leads/{lead_id}/quick-followup", headers=h)
+    assert r_fu.status_code == 200 and r_fu.json()["ok"] is True
+
+    # Cross-tenant follow-up no Tenant 1 bloqueado com 404 (lead do admin nao pertence a este tenant)
+    r_cross = client.post("/api/v1/crm/leads/999999/quick-followup", headers=h)
+    assert r_cross.status_code == 404
+
+    # 3. Activation & Retention Milestones
+    r_act = client.get("/api/v1/growth-os/activation-retention", headers=h)
+    assert r_act.status_code == 200
+    act = r_act.json()
+    assert act["total_milestones"] == 6
+    assert 0 <= act["activation_pct"] <= 100
+    assert any(m["key"] == "primeiro_lead" and m["done"] is True for m in act["milestones"])
+
+    # 4. Ask Union expandido (Concorrentes + Retenção) & Automação Conversacional expandida (Pipeline + SEO)
+    r_ask_comp = client.post("/api/v1/growth-os/ask-union", headers=h, json={"prompt": "Como superar meus concorrentes no mercado?"})
+    assert r_ask_comp.status_code == 200 and r_ask_comp.json()["intent"] == "COMPETITIVE_INTEL"
+    r_ask_ret = client.post("/api/v1/growth-os/ask-union", headers=h, json={"prompt": "Como evitar churn no pós-venda?"})
+    assert r_ask_ret.status_code == 200 and r_ask_ret.json()["intent"] == "RETENTION_CHURN"
+
+    r_conv_pipe = client.post("/api/v1/automations/conversational-build", headers=h, json={"prompt": "Quando uma oportunidade ficar parada em negociação, avisar", "dry_run": True, "approve_create": False})
+    assert r_conv_pipe.status_code == 200
+    assert r_conv_pipe.json()["workflow_preview"]["trigger_event"] == "CRM_STALLED_DEALS_CHECK"
+
+    # 5. SEO Audit retorna technical_signals estruturado
+    r_seo = client.post("/api/v1/seo/audit", headers=h, json={"target_url": "https://automacao.projetosunion.cloud", "target_keyword": "automação b2b"})
+    assert r_seo.status_code == 201
+    assert "technical_signals" in r_seo.json()
+
+
+
 
 
 

@@ -5,7 +5,7 @@ from pydantic import BaseModel, EmailStr, Field
 DataOriginType = Literal["REAL", "IMPORTED", "ESTIMATED", "GOAL", "PROJECTION", "SIMULATION", "TEST", "DEMO"]
 BusinessUnitCodeType = Literal["UNION_TECH", "UNION_AGENCY", "UNION_PARTNERS", "ALL"]
 AutonomyLevelType = Literal[1, 2, 3]
-PlanTierType = Literal["STARTER", "PRO", "BUSINESS", "ENTERPRISE"]
+PlanTierType = Literal["FREE", "STARTER", "PRO", "BUSINESS", "ENTERPRISE"]
 
 
 # --- Auth & Multi-Tenant ---

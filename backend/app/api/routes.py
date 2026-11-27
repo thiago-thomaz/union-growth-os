@@ -1118,6 +1118,7 @@ def get_seo_overview(user: User = Depends(get_current_user), db: Session = Depen
                 "suggested_title": a.suggested_title,
                 "suggested_meta_description": a.suggested_meta_description,
                 "generated_schema": json.loads(a.generated_schema_json or "{}"),
+                "technical_signals": json.loads(a.generated_schema_json or "{}").get("technical_signals", {}),
                 "data_origin": a.data_origin,
                 "created_at": a.created_at.isoformat(),
             }
@@ -1177,6 +1178,7 @@ def run_seo_audit(payload: SEOAuditRequest, user: User = Depends(get_current_use
         "recommendations": json.loads(report.recommendations_json),
         "suggested_title": report.suggested_title,
         "suggested_meta_description": report.suggested_meta_description,
+        "technical_signals": json.loads(report.generated_schema_json or "{}").get("technical_signals", {}),
         "data_origin": report.data_origin,
     }
 
@@ -4065,6 +4067,59 @@ def automations_conversational_build(
         approve_create=payload.approve_create,
         actor=user.email,
     )
+
+
+# ==============================================================================
+# FASE 25 — PLG PLANS & USAGE METERING, CRM REVENUE INTELLIGENCE & RETENTION
+# ==============================================================================
+@router.get("/plans/overview")
+def get_plans_and_usage_overview(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.plans_and_audit import get_tenant_plan_usage_summary
+
+    tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    return get_tenant_plan_usage_summary(db, tenant, owner_email=user.email)
+
+
+@router.get("/growth-os/revenue-intelligence")
+def growth_os_revenue_intelligence(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.phase25_product_engine import get_crm_revenue_intelligence_service
+
+    tid = get_active_tenant_id(user)
+    return get_crm_revenue_intelligence_service(db, tenant_id=tid)
+
+
+@router.post("/crm/leads/{lead_id}/quick-followup")
+def crm_lead_quick_followup(
+    lead_id: int,
+    user: User = Depends(require_roles("owner", "admin", "manager")),
+    db: Session = Depends(get_db),
+):
+    from app.services.phase25_product_engine import quick_create_lead_followup_service
+
+    tid = get_active_tenant_id(user)
+    try:
+        return quick_create_lead_followup_service(db, tenant_id=tid, lead_id=lead_id, actor=user.email)
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(ve))
+
+
+@router.get("/growth-os/activation-retention")
+def growth_os_activation_retention(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.phase25_product_engine import get_activation_and_retention_service
+
+    tid = get_active_tenant_id(user)
+    return get_activation_and_retention_service(db, tenant_id=tid)
+
 
 
 

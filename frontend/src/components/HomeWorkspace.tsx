@@ -31,6 +31,7 @@ export function HomeWorkspace({
   meData,
   overviewData,
   commandCenterData,
+  activationData,
   crmData,
   marketingData,
   approvalsData,
@@ -54,6 +55,7 @@ export function HomeWorkspace({
   meData: any;
   overviewData: any;
   commandCenterData: any;
+  activationData?: any;
   agentsData?: any;
   crmData: any;
   marketingData: any;
@@ -685,6 +687,30 @@ export function HomeWorkspace({
           </section>
         </div>
       </div>
+
+      {/* ACESSOS RÁPIDOS + MARCOS DE ATIVAÇÃO (TTFV) */}
+      {activationData && !activationData.first_value_achieved && (
+        <section aria-label="Marcos iniciais de ativação" className="ug-card rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
+            <span className="font-medium text-[var(--ug-text-primary)]">
+              Primeira entrega de valor ({activationData.completed_milestones}/{activationData.total_milestones} marcos)
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {(activationData.milestones || []).filter((m: any) => !m.done).slice(0, 3).map((m: any) => (
+              <button
+                key={m.key}
+                type="button"
+                onClick={() => onNavigate(m.target_view)}
+                className="px-2.5 py-1 rounded-lg border border-[var(--ug-border)] hover:bg-white/[0.04] text-[11px] text-[var(--ug-text-secondary)]"
+              >
+                {m.label} →
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ACESSOS RÁPIDOS DISCRETOS */}
       <section aria-label="Ações rápidas" className="pt-2 border-t border-[var(--ug-border-subtle)] flex flex-wrap items-center justify-between gap-3">

@@ -1280,11 +1280,15 @@ def ask_union_copilot_service(
 
     if any(k in low for k in ("automa", "quando ", "toda segunda", "todo dia", "follow-up automatico", "workflow")):
         intent = "BUILD_AUTOMATION"
+    elif any(k in low for k in ("concorr", "mercado", "competit", "diferenc")):
+        intent = "COMPETITIVE_INTEL"
+    elif any(k in low for k in ("churn", "reten", "cancel", "nps", "pos-venda", "pós-venda")):
+        intent = "RETENTION_CHURN"
     elif any(k in low for k in ("seo", "google", "site", "trafego", "tráfego", "orgânico", "organico")):
         intent = "SEO_GROWTH"
     elif any(k in low for k in ("divulg", "conteúdo", "conteudo", "post", "instagram", "redes", "campanha")):
         intent = "PROMOTE_AND_CONTENT"
-    elif any(k in low for k in ("lead", "crm", "cliente", "proposta", "vender", "venda", "faturar")):
+    elif any(k in low for k in ("lead", "crm", "cliente", "proposta", "vender", "venda", "faturar", "receita")):
         intent = "INCREASE_SALES"
     else:
         intent = "BUSINESS_DIAGNOSIS"
@@ -1293,12 +1297,15 @@ def ask_union_copilot_service(
     domain = (tenant.domain or "").strip()
     goals = json.loads(getattr(tenant, "growth_goals_json", "[]") or "[]")
     growth_score_val = health_pack["growth_score"]["score"]
+    hot_uncontacted = len([l for l in snap["real_leads"] if (l.lead_score or 0) >= 65 and l.pipeline_stage == "NEW_LEAD"])
+    stalled_open = len([d for d in snap["real_deals"] if (d.stage or "") not in ("CLOSED_WON", "CLOSED_LOST")])
 
     diagnosis_summary = (
         f"Contexto lido de {brand} (Growth Score {growth_score_val}/100): "
         f"{len(snap['campaigns'])} campanha(s), {len(snap['cf_items'])} conteúdo(s), "
-        f"{len(snap['real_leads'])} lead(s) real(is), {len(snap['rules'])} automação(ões), "
-        f"política de custos {'FREE_ONLY' if not snap['ai_cfg'] else snap['ai_cfg'].cost_policy_mode}."
+        f"{len(snap['real_leads'])} lead(s) real(is) ({hot_uncontacted} quente(s) em entrada), "
+        f"{stalled_open} negociação(ões) aberta(s), {len(snap['rules'])} automação(ões), "
+        f"política {'FREE_ONLY' if not snap['ai_cfg'] else snap['ai_cfg'].cost_policy_mode}."
     )
 
     plan_steps: list[str] = []
@@ -1306,14 +1313,34 @@ def ask_union_copilot_service(
 
     if intent == "INCREASE_SALES":
         plan_steps = [
-            f"1. Estruturar campanha de aquisição direcionada para {tenant.target_audience} no nicho {tenant.niche}.",
-            f"2. Gerar conteúdos focados no site {domain or brand} com CTA direto para captura LGPD.",
-            "3. Qualificar cada lead por Lead Score (0–100) e abrir proposta comercial aprovável no funil.",
+            f"1. Atender prioritariamente {hot_uncontacted} lead(s) quente(s) e acompanhar {stalled_open} oportunidade(s) aberta(s) no CRM.",
+            f"2. Estruturar campanha de aquisição direcionada para {tenant.target_audience} no nicho {tenant.niche}.",
+            f"3. Gerar conteúdos e propostas comerciais focadas no site {domain or brand} com aprovação humana.",
         ]
         suggested_actions = [
+            {"id": "act-score-leads", "label": f"Qualificar {len(snap['real_leads'])} Lead(s) & Destravar CRM", "target_view": "crm", "safe": True, "cost_brl": 0.0},
             {"id": "act-cmo-plan", "label": "Gerar Plano/Campanha Comercial", "target_view": "marketing", "safe": True, "cost_brl": 0.0},
             {"id": "act-gen-content", "label": "Produzir 30 Conteúdos de Divulgação", "target_view": "content_factory", "safe": True, "cost_brl": 0.0},
-            {"id": "act-score-leads", "label": f"Qualificar {len(snap['real_leads'])} Lead(s) no CRM", "target_view": "crm", "safe": True, "cost_brl": 0.0},
+        ]
+    elif intent == "COMPETITIVE_INTEL":
+        plan_steps = [
+            f"1. Auditar posicionamento público de concorrentes respeitando robots.txt ({len(snap['competitors'])} mapeado(s)).",
+            "2. Confrontar diferenciais e termos proibidos na Central de Marca.",
+            "3. Capturar palavras-chave comparativas e comerciais no módulo SEO.",
+        ]
+        suggested_actions = [
+            {"id": "act-brand-audit", "label": "Auditar Diferenciais & Consistência da Marca", "target_view": "competitors", "safe": True, "cost_brl": 0.0},
+            {"id": "act-run-seo", "label": "Auditar SEO & Keywords Comparativas", "target_view": "seo", "safe": True, "cost_brl": 0.0},
+        ]
+    elif intent == "RETENTION_CHURN":
+        plan_steps = [
+            f"1. Revisar feedbacks NPS/CSAT ({len(snap['feedbacks'])} registrado(s)) e sinalizar contas em risco.",
+            "2. Criar rotina automática em Python para monitorar clientes inativos.",
+            "3. Preparar plano de retenção sem disparos externos automáticos.",
+        ]
+        suggested_actions = [
+            {"id": "act-data-analyst", "label": "Consolidar Diagnóstico de Retenção & Receita", "target_view": "cs", "safe": True, "cost_brl": 0.0},
+            {"id": "act-score-leads", "label": "Atualizar Prioridade dos Contatos no CRM", "target_view": "crm", "safe": True, "cost_brl": 0.0},
         ]
     elif intent == "PROMOTE_AND_CONTENT":
         plan_steps = [
@@ -1425,6 +1452,29 @@ def build_conversational_automation_service(
         trigger_label = "Diariamente às 10:00 (ou verificação de leads inativos)"
         leads_affected = db.query(CRMLead).filter(CRMLead.tenant_id == tenant_id, CRMLead.pipeline_stage == "NEW_LEAD").count()
         dry_preview = f"Simulação segura: {leads_affected} lead(s) novo(s) seriam avaliados para tarefa de follow-up (sem envio externo automático)."
+    elif "oportunidade" in low or "negocia" in low or "pipeline" in low or "parada" in low:
+        name = "Alertar negociações paradas no pipeline e destravar vendas"
+        trigger_type = "CRON"
+        trigger_event = "CRM_STALLED_DEALS_CHECK"
+        cron_expr = "0 9 * * 1,3,5"
+        action_type = "UNBLOCK_STALLED_DEALS"
+        target_agent = "AGENT_08_SALES"
+        condition = "Negociações abertas há >= 5 dias sem tarefa recente"
+        action_label = "Sinalizar negociações paradas em Meu Trabalho e sugerir próximo passo"
+        trigger_label = "Segundas, quartas e sextas às 09:00"
+        open_deals = db.query(CRMDeal).filter(CRMDeal.tenant_id == tenant_id, CRMDeal.status == "OPEN").count()
+        dry_preview = f"Simulação segura: {open_deals} negociação(ões) aberta(s) avaliada(s) para prevenção de estagnação."
+    elif "seo" in low or "site" in low or "google" in low:
+        name = "Auditoria semanal automática de SEO técnico & Core Web Vitals"
+        trigger_type = "CRON"
+        trigger_event = "WEEKLY_SEO_AUDIT"
+        cron_expr = "0 9 * * 1"
+        action_type = "RUN_TECHNICAL_SEO"
+        target_agent = "AGENT_03_SEO"
+        condition = "Validar apenas URL pública autorizada respeitando anti-SSRF"
+        action_label = "Inspecionar HTTP/canonical/OpenGraph/sitemap e registrar alertas"
+        trigger_label = "Toda segunda-feira às 09:00"
+        dry_preview = f"Simulação segura: audita '{tenant.domain or 'domínio da marca'}' a custo R$ 0,00 sem APIs pagas."
     elif "entrar um lead" in low or "novo lead" in low or "lead" in low:
         name = "Analisar novo lead automaticamente e avisar em Meu Trabalho"
         trigger_type = "EVENT"

@@ -123,8 +123,19 @@ def monitor_deployment(args: argparse.Namespace, deployment_uuid: str, client: h
     return False
 
 
-def run_production_health_checks(target_url: str) -> bool:
-    """Executa suíte de validação externa HTTP 200 e integridade de produção."""
+def _write_github_summary(markdown_lines: list[str]) -> None:
+    summary_path = os.getenv("GITHUB_STEP_SUMMARY", "").strip()
+    if not summary_path:
+        return
+    try:
+        with open(summary_path, "a", encoding="utf-8") as fh:
+            fh.write("\n".join(markdown_lines) + "\n")
+    except Exception:
+        pass
+
+
+def run_production_health_checks(target_url: str, expected_commit: str = "") -> bool:
+    """Executa suíte de validação externa HTTP 200, commit SHA real e integridade de produção."""
     print("\n" + "=" * 70)
     print(f"[PRODUÇÃO] EXECUTANDO HEALTH CHECKS EM: {target_url}")
     print("=" * 70)
@@ -138,6 +149,7 @@ def run_production_health_checks(target_url: str) -> bool:
     ]
 
     all_passed = True
+    observed_commit = ""
     with httpx.Client(timeout=20.0, follow_redirects=True) as client:
         for path, description in endpoints:
             url = f"{target_url.rstrip('/')}{path}"
@@ -152,7 +164,7 @@ def run_production_health_checks(target_url: str) -> bool:
                 print(f"  [FAIL] {url} -> Exceção de conexão: {e}")
                 all_passed = False
 
-        # Validação detalhada do endpoint /health
+        # Validação detalhada do endpoint /health e correspondência de commit
         try:
             h = client.get(f"{target_url.rstrip('/')}/health")
             if h.status_code == 200:
@@ -160,11 +172,15 @@ def run_production_health_checks(target_url: str) -> bool:
                 db_status = h_data.get("database", {}).get("status")
                 sched_running = h_data.get("scheduler", {}).get("running")
                 sched_tz = h_data.get("scheduler", {}).get("timezone")
+                observed_commit = str(h_data.get("git_commit") or "")
                 print(f"  [INFO] DB Status: {db_status} | Engine: {h_data.get('database', {}).get('engine')}")
                 print(f"  [INFO] Scheduler Ativo: {sched_running} | Timezone: {sched_tz}")
+                print(f"  [INFO] Commit em Produção: {observed_commit}")
                 if db_status != "healthy" or not sched_running:
                     print("  [FAIL] Critérios de prontidão operacional violados no /health")
                     all_passed = False
+                if expected_commit and expected_commit not in ("HEAD", "") and observed_commit and not observed_commit.startswith(expected_commit[:8]):
+                    print(f"  [AVISO] Commit em produção ({observed_commit[:10]}) difere do commit esperado ({expected_commit[:10]}).")
         except Exception as e:
             print(f"  [FAIL] Erro ao validar payload do /health: {e}")
             all_passed = False
@@ -187,12 +203,19 @@ def main():
 
     if not has_credentials:
         print("\n[INFO CI/CD] Credenciais COOLIFY_DEPLOY_WEBHOOK ou COOLIFY_API_TOKEN não detectadas.")
-        print("Para deploy 100% autônomo sem intervenção humana, cadastre no GitHub Secrets:")
+        print("Para deploy 100% autônomo pelo GitHub Actions, cadastre nos Secrets do repositório:")
         print("  1. COOLIFY_API_TOKEN = Seu token de API do Coolify")
         print(f"  2. COOLIFY_DEPLOY_WEBHOOK = {args.coolify_url}/api/v1/deploy?uuid={args.app_uuid}")
         print("  3. PRODUCTION_BASE_URL = https://automacao.projetosunion.cloud")
         print("\nExecutando verificação de integridade e health check na produção atual...")
-        ok = run_production_health_checks(args.target_url)
+        ok = run_production_health_checks(args.target_url, args.expected_commit)
+        _write_github_summary([
+            "### UNION GROWTH OS — Verificação de Produção",
+            f"- **URL Alvo**: `{args.target_url}`",
+            f"- **Commit Workflow**: `{args.expected_commit}`",
+            "- **Auto Deploy GitHub Actions**: `PENDING_GITHUB_SECRETS` (defina `COOLIFY_API_TOKEN` ou `COOLIFY_DEPLOY_WEBHOOK` em Settings → Secrets)",
+            f"- **Health Check HTTP**: {'`PASS`' if ok else '`FAIL`'}",
+        ])
         if not ok:
             print("[ERRO] Health check na produção falhou.")
             sys.exit(1)
@@ -206,8 +229,16 @@ def main():
             print("[ERRO FATAL] Implantação reprovada no Coolify. Abortando com erro.")
             sys.exit(1)
 
-    # Executar Health Checks Externos na URL Oficial
-    checks_passed = run_production_health_checks(args.target_url)
+    # Executar Health Checks Externos na URL Oficial com checagem de commit
+    checks_passed = run_production_health_checks(args.target_url, args.expected_commit)
+    _write_github_summary([
+        "### UNION GROWTH OS — Deploy & Validação em Produção",
+        f"- **URL Alvo**: `{args.target_url}`",
+        f"- **Método**: `{trigger_type}`",
+        f"- **Deployment UUID**: `{dep_uuid}`",
+        f"- **Commit Alvo**: `{args.expected_commit}`",
+        f"- **Status Pós-Deploy**: {'`APROVADO`' if checks_passed else '`FALHOU`'}",
+    ])
     if not checks_passed:
         print("[ERRO FATAL] Health checks pós-deploy reprovados na URL oficial.")
         sys.exit(1)

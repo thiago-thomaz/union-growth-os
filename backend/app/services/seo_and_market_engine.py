@@ -215,6 +215,12 @@ def perform_real_seo_audit(
     images_missing_alt = 0
     is_indexable = True
     schema_types: list[str] = []
+    canonical_url = ""
+    has_viewport = False
+    og_title = ""
+    og_description = ""
+    og_image = ""
+    body_word_count = 0
     score = 100.0
     data_origin = "REAL"
 
@@ -231,6 +237,26 @@ def perform_real_seo_audit(
             is_indexable = False
             issues.append("Tag meta robots contém 'noindex' — página bloqueada para indexação.")
             score -= 25
+
+        can_el = soup.find("link", attrs={"rel": lambda v: bool(v and "canonical" in [str(x).lower() for x in (v if isinstance(v, list) else [v])])})
+        if can_el and can_el.get("href"):
+            canonical_url = str(can_el.get("href")).strip()
+
+        vp_el = soup.find("meta", attrs={"name": re.compile(r"^viewport$", re.I)})
+        has_viewport = bool(vp_el and vp_el.get("content"))
+
+        og_t = soup.find("meta", attrs={"property": re.compile(r"^og:title$", re.I)})
+        if og_t and og_t.get("content"):
+            og_title = str(og_t.get("content")).strip()
+        og_d = soup.find("meta", attrs={"property": re.compile(r"^og:description$", re.I)})
+        if og_d and og_d.get("content"):
+            og_description = str(og_d.get("content")).strip()
+        og_i = soup.find("meta", attrs={"property": re.compile(r"^og:image$", re.I)})
+        if og_i and og_i.get("content"):
+            og_image = str(og_i.get("content")).strip()
+
+        body_text = soup.get_text(" ", strip=True)
+        body_word_count = len(re.findall(r"\w+", body_text))
 
         h1_tags = [h.get_text(strip=True) for h in soup.find_all("h1") if h.get_text(strip=True)]
         h2_tags = [h.get_text(strip=True) for h in soup.find_all("h2") if h.get_text(strip=True)][:15]
@@ -264,6 +290,26 @@ def perform_real_seo_audit(
         issues.append(
             f"Não foi possível conectar diretamente a {url} ({fetch_error or 'host inacessível'}). Diagnóstico estrutural preventivo gerado."
         )
+
+    if not canonical_url and status_code == 200:
+        issues.append("Tag <link rel='canonical'> ausente (risco de conteúdo duplicado em SEO).")
+        recommendations.append("Definir <link rel='canonical' href='...'> apontando para a URL oficial da página.")
+        score -= 4
+
+    if status_code == 200 and not has_viewport:
+        issues.append("Meta tag viewport ausente (compromete indexação mobile-first do Google).")
+        recommendations.append("Adicionar <meta name='viewport' content='width=device-width, initial-scale=1'> no <head>.")
+        score -= 6
+
+    if status_code == 200 and (not og_title or not og_description):
+        issues.append("Metadados OpenGraph (og:title / og:description) incompletos para compartilhamento social.")
+        recommendations.append("Adicionar og:title, og:description e og:image para pré-visualização rica em LinkedIn/WhatsApp.")
+        score -= 3
+
+    if status_code == 200 and 0 < body_word_count < 250:
+        issues.append(f"Conteúdo textual curto detectado na página ({body_word_count} palavras).")
+        recommendations.append("Expandir conteúdo semântico relevante para 600+ palavras respondendo dúvidas do comprador.")
+        score -= 4
 
     if not title_tag:
         issues.append("Ausência de tag <title> na página.")
@@ -332,6 +378,16 @@ def perform_real_seo_audit(
         "url": url,
         "description": suggested_meta,
         "pagespeed_insights": psi_data,
+        "technical_signals": {
+            "has_canonical": bool(canonical_url),
+            "canonical_url": canonical_url,
+            "has_viewport_mobile": has_viewport,
+            "has_open_graph": bool(og_title and og_description),
+            "og_image": og_image,
+            "body_word_count": body_word_count,
+            "h2_count": len(h2_tags),
+            "schema_types": schema_types,
+        },
     }
 
     final_score = max(10.0, min(100.0, round(score, 1)))

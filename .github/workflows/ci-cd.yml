@@ -69,22 +69,29 @@ jobs:
       - name: Security Audit & Secret Leak Check
         run: |
           python -c "
-          import sys
+          import re, sys
           from pathlib import Path
-          suspicious = [
+          literal_patterns = [
               'BEGIN RSA PRIVATE KEY',
               'BEGIN OPENSSH PRIVATE KEY',
               'password = \"UnionGrowth@2026\"',
-              '2|6KYgMM7ZQaKiuOcuG4x9cun0jTi72VZ1ZHJi0rCM93ee09c0',
+          ]
+          regex_patterns = [
+              re.compile(r'ghp_[A-Za-z0-9]{20,}'),
+              re.compile(r'AIzaSy[A-Za-z0-9_-]{24,}'),
+              re.compile(r'Bearer\s+[0-9]+\|[A-Za-z0-9]{24,}'),
           ]
           violations = []
           for p in Path('.').rglob('*.py'):
               if '.venv' in str(p) or '__pycache__' in str(p):
                   continue
               txt = p.read_text(encoding='utf-8', errors='ignore')
-              for s in suspicious:
+              for s in literal_patterns:
                   if s in txt and 'test_' not in p.name:
-                      violations.append(f'{p}: contains sensitive string')
+                      violations.append(f'{p}: contains sensitive marker')
+              for rx in regex_patterns:
+                  if rx.search(txt) and 'test_' not in p.name:
+                      violations.append(f'{p}: matched secret regex {rx.pattern}')
           if violations:
               print('SECURITY VIOLATION DETECTED:', violations)
               sys.exit(1)

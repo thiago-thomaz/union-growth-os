@@ -336,8 +336,11 @@ export function AITeamAndGovernanceView({
               ))}
             </div>
             <div className="text-[11px] text-[var(--ug-text-muted)]">
-              Serviço ativo: <strong className="text-[var(--ug-text-primary)] uppercase">{defaultProvider}</strong> • Conexões:{" "}
-              <strong className="text-[var(--ug-text-primary)]">{connectedIntegrations.length}/{(integrationsData || []).length}</strong>
+              Serviço ativo:{" "}
+              <strong className="text-[var(--ug-text-primary)] uppercase">
+                {geminiProv?.has_credential ? defaultProvider : `NATIVO (${defaultProvider} sem chave)`}
+              </strong>{" "}
+              • Conexões: <strong className="text-[var(--ug-text-primary)]">{connectedIntegrations.length}/{(integrationsData || []).length}</strong>
             </div>
           </div>
         </div>
