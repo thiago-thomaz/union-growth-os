@@ -1032,6 +1032,8 @@ export default function UnionGrowthOSPortal() {
                 type="button"
                 onClick={loadAllActiveData}
                 aria-label="Atualizar Dados"
+                aria-busy={loading}
+                data-loading={loading ? "true" : "false"}
                 className="p-1.5 rounded-lg border border-[var(--ug-border)] hover:bg-white/[0.04] text-[var(--ug-text-secondary)] flex items-center gap-1.5 text-xs transition"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} aria-hidden="true" />

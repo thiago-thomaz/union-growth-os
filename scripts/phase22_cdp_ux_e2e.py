@@ -432,15 +432,19 @@ async def run_phase22_e2e():
                     return true;
                 })()
             """)
-            for _ in range(16):
+            for _ in range(24):
                 await asyncio.sleep(0.5)
-                ready_qa = await cdp.evaluate("!(document.body.innerText || '').includes('Atualizando...') && (document.querySelector('header')?.innerText || '').includes('QA_AUTOMATED_TENANT')")
+                ready_qa = await cdp.evaluate("document.querySelector('button[aria-label=\"Atualizar Dados\"]')?.getAttribute('data-loading') !== 'true' && (document.querySelector('header')?.innerText || '').includes('QA_AUTOMATED_TENANT')")
                 if ready_qa:
                     break
             await cdp.click_by_text("aside button", "Comercial")
             await asyncio.sleep(0.4)
             await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Propostas, Contratos & 3 Unidades")
-            await asyncio.sleep(0.8)
+            for _ in range(16):
+                await asyncio.sleep(0.5)
+                has_pdf_now = await cdp.evaluate("Array.from(document.querySelectorAll('button')).some(b => (b.innerText || '').trim() === 'PDF')")
+                if has_pdf_now:
+                    break
             pdf_check = await cdp.evaluate("""
                 (async () => {
                     window.__capturedUrls = [];
@@ -469,9 +473,9 @@ async def run_phase22_e2e():
                     }
                 })()
             """)
-            for _ in range(16):
+            for _ in range(24):
                 await asyncio.sleep(0.5)
-                ready_t1 = await cdp.evaluate("!(document.body.innerText || '').includes('Atualizando...') && (document.querySelector('header')?.innerText || '').includes('UNION GROWTH OS')")
+                ready_t1 = await cdp.evaluate("document.querySelector('button[aria-label=\"Atualizar Dados\"]')?.getAttribute('data-loading') !== 'true' && (document.querySelector('header')?.innerText || '').includes('UNION GROWTH OS')")
                 if ready_t1:
                     break
             urls_opened = (pdf_check or {}).get("urls", [])

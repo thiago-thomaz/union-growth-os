@@ -139,7 +139,7 @@ class CDPClient:
     async def wait_idle(self, timeout_s: float = 12.0):
         for _ in range(int(timeout_s / 0.4)):
             await asyncio.sleep(0.4)
-            busy = await self.evaluate("(document.body.innerText || '').includes('Atualizando...')")
+            busy = await self.evaluate("document.querySelector('button[aria-label=\"Atualizar Dados\"]')?.getAttribute('data-loading') === 'true'")
             if not busy:
                 return True
         return False
