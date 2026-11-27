@@ -229,6 +229,8 @@ export function HomeWorkspace({
       value: `${gs.score}/100`,
       subtext: "Ver nota e 12 dimensões →",
       origin: "REAL",
+      source: "Auditoria 12 Pilares",
+      period: "Atualizado hoje",
       onClick: () => setHealthDrawerOpen(true),
     },
     {
@@ -237,6 +239,8 @@ export function HomeWorkspace({
       value: realLeads.length,
       subtext: realLeads.length > 0 ? "Base qualificada LGPD" : "Nenhum lead cadastrado",
       origin: "REAL",
+      source: "CRM PostgreSQL",
+      period: "Acumulado ativo",
       onClick: () => onNavigate("crm"),
     },
     {
@@ -245,6 +249,8 @@ export function HomeWorkspace({
       value: openDealsCount,
       subtext: openDealsCount > 0 ? "Em negociação ativa" : "Abrir funil de vendas",
       origin: openDealsCount > 0 ? "REAL" : "ESTIMATED",
+      source: "Funil Comercial",
+      period: "Em aberto",
       onClick: () => onNavigate("commercial"),
     },
     {
@@ -253,6 +259,8 @@ export function HomeWorkspace({
       value: campaignsCount,
       subtext: `${readyContentCount} peça(s) pronta(s)`,
       origin: "REAL",
+      source: "Marketing & Conteúdo",
+      period: "Ativas",
       onClick: () => onNavigate("marketing"),
     },
     {
@@ -261,6 +269,8 @@ export function HomeWorkspace({
       value: pendingApprovals.length + openAlerts.length,
       subtext: pendingApprovals.length > 0 ? "Aguardam sua decisão" : "Tudo em dia agora",
       origin: "REAL",
+      source: "Governança & Alertas",
+      period: "Agora",
       onClick: () => onNavigate("my_work"),
     },
   ];
@@ -280,6 +290,14 @@ export function HomeWorkspace({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onNavigate("growth")}
+            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition"
+          >
+            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>Centro de Crescimento (0–90d)</span>
+          </button>
           {onboardingDismissed ? (
             <button
               type="button"

@@ -371,6 +371,29 @@ def perform_real_seo_audit(
 
     psi_data = fetch_pagespeed_insights(url, elapsed_ms)
 
+    prioritized_recs = []
+    for idx, rec_txt in enumerate(recommendations):
+        low_r = rec_txt.lower()
+        if "noindex" in low_r or "<title>" in low_r or "<h1>" in low_r or "ttfb" in low_r:
+            prio, imp, eff = "HIGH", 9, "LOW"
+        elif "viewport" in low_r or "description" in low_r or "sitemap" in low_r or "canonical" in low_r:
+            prio, imp, eff = "HIGH", 8, "LOW"
+        elif "schema" in low_r or "robots" in low_r or "alt" in low_r:
+            prio, imp, eff = "MEDIUM", 7, "LOW"
+        else:
+            prio, imp, eff = "MEDIUM", 6, "MEDIUM"
+        prioritized_recs.append(
+            {
+                "id": f"seo-rec-{idx + 1}",
+                "priority": prio,
+                "impact_score": imp,
+                "effort": eff,
+                "recommendation": rec_txt,
+                "estimated_cost_brl": 0.0,
+            }
+        )
+    prioritized_recs.sort(key=lambda x: (-x["impact_score"], 0 if x["effort"] == "LOW" else 1))
+
     generated_schema = {
         "@context": "https://schema.org",
         "@type": "Organization",
@@ -385,9 +408,14 @@ def perform_real_seo_audit(
             "has_open_graph": bool(og_title and og_description),
             "og_image": og_image,
             "body_word_count": body_word_count,
+            "h1_count": len(h1_tags),
             "h2_count": len(h2_tags),
+            "internal_links_count": internal_links,
+            "external_links_count": external_links,
+            "images_missing_alt_count": images_missing_alt,
             "schema_types": schema_types,
         },
+        "prioritized_recommendations": prioritized_recs,
     }
 
     final_score = max(10.0, min(100.0, round(score, 1)))

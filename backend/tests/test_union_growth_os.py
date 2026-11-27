@@ -2793,6 +2793,101 @@ def test_51_phase25_plg_plans_usage_revenue_intelligence_activation_and_seo(clie
     assert "technical_signals" in r_seo.json()
 
 
+def test_52_phase26_growth_center_bootstrap_agents_matrix_crm_followup_and_entitlements(client: TestClient):
+    """FASE 26: Valida Bootstrap consolidado, Centro de Crescimento (0/7/30/90d), Matriz dos 12 Agentes, Pipeline Move-Stage, Smart Follow-up LGPD e Entitlements."""
+    r_reg = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": f"phase26.{RUN_SUFFIX}@union.test",
+            "password": "StrongPassword#2026!",
+            "full_name": "Fundador Fase 26",
+            "company_name": f"GrowthOS P26 {RUN_SUFFIX}",
+            "lgpd_consent": True,
+        },
+    )
+    assert r_reg.status_code in (200, 201)
+    h = _auth_headers(r_reg.json()["access_token"])
+
+    # 1. Consolidated fast bootstrap
+    r_boot = client.get("/api/v1/growth-os/bootstrap", headers=h)
+    assert r_boot.status_code == 200
+    boot = r_boot.json()
+    for key in ("me", "overview", "command_center", "activation_retention", "ceo_daily_plan"):
+        assert key in boot
+
+    # 2. Centro de Crescimento 0/7/30/90 dias
+    r_gp = client.post(
+        "/api/v1/growth-os/growth-plan",
+        headers=h,
+        json={
+            "objective": "Conseguir mais clientes B2B",
+            "product_or_service": "Consultoria de Automação",
+            "region": "Brasil",
+            "budget_brl": 0.0,
+            "deadline_days": 90,
+        },
+    )
+    assert r_gp.status_code == 200
+    gp = r_gp.json()
+    assert set(["TODAY", "NEXT_7_DAYS", "NEXT_30_DAYS", "NEXT_90_DAYS"]).issubset(set(gp["horizons"].keys()))
+    assert gp["real_baseline"]["data_origin"] == "REAL"
+    assert all(a["probability_origin"] == "ESTIMATED" for a in gp["actions"])
+
+    # Executar etapa segura (Nível 2 padrão -> gera 15-30 peças)
+    r_exec = client.post("/api/v1/growth-os/growth-plan/execute-step", headers=h, json={"action_type": "GEN_CONTENT_BATCH"})
+    assert r_exec.status_code == 200 and r_exec.json()["ok"] is True
+
+    # CONNECT_OAUTH nunca simula conexão
+    r_oauth = client.post("/api/v1/growth-os/growth-plan/execute-step", headers=h, json={"action_type": "CONNECT_OAUTH"})
+    assert r_oauth.status_code == 200 and r_oauth.json()["status"] == "REQUIRES_CREDENTIALS"
+
+    # 3. Matriz de Classificação dos 12 Agentes sem disfarces
+    r_mat = client.get("/api/v1/agents/matrix", headers=h)
+    assert r_mat.status_code == 200
+    mat = r_mat.json()
+    assert len(mat["agents"]) == 12
+    assert all(a["execution_mode"] in ("LLM", "HYBRID", "DETERMINISTIC", "BLOCKED", "SIMULATED") for a in mat["agents"])
+
+    # 4. CRM Revenue Engine: move-stage & smart follow-up + LGPD opt-out lock
+    r_lead = client.post(
+        "/api/v1/crm/leads",
+        headers=h,
+        json={"full_name": "Cliente Teste F26", "email": f"cli26.{RUN_SUFFIX}@emp.com", "consent_lgpd": True, "buy_intent": "HIGH"},
+    )
+    assert r_lead.status_code == 201
+    lead_id = r_lead.json()["id"]
+
+    r_sf = client.post(f"/api/v1/crm/leads/{lead_id}/smart-followup", headers=h)
+    assert r_sf.status_code == 200
+    assert r_sf.json()["channel_connected"] is False
+    assert r_sf.json()["delivery_status"] == "PREPARED_MANUAL_COPY_NO_CHANNEL_CONNECTED"
+
+    r_deal = client.post("/api/v1/crm/deals", headers=h, json={"title": "Contrato F26", "stage": "PROPOSAL", "value": 9500.0})
+    assert r_deal.status_code == 201
+    deal_id = r_deal.json()["id"]
+
+    r_mv = client.post(f"/api/v1/crm/deals/{deal_id}/move-stage", headers=h, json={"stage": "CLOSED_WON"})
+    assert r_mv.status_code == 200
+    assert r_mv.json()["stage"] == "CLOSED_WON"
+    assert r_mv.json()["status"] == "WON"
+    assert r_mv.json()["probability_origin"] == "ESTIMATED"
+
+    # 5. Entitlements & Billing Readiness (sem cobrança live)
+    r_ent = client.get("/api/v1/plans/entitlements", headers=h)
+    assert r_ent.status_code == 200
+    ent = r_ent.json()
+    assert ent["billing_readiness"]["charge_enabled"] is False
+    assert ent["billing_readiness"]["authorization_required"] is True
+
+    # 6. SEO Technical Signals + Prioritized Recommendations
+    r_seo = client.post("/api/v1/seo/audit", headers=h, json={"target_url": "https://automacao.projetosunion.cloud", "target_keyword": "saas b2b"})
+    assert r_seo.status_code == 201
+    seo_j = r_seo.json()
+    assert "prioritized_recommendations" in seo_j
+    assert "h1_count" in seo_j["technical_signals"]
+
+
+
 
 
 

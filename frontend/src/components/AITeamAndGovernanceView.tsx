@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Bot,
   CheckCircle2,
@@ -155,6 +155,23 @@ export function AITeamAndGovernanceView({
   const [wizardBusy, setWizardBusy] = useState(false);
   const [wizardTestOut, setWizardTestOut] = useState<any>(null);
   const [agentSearch, setAgentSearch] = useState("");
+  const [matrixData, setMatrixData] = useState<any>(null);
+
+  useEffect(() => {
+    let active = true;
+    apiFetch("/api/v1/agents/matrix")
+      .then((res) => {
+        if (active) setMatrixData(res);
+      })
+      .catch(() => null);
+    return () => {
+      active = false;
+    };
+  }, [apiFetch, agentsData]);
+
+  const matrixMap = new Map<string, any>(
+    ((matrixData?.agents || []) as any[]).map((m) => [m.id, m])
+  );
 
   const currentAutonomy = meData?.active_tenant?.autonomy_default_level || 2;
   const costPolicy = aiEnginesConfig?.configuration?.cost_policy_mode || "FREE_ONLY";
@@ -378,8 +395,28 @@ export function AITeamAndGovernanceView({
           </div>
         </div>
 
+        {matrixData && (
+          <div className="ug-card rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-[var(--ug-text-primary)]">Classificação Técnica Auditada:</span>
+              <span className="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 font-semibold">
+                {matrixData.classification_summary?.HYBRID || 0} Híbridos (LLM opcional + Fallback Nativo)
+              </span>
+              <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 font-semibold">
+                {matrixData.classification_summary?.DETERMINISTIC || 0} Determinísticos (Regras Python)
+              </span>
+              <span className="px-2 py-0.5 rounded bg-white/[0.06] text-[var(--ug-text-secondary)]">
+                Simulados: {matrixData.classification_summary?.SIMULATED || 0} (Nenhuma IA simulada)
+              </span>
+            </div>
+            <span className="text-[11px] text-[var(--ug-text-muted)]">Custo hoje: R$ 0,00</span>
+          </div>
+        )}
+
         <div className="ug-card rounded-2xl divide-y divide-white/[0.05]">
           {filteredAgents.map((ag: any) => {
+            const mInfo = matrixMap.get(ag.id);
+            const execMode = mInfo?.execution_mode || "DETERMINISTIC";
             const meta = AGENT_FRIENDLY_META[ag.id] || {
               problemSolved: "Automatiza análises operacionais desta área.",
               dataUsed: "Dados do seu workspace",
@@ -396,8 +433,24 @@ export function AITeamAndGovernanceView({
                 <div className="space-y-1 min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-[var(--ug-text-primary)]">{ag.name}</span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                        execMode === "HYBRID" || execMode === "LLM"
+                          ? "bg-indigo-500/15 text-indigo-300"
+                          : execMode === "BLOCKED"
+                            ? "bg-amber-500/15 text-amber-300"
+                            : "bg-emerald-500/15 text-emerald-300"
+                      }`}
+                    >
+                      {execMode}
+                    </span>
                     <StatusPill status="EXECUTED" label="Pronto" />
                     <span className="text-[11px] text-[var(--ug-text-muted)]">• {meta.scheduleHint}</span>
+                    {mInfo?.daily_limit !== undefined && (
+                      <span className="text-[10px] text-[var(--ug-text-muted)] tabular-nums">
+                        • Limite {mInfo.daily_limit}/dia
+                      </span>
+                    )}
                   </div>
                   <p className="text-[11px] text-indigo-300">{meta.problemSolved}</p>
                   <div className="text-[11px] text-[var(--ug-text-muted)]">

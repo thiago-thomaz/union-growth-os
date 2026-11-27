@@ -101,7 +101,8 @@ export function StatusPill({
 }
 
 /**
- * Stripe-style hairline horizontal metric strip: zero nested boxes.
+ * Stripe/Linear-style hairline horizontal metric strip (Design System 4.0):
+ * includes source provenance & measurement period attribution on every KPI.
  */
 export interface MetricStripItem {
   key: string;
@@ -109,6 +110,8 @@ export interface MetricStripItem {
   value: string | number;
   subtext?: string;
   origin?: string;
+  source?: string;
+  period?: string;
   onClick?: () => void;
 }
 
@@ -140,9 +143,51 @@ export function MetricStrip({ items }: { items: MetricStripItem[] }) {
             {item.subtext && (
               <div className="text-[11px] text-[var(--ug-text-muted)] truncate">{item.subtext}</div>
             )}
+            {(item.source || item.period) && (
+              <div className="text-[10px] text-[var(--ug-text-muted)]/80 truncate pt-0.5">
+                {[item.source, item.period].filter(Boolean).join(" • ")}
+              </div>
+            )}
           </Wrapper>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Design System 4.0 — Discrete 1-line plain-language orientation bar ("O que é • Para que serve • Próximo passo").
+ */
+export function PlainOrientationBar({
+  whatIsIt,
+  whyUseIt,
+  nextStep,
+  actionLabel,
+  onAction,
+}: {
+  whatIsIt: string;
+  whyUseIt: string;
+  nextStep: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <div className="ug-card rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="space-y-0.5 min-w-0 flex-1">
+        <div className="font-semibold text-[var(--ug-text-primary)]">{whatIsIt}</div>
+        <div className="text-[11px] text-[var(--ug-text-muted)]">
+          {whyUseIt} • <span className="text-indigo-400 font-medium">Próximo passo:</span> {nextStep}
+        </div>
+      </div>
+      {actionLabel && onAction && (
+        <button
+          type="button"
+          onClick={onAction}
+          className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium shrink-0 transition"
+        >
+          {actionLabel}
+        </button>
+      )}
     </div>
   );
 }

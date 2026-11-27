@@ -339,8 +339,38 @@ class AIUsageTracker:
         return b
 
     @classmethod
-    def get_usage_summary(cls, tenant_id: int) -> dict[str, Any]:
-        return cls._bucket(tenant_id)
+    def get_usage_summary(cls, tenant_id: int, db: Session | None = None) -> dict[str, Any]:
+        b = dict(cls._bucket(tenant_id))
+        b["origins_breakdown"] = dict(b.get("origins_breakdown") or {})
+        if db is None:
+            return b
+        from app.models.entities import AIEngineExecutionRecord
+
+        today_prefix = b["date"]
+        start_dt = datetime.strptime(today_prefix, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        agent_rows = (
+            db.query(AgentExecutionLog)
+            .filter(AgentExecutionLog.tenant_id == tenant_id, AgentExecutionLog.created_at >= start_dt)
+            .all()
+        )
+        hub_rows = (
+            db.query(AIEngineExecutionRecord)
+            .filter(AIEngineExecutionRecord.tenant_id == tenant_id, AIEngineExecutionRecord.created_at >= start_dt)
+            .all()
+        )
+        db_llm_calls = sum(1 for r in hub_rows if r.status == "SUCCESS")
+        db_tokens = sum(int(r.total_tokens or 0) for r in hub_rows) + sum(int(a.tokens_consumed or 0) for a in agent_rows)
+        db_det_calls = sum(
+            1
+            for a in agent_rows
+            if "DETERMINISTIC" in str(a.processing_type or "").upper() or "TEMPLATE" in str(a.processing_type or "").upper()
+        )
+        b["persisted_db_calls_today"] = len(agent_rows) + len(hub_rows)
+        b["total_calls"] = max(int(b.get("total_calls", 0)), int(b["persisted_db_calls_today"]))
+        b["llm_calls"] = max(int(b.get("llm_calls", 0)), db_llm_calls)
+        b["deterministic_calls"] = max(int(b.get("deterministic_calls", 0)), db_det_calls)
+        b["tokens_used"] = max(int(b.get("tokens_used", 0)), db_tokens)
+        return b
 
 
 class MultiProviderAIAdapter:

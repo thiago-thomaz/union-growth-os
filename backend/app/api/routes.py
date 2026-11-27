@@ -800,7 +800,7 @@ def audit_agents_intelligence(user: User = Depends(get_current_user), db: Sessio
     real_llm_agents = sum(1 for a in agents if a["uses_real_llm_now"])
     return {
         "provider_status": status_info,
-        "usage_today": AIUsageTracker.get_usage_summary(tid),
+        "usage_today": AIUsageTracker.get_usage_summary(tid, db=db),
         "agents": agents,
         "verdict": (
             f"{real_llm_agents} de {len(agents)} agentes usam LLM real agora."
@@ -1119,6 +1119,7 @@ def get_seo_overview(user: User = Depends(get_current_user), db: Session = Depen
                 "suggested_meta_description": a.suggested_meta_description,
                 "generated_schema": json.loads(a.generated_schema_json or "{}"),
                 "technical_signals": json.loads(a.generated_schema_json or "{}").get("technical_signals", {}),
+                "prioritized_recommendations": json.loads(a.generated_schema_json or "{}").get("prioritized_recommendations", []),
                 "data_origin": a.data_origin,
                 "created_at": a.created_at.isoformat(),
             }
@@ -1179,6 +1180,7 @@ def run_seo_audit(payload: SEOAuditRequest, user: User = Depends(get_current_use
         "suggested_title": report.suggested_title,
         "suggested_meta_description": report.suggested_meta_description,
         "technical_signals": json.loads(report.generated_schema_json or "{}").get("technical_signals", {}),
+        "prioritized_recommendations": json.loads(report.generated_schema_json or "{}").get("prioritized_recommendations", []),
         "data_origin": report.data_origin,
     }
 
@@ -4119,6 +4121,13 @@ def growth_os_activation_retention(
 
     tid = get_active_tenant_id(user)
     return get_activation_and_retention_service(db, tenant_id=tid)
+
+
+# Monta sub-roteador modular da Fase 26 sobre o prefixo /api/v1 preservando contratos legados
+from app.api.routers.phase26_routes import phase26_router as _phase26_router
+
+router.include_router(_phase26_router)
+
 
 
 

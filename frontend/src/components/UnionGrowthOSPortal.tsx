@@ -55,6 +55,18 @@ import {
   MultiBusinessAndProposalsWorkspace,
 } from "@/components/CommercialRevenueWorkspace";
 import { AIEnginesHubWorkspace, PlansAndUsagePanel } from "@/components/AIEnginesHubWorkspace";
+import { AIAutonomyAndOpsWorkspace } from "@/components/AIAutonomyAndOpsWorkspace";
+import {
+  CreativeCopyAndGrowthLabWorkspace,
+  MarketingCampaignsWorkspace,
+  SEOWorkspace,
+  SocialAndContentWorkspace,
+} from "@/components/MarketingAndSEOWorkspace";
+import {
+  CustomerSuccessWorkspace,
+  FinanceAndReportsWorkspace,
+  IntegrationsAndSettingsWorkspace,
+} from "@/components/ManagementAndIntegrationsWorkspace";
 
 type MenuId = LegacyMenuId;
 
@@ -315,14 +327,13 @@ export default function UnionGrowthOSPortal() {
     const seq = ++loadSeqRef.current;
     setLoading(true);
     try {
-      // Fase 25: Carrega Shell Executivo + Identidade + Command Center primeiro (< 1s) sem bloquear no fan-out completo
-      const [me, ov, cPlan, cmdRes, actRes] = await Promise.all([
-        apiFetch("/api/v1/auth/me"),
-        apiFetch("/api/v1/dashboard/overview"),
-        apiFetch("/api/v1/ceo/daily-plan").catch(() => null),
-        apiFetch("/api/v1/growth-os/command-center").catch(() => null),
-        apiFetch("/api/v1/growth-os/activation-retention").catch(() => null),
-      ]);
+      // Fase 26: Carrega Bootstrap Executivo Consolidado em 1 única chamada rápida (< 1s)
+      const boot = await apiFetch("/api/v1/growth-os/bootstrap").catch(() => null);
+      const me = boot?.me ?? (await apiFetch("/api/v1/auth/me"));
+      const ov = boot?.overview ?? (await apiFetch("/api/v1/dashboard/overview"));
+      const cPlan = boot?.ceo_daily_plan ?? (await apiFetch("/api/v1/ceo/daily-plan").catch(() => null));
+      const cmdRes = boot?.command_center ?? (await apiFetch("/api/v1/growth-os/command-center").catch(() => null));
+      const actRes = boot?.activation_retention ?? (await apiFetch("/api/v1/growth-os/activation-retention").catch(() => null));
       if (loadSeqRef.current !== seq) return;
       setMeData(me);
       setEditCompanyName(me?.active_tenant?.name || "");
@@ -595,17 +606,17 @@ export default function UnionGrowthOSPortal() {
               UG
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">UNION GROWTH OS</h1>
-              <p className="text-xs text-slate-400">AI Business, CEO, Marketing, SEO & CRM Platform</p>
+              <h1 className="text-xl font-bold text-[var(--ug-text-primary)] tracking-tight">UNION GROWTH OS</h1>
+              <p className="text-xs text-[var(--ug-text-muted)]">AI Business, CEO, Marketing, SEO & CRM Platform</p>
             </div>
           </div>
 
-          <div className="flex gap-2 mb-6 bg-slate-900/90 p-1 rounded-lg">
+          <div className="flex gap-2 mb-6 bg-[var(--ug-bg)] border border-[var(--ug-border-subtle)] p-1 rounded-lg">
             <button
               type="button"
               onClick={() => setAuthMode("login")}
-              className={`flex-1 py-2 text-xs font-semibold rounded-md ${
-                authMode === "login" ? "bg-indigo-600 text-white" : "text-slate-400"
+              className={`flex-1 py-2 text-xs font-semibold rounded-md transition ${
+                authMode === "login" ? "bg-indigo-600 text-white" : "text-[var(--ug-text-muted)] hover:text-[var(--ug-text-primary)]"
               }`}
             >
               Entrar no Sistema
@@ -613,8 +624,8 @@ export default function UnionGrowthOSPortal() {
             <button
               type="button"
               onClick={() => setAuthMode("register")}
-              className={`flex-1 py-2 text-xs font-semibold rounded-md ${
-                authMode === "register" ? "bg-indigo-600 text-white" : "text-slate-400"
+              className={`flex-1 py-2 text-xs font-semibold rounded-md transition ${
+                authMode === "register" ? "bg-indigo-600 text-white" : "text-[var(--ug-text-muted)] hover:text-[var(--ug-text-primary)]"
               }`}
             >
               Nova Empresa (Multi-Tenant)
@@ -622,7 +633,7 @@ export default function UnionGrowthOSPortal() {
           </div>
 
           {authError && (
-            <div role="alert" className="mb-4 p-3 rounded-lg bg-red-500/15 border border-red-500/40 text-red-300 text-xs">
+            <div role="alert" className="mb-4 p-3 rounded-lg bg-red-500/15 border border-red-500/40 text-red-400 text-xs">
               {authError}
             </div>
           )}
@@ -631,49 +642,49 @@ export default function UnionGrowthOSPortal() {
             {authMode === "register" && (
               <>
                 <div>
-                  <label htmlFor="ug-fullname" className="block text-xs text-slate-300 mb-1">Seu Nome Completo</label>
+                  <label htmlFor="ug-fullname" className="block text-xs text-[var(--ug-text-secondary)] mb-1">Seu Nome Completo</label>
                   <input
                     id="ug-fullname"
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white"
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border)] text-sm text-[var(--ug-text-primary)]"
                     placeholder="Ex: Thiago Thomaz"
                   />
                 </div>
                 <div>
-                  <label htmlFor="ug-company" className="block text-xs text-slate-300 mb-1">Nome da Empresa / Marca</label>
+                  <label htmlFor="ug-company" className="block text-xs text-[var(--ug-text-secondary)] mb-1">Nome da Empresa / Marca</label>
                   <input
                     id="ug-company"
                     required
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white"
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border)] text-sm text-[var(--ug-text-primary)]"
                     placeholder="Ex: Union Digital Ltda"
                   />
                 </div>
               </>
             )}
             <div>
-              <label htmlFor="ug-email" className="block text-xs text-slate-300 mb-1">E-mail Corporativo</label>
+              <label htmlFor="ug-email" className="block text-xs text-[var(--ug-text-secondary)] mb-1">E-mail Corporativo</label>
               <input
                 id="ug-email"
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border)] text-sm text-[var(--ug-text-primary)]"
               />
             </div>
             <div>
-              <label htmlFor="ug-password" className="block text-xs text-slate-300 mb-1">Senha de Acesso</label>
+              <label htmlFor="ug-password" className="block text-xs text-[var(--ug-text-secondary)] mb-1">Senha de Acesso</label>
               <input
                 id="ug-password"
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-sm text-white"
+                className="w-full px-3 py-2 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border)] text-sm text-[var(--ug-text-primary)]"
               />
             </div>
             <button
@@ -684,9 +695,9 @@ export default function UnionGrowthOSPortal() {
             </button>
           </form>
 
-          <div className="mt-5 pt-4 border-t border-slate-800 text-[11px] text-slate-400 space-y-2">
+          <div className="mt-5 pt-4 border-t border-[var(--ug-border)] text-[11px] text-[var(--ug-text-muted)] space-y-2">
             <div className="flex items-center justify-between">
-              <p className="font-semibold text-slate-300">Credenciais Executivas Padrão:</p>
+              <p className="font-semibold text-[var(--ug-text-secondary)]">Credenciais Executivas Padrão:</p>
               <button
                 type="button"
                 onClick={() => {
@@ -699,10 +710,10 @@ export default function UnionGrowthOSPortal() {
               </button>
             </div>
             <p>
-              E-mail: <code className="text-indigo-300 font-mono">admin@projetosunion.cloud</code>
+              E-mail: <code className="text-indigo-400 font-mono">admin@projetosunion.cloud</code>
             </p>
             <p>
-              Senha: <code className="text-indigo-300 font-mono font-bold">UnionGrowth#2026!</code>
+              Senha: <code className="text-indigo-400 font-mono font-bold">UnionGrowth#2026!</code>
             </p>
           </div>
         </div>
@@ -1287,1681 +1298,141 @@ export default function UnionGrowthOSPortal() {
             />
           )}
 
-          {/* 02. AI CEO */}
-          {activeMenu === "ceo" && ceoData && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between bg-[#0f1629] border border-slate-800 p-4 rounded-xl">
-                <div>
-                  <h3 className="text-sm font-bold text-white">AGENTE 01 — AI CEO & Direção Estratégica</h3>
-                  <p className="text-xs text-slate-400">
-                    Nunca inventa números financeiros ou declara decisões não executadas.
-                  </p>
-                </div>
-                <button
-                  onClick={async () => {
-                    await apiFetch("/api/v1/ceo/briefings/generate", { method: "POST" });
-                    await loadAllActiveData();
-                    showNotice("Novo CEO Daily Briefing gerado com base nos dados reais!");
-                  }}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
-                >
-                  Gerar Novo CEO Daily Briefing
-                </button>
-              </div>
-
-              {ceoData.briefings?.[0] && (
-                <div className="bg-[#0f1629] border border-indigo-500/30 rounded-xl p-5 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-base font-bold text-white">{ceoData.briefings[0].summary_headline}</h4>
-                    <OriginBadge origin="REAL" />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                    <div className="p-3 rounded-lg bg-slate-900 space-y-1">
-                      <div className="font-bold text-indigo-300">O que aconteceu (Fatos Auditados)</div>
-                      {ceoData.briefings[0].what_happened.map((x: string, i: number) => (
-                        <p key={i} className="text-slate-300">• {x}</p>
-                      ))}
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-900 space-y-1">
-                      <div className="font-bold text-emerald-300">O que está funcionando</div>
-                      {ceoData.briefings[0].what_is_working.map((x: string, i: number) => (
-                        <p key={i} className="text-slate-300">• {x}</p>
-                      ))}
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-900 space-y-1">
-                      <div className="font-bold text-amber-300">O que está dando errado / Problemas Urgentes</div>
-                      {ceoData.briefings[0].what_is_wrong.map((x: string, i: number) => (
-                        <p key={i} className="text-slate-300">• {x}</p>
-                      ))}
-                      {ceoData.briefings[0].urgent_problems.map((x: string, i: number) => (
-                        <p key={`u-${i}`} className="text-red-300">! {x}</p>
-                      ))}
-                    </div>
-                    <div className="p-3 rounded-lg bg-slate-900 space-y-1">
-                      <div className="font-bold text-sky-300">Oportunidades & Recomendações</div>
-                      {ceoData.briefings[0].opportunities.map((x: string, i: number) => (
-                        <p key={`op-${i}`} className="text-emerald-200">+ {x}</p>
-                      ))}
-                      {ceoData.briefings[0].recommendations.map((x: string, i: number) => (
-                        <p key={i} className="text-slate-300">{x}</p>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Form para criar nova meta */}
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                <h4 className="text-sm font-bold text-white">Definir Nova Meta Estratégica (Mensal / Trimestral / Anual)</h4>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                  <input
-                    value={goalTitle}
-                    onChange={(e) => setGoalTitle(e.target.value)}
-                    placeholder="Título da Meta"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white md:col-span-2"
-                  />
-                  <select
-                    value={goalPeriod}
-                    onChange={(e) => setGoalPeriod(e.target.value)}
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  >
-                    <option value="MONTHLY">Mensal (MONTHLY)</option>
-                    <option value="QUARTERLY">Trimestral (QUARTERLY)</option>
-                    <option value="ANNUAL">Anual (ANNUAL)</option>
-                  </select>
-                  <input
-                    type="number"
-                    value={goalTarget}
-                    onChange={(e) => setGoalTarget(e.target.value)}
-                    placeholder="Valor Alvo"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <button
-                    onClick={async () => {
-                      if (!goalTitle) return;
-                      await apiFetch("/api/v1/ceo/goals", {
-                        method: "POST",
-                        body: JSON.stringify({
-                          title: goalTitle,
-                          period: goalPeriod,
-                          metric_name: goalMetric,
-                          target_value: Number(goalTarget) || 100000,
-                          current_value: 0,
-                          unit: "BRL",
-                          data_origin: "GOAL",
-                          priority: "HIGH",
-                          deadline: "2027-03-31",
-                        }),
-                      });
-                      setGoalTitle("");
-                      await loadAllActiveData();
-                      showNotice("Meta estratégica registrada pelo AI CEO!");
-                    }}
-                    className="py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
-                  >
-                    Adicionar Meta
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                  {ceoData.goals.map((g: any) => (
-                    <div key={g.id} className="p-4 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">
-                          {g.period}
-                        </span>
-                        <OriginBadge origin={g.data_origin} />
-                      </div>
-                      <div className="text-xs font-bold text-white">{g.title}</div>
-                      <div className="text-sm font-semibold text-emerald-400">
-                        Atual: {g.current_value} / Meta: {g.target_value} {g.unit}
-                      </div>
-                      <div className="text-[11px] text-slate-400">
-                        Impacto Financeiro: {g.financial_impact_score}/100 • Prazo: {g.deadline}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+          {/* ÁREAS MODULARES DS 4.0 — IA, CEO, MARKETING, SEO, SOCIAL & GROWTH CENTER */}
+          {(activeMenu === "ceo" || activeMenu === "ceo_plan" || activeMenu === "operational247" || activeMenu === "pilot7d") && (
+            <AIAutonomyAndOpsWorkspace
+              mode={activeMenu}
+              meData={meData}
+              ceoData={ceoData || { briefings: [], goals: [] }}
+              goalTitle={goalTitle}
+              setGoalTitle={setGoalTitle}
+              goalPeriod={goalPeriod}
+              setGoalPeriod={setGoalPeriod}
+              goalMetric={goalMetric}
+              goalTarget={goalTarget}
+              setGoalTarget={setGoalTarget}
+              ceoDailyPlan={ceoDailyPlan}
+              setCeoDailyPlan={setCeoDailyPlan}
+              opDashboard={opDashboard}
+              systemAlerts={systemAlerts}
+              pilotData={pilotData}
+              setPilotData={setPilotData}
+              automationsData={automationsData}
+              approvalsData={approvalsData}
+              uiMode={uiMode}
+              setUiMode={setUiMode}
+              setLoading={setLoading}
+              apiFetch={apiFetch}
+              onReload={loadAllActiveData}
+              showNotice={showNotice}
+            />
           )}
 
-          {/* MARKETING — PERSONAS & CAMPANHAS */}
           {activeMenu === "marketing" && marketingData && (
-            <div className="space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[var(--ug-border)]">
-                <div>
-                  <h3 className="text-base font-semibold text-[var(--ug-text-primary)]">
-                    Campanhas &amp; Público Ideal
-                  </h3>
-                  <p className="text-xs text-[var(--ug-text-muted)] mt-0.5">
-                    Defina seu público-alvo, crie campanhas multicanal e gere conteúdo contextual na Fábrica.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      await apiFetch("/api/v1/agents/AGENT_02_CMO/execute", {
-                        method: "POST",
-                        body: JSON.stringify({ task_name: "generate_monthly_marketing_plan" }),
-                      });
-                      await loadAllActiveData();
-                      showNotice("Novo Planejamento Mensal de Marketing gerado!");
-                    } catch (err: any) {
-                      showNotice(err?.message || "Não foi possível gerar planejamento agora.");
-                    }
-                  }}
-                  className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium"
-                >
-                  Gerar Planejamento Mensal Automático
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="ug-card rounded-2xl p-5 space-y-4">
-                  <h4 className="text-sm font-semibold text-[var(--ug-text-primary)]">Personas &amp; Público-Alvo</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end text-xs">
-                    <div>
-                      <label htmlFor="ug-persona-name" className="block text-[11px] font-medium text-slate-300 mb-1">
-                        Nome da Persona *
-                      </label>
-                      <input
-                        id="ug-persona-name"
-                        value={personaName}
-                        onChange={(e) => setPersonaName(e.target.value)}
-                        placeholder="Ex.: Gestor Comercial B2B"
-                        className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="ug-persona-vp" className="block text-[11px] font-medium text-slate-300 mb-1">
-                        Principal Benefício / Oferta
-                      </label>
-                      <input
-                        id="ug-persona-vp"
-                        value={personaVP}
-                        onChange={(e) => setPersonaVP(e.target.value)}
-                        placeholder="Ex.: Reduzir tempo de resposta comercial"
-                        className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!personaName.trim()) {
-                          showNotice("Informe o Nome da Persona antes de cadastrar.");
-                          return;
-                        }
-                        try {
-                          await apiFetch("/api/v1/marketing/personas", {
-                            method: "POST",
-                            body: JSON.stringify({
-                              name: personaName.trim(),
-                              role_segment: personaRole,
-                              value_proposition: personaVP.trim() || "Eficiência e escala com IA",
-                            }),
-                          });
-                          setPersonaName("");
-                          setPersonaVP("");
-                          await loadAllActiveData();
-                          showNotice("Persona criada com sucesso!");
-                        } catch (err: any) {
-                          showNotice(err?.message || "Erro ao cadastrar persona.");
-                        }
-                      }}
-                      className="py-1.5 px-3 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold h-[30px]"
-                    >
-                      Criar Persona
-                    </button>
-                  </div>
-                  {marketingData.personas.length === 0 ? (
-                    <EmptyState
-                      title="Nenhuma persona cadastrada ainda"
-                      description="Cadastre quem é o seu cliente ideal acima (ex.: 'Diretor Financeiro PME') para a IA personalizar copies e campanhas."
-                    />
-                  ) : (
-                    marketingData.personas.map((p: any) => (
-                      <div key={p.id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1 text-xs">
-                        <div className="font-bold text-indigo-300">{p.name}</div>
-                        <div className="text-slate-400">
-                          {p.role_segment} • {p.demographics}
-                        </div>
-                        <div className="text-slate-200 mt-1">
-                          <strong>Proposta de Valor:</strong> {p.value_proposition}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h4 className="text-sm font-semibold text-[var(--ug-text-primary)]">Campanhas Ativas &amp; ROI ({marketingData.campaigns.length})</h4>
-                    <input
-                      value={campFilter}
-                      onChange={(e) => setCampFilter(e.target.value)}
-                      placeholder="Filtrar lista abaixo..."
-                      aria-label="Filtrar campanhas"
-                      className="w-full sm:w-56 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white"
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 items-end text-xs">
-                    <div className="lg:col-span-2">
-                      <label htmlFor="ug-camp-name-input" className="block text-[11px] font-medium text-slate-300 mb-1">
-                        Nome da Campanha *
-                      </label>
-                      <input
-                        id="ug-camp-name-input"
-                        value={campName}
-                        onChange={(e) => setCampName(e.target.value)}
-                        placeholder="Ex.: Captação Leads B2B Q4"
-                        className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="ug-camp-channel-select" className="block text-[11px] font-medium text-slate-300 mb-1">
-                        Canal Principal
-                      </label>
-                      <select
-                        id="ug-camp-channel-select"
-                        value={campChannel}
-                        onChange={(e) => setCampChannel(e.target.value)}
-                        className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                      >
-                        <option value="Organic SEO + LinkedIn">SEO + LinkedIn</option>
-                        <option value="Instagram + Facebook">Instagram + Facebook</option>
-                        <option value="Google Search + YouTube">Google + YouTube</option>
-                        <option value="Email & CRM">E-mail &amp; CRM</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label htmlFor="ug-camp-type-select" className="block text-[11px] font-medium text-slate-300 mb-1">
-                        Objetivo / Tipo
-                      </label>
-                      <select
-                        id="ug-camp-type-select"
-                        value={campType}
-                        onChange={(e) => setCampType(e.target.value)}
-                        className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                      >
-                        <option value="ACQUISITION">Aquisição de Leads</option>
-                        <option value="LAUNCH">Lançamento</option>
-                        <option value="SEASONAL">Sazonal</option>
-                        <option value="RETENTION">Retenção</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label htmlFor="ug-camp-budget-input" className="block text-[11px] font-medium text-slate-300 mb-1">
-                        Orçamento Planejado (R$)
-                      </label>
-                      <input
-                        id="ug-camp-budget-input"
-                        type="number"
-                        value={campBudget}
-                        onChange={(e) => setCampBudget(e.target.value)}
-                        placeholder="Ex.: 5000"
-                        className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        if (!campName.trim()) {
-                          showNotice("Informe o Nome da Campanha antes de salvar.");
-                          return;
-                        }
-                        try {
-                          const res = await apiFetch("/api/v1/marketing/campaigns", {
-                            method: "POST",
-                            body: JSON.stringify({
-                              name: campName.trim(),
-                              campaign_type: campType,
-                              channel: campChannel,
-                              objective: "Aquisição e conversão de leads",
-                              budget_planned: Number(campBudget) || 0,
-                            }),
-                          });
-                          setCampName("");
-                          await loadAllActiveData();
-                          showNotice(res.message || "Campanha criada com sucesso!");
-                        } catch (err: any) {
-                          showNotice(err?.message || "Erro ao criar campanha.");
-                        }
-                      }}
-                      className="lg:col-span-3 py-1.5 px-4 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold h-[30px]"
-                    >
-                      Criar Campanha
-                    </button>
-                  </div>
-                  {(() => {
-                    const visibleCamps = marketingData.campaigns.filter((c: any) => {
-                      const q = campFilter.trim().toLowerCase();
-                      if (!q) return true;
-                      return `${c.name || ""} ${c.channel || ""} ${c.status || ""} ${c.objective || ""}`
-                        .toLowerCase()
-                        .includes(q);
-                    });
-                    if (visibleCamps.length === 0) {
-                      return (
-                        <EmptyState
-                          title={marketingData.campaigns.length === 0 ? "Nenhuma campanha criada" : "Nenhuma campanha corresponde à busca"}
-                          description="Preencha o Nome da Campanha acima e clique em Criar Campanha para começar a mensurar ROI."
-                        />
-                      );
-                    }
-                    return visibleCamps.map((c: any) => (
-                      <div key={c.id} className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-1 text-xs">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-white">{c.name}</span>
-                          <OriginBadge origin={c.data_origin} />
-                        </div>
-                        <div className="text-slate-400">
-                          Canal: {c.channel} • Tipo: {c.campaign_type} • ROI:{" "}
-                          <strong className="text-emerald-400">{c.roi_pct}%</strong>
-                        </div>
-                        <div className="text-slate-300">
-                          Orçamento Planejado: R$ {c.budget_planned} | Gasto Real: R$ {c.spend_real} | Receita Atribuída: R${" "}
-                          {c.revenue_attributed}
-                        </div>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </div>
-            </div>
+            <MarketingCampaignsWorkspace
+              marketingData={marketingData}
+              personaName={personaName}
+              setPersonaName={setPersonaName}
+              personaRole={personaRole}
+              personaVP={personaVP}
+              setPersonaVP={setPersonaVP}
+              campName={campName}
+              setCampName={setCampName}
+              campType={campType}
+              setCampType={setCampType}
+              campChannel={campChannel}
+              setCampChannel={setCampChannel}
+              campBudget={campBudget}
+              setCampBudget={setCampBudget}
+              campFilter={campFilter}
+              setCampFilter={setCampFilter}
+              apiFetch={apiFetch}
+              onReload={loadAllActiveData}
+              showNotice={showNotice}
+            />
           )}
 
-          {/* 04. SEO DIRECTOR */}
           {activeMenu === "seo" && seoData && (
-            <div className="space-y-6 max-w-7xl mx-auto ug-fade-in">
-              <div className="px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-200 text-xs">
-                <strong>Transparência SEO:</strong> {seoData.gsc_ranking_status?.notice}
-              </div>
-
-              <div className="ug-card rounded-xl grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.06] overflow-hidden">
-                <div className="p-4 space-y-3">
-                  <h4 className="text-xs font-semibold text-[var(--ug-text-primary)]">1. Auditoria Técnica (Live HTTP)</h4>
-                  <input
-                    value={seoUrlInput}
-                    onChange={(e) => setSeoUrlInput(e.target.value)}
-                    aria-label="URL do site para auditoria SEO"
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border)] text-xs text-[var(--ug-text-primary)]"
-                    placeholder="https://seudominio.com.br"
-                  />
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await apiFetch("/api/v1/seo/audit", {
-                        method: "POST",
-                        body: JSON.stringify({ target_url: seoUrlInput, target_keyword: seoKwInput }),
-                      });
-                      await loadAllActiveData();
-                      showNotice("Auditoria técnica de SEO concluída!");
-                    }}
-                    className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
-                  >
-                    Executar Auditoria Técnica Real
-                  </button>
-                </div>
-
-                <div className="p-4 space-y-3">
-                  <h4 className="text-xs font-semibold text-[var(--ug-text-primary)]">2. Pesquisa de Palavras-Chave &amp; Clusters</h4>
-                  <input
-                    value={seoKwInput}
-                    onChange={(e) => setSeoKwInput(e.target.value)}
-                    aria-label="Palavra-chave semente"
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border)] text-xs text-[var(--ug-text-primary)]"
-                    placeholder="Palavra-chave semente"
-                  />
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await apiFetch("/api/v1/seo/keywords", {
-                        method: "POST",
-                        body: JSON.stringify({ seed_keyword: seoKwInput }),
-                      });
-                      await loadAllActiveData();
-                      showNotice("Cluster de palavras-chave e cauda longa gerado!");
-                    }}
-                    className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
-                  >
-                    Descobrir Cauda Longa &amp; Clusters
-                  </button>
-                </div>
-
-                <div className="p-4 space-y-3">
-                  <h4 className="text-xs font-semibold text-[var(--ug-text-primary)]">3. SEO Content Factory (Gerar Artigo)</h4>
-                  <input
-                    value={seoTopicInput}
-                    onChange={(e) => setSeoTopicInput(e.target.value)}
-                    aria-label="Título ou tópico do artigo SEO"
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border)] text-xs text-[var(--ug-text-primary)]"
-                    placeholder="Título / Tópico do Artigo"
-                  />
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await apiFetch("/api/v1/seo/articles/generate", {
-                        method: "POST",
-                        body: JSON.stringify({
-                          topic: seoTopicInput,
-                          target_keyword: seoKwInput,
-                          search_intent: "COMMERCIAL",
-                        }),
-                      });
-                      await loadAllActiveData();
-                      showNotice("Artigo otimizado com Schema.org gerado pela SEO Content Factory!");
-                    }}
-                    className="w-full py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
-                  >
-                    Produzir Artigo Otimizado
-                  </button>
-                </div>
-              </div>
-
-              {seoData.keyword_clusters?.length > 0 && (
-                <div className="ug-card rounded-xl overflow-hidden">
-                  <div className="px-5 py-3.5 border-b border-[var(--ug-border-subtle)] text-sm font-semibold text-[var(--ug-text-primary)]">
-                    Clusters de Conteúdo &amp; Cauda Longa ({seoData.keyword_clusters.length})
-                  </div>
-                  <div className="divide-y divide-white/[0.05] text-xs">
-                    {seoData.keyword_clusters.map((kc: any) => (
-                      <div key={kc.id} className="px-5 py-3 space-y-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-semibold text-indigo-400">{kc.seed_keyword}</span>
-                          <span className="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 text-[10px]">
-                            Intenção: {kc.search_intent}
-                          </span>
-                        </div>
-                        <div className="text-[var(--ug-text-secondary)]">
-                          <strong>Cauda Longa:</strong> {kc.long_tail_keywords.slice(0, 6).join(" • ")}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="ug-card rounded-xl overflow-hidden">
-                  <div className="px-5 py-3.5 border-b border-[var(--ug-border-subtle)] text-sm font-semibold text-[var(--ug-text-primary)]">
-                    Últimas Auditorias Técnicas ({seoData.audits.length})
-                  </div>
-                  <div className="divide-y divide-white/[0.05]">
-                    {seoData.audits.map((a: any) => {
-                      const sig = a.technical_signals || a.generated_schema?.technical_signals || {};
-                      return (
-                        <div key={a.id} className="px-5 py-3.5 text-xs space-y-1.5">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-semibold text-indigo-400 truncate">{a.target_url}</span>
-                            <OriginBadge origin={a.data_origin} />
-                          </div>
-                          <div className="tabular-nums text-[var(--ug-text-secondary)]">
-                            Score: <strong className="text-emerald-400">{a.overall_score}/100</strong> • {a.response_time_ms}ms • robots:{" "}
-                            {a.has_robots_txt ? "Sim" : "Não"} • sitemap: {a.has_sitemap_xml ? "Sim" : "Não"}
-                          </div>
-                          {Object.keys(sig).length > 0 && (
-                            <div className="flex flex-wrap gap-1.5 text-[10px]">
-                              <span className="px-1.5 py-0.5 rounded bg-white/[0.05] text-[var(--ug-text-secondary)]">
-                                Canonical: {sig.has_canonical ? "OK" : "Ausente"}
-                              </span>
-                              <span className="px-1.5 py-0.5 rounded bg-white/[0.05] text-[var(--ug-text-secondary)]">
-                                Mobile Viewport: {sig.has_viewport_mobile ? "OK" : "Ausente"}
-                              </span>
-                              <span className="px-1.5 py-0.5 rounded bg-white/[0.05] text-[var(--ug-text-secondary)]">
-                                OpenGraph: {sig.has_open_graph ? "OK" : "Incompleto"}
-                              </span>
-                              <span className="px-1.5 py-0.5 rounded bg-white/[0.05] text-[var(--ug-text-secondary)] tabular-nums">
-                                {sig.body_word_count || 0} palavras
-                              </span>
-                            </div>
-                          )}
-                          <div className="text-[var(--ug-text-muted)]">
-                            Sugestão Title: <span className="text-[var(--ug-text-primary)]">{a.suggested_title}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="ug-card rounded-xl overflow-hidden">
-                  <div className="px-5 py-3.5 border-b border-[var(--ug-border-subtle)] text-sm font-semibold text-[var(--ug-text-primary)]">
-                    Artigos da SEO Content Factory ({seoData.articles.length})
-                  </div>
-                  <div className="divide-y divide-white/[0.05]">
-                    {seoData.articles.map((art: any) => (
-                      <div key={art.id} className="px-5 py-3.5 text-xs space-y-1.5">
-                        <div className="font-semibold text-[var(--ug-text-primary)]">{art.title}</div>
-                        <div className="text-[var(--ug-text-muted)] tabular-nums">
-                          Keyword: {art.target_keyword} • {art.word_count} palavras • Densidade: {art.keyword_density_pct}%
-                        </div>
-                        <pre className="p-2.5 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border-subtle)] text-[11px] text-[var(--ug-text-secondary)] max-h-40 overflow-y-auto whitespace-pre-wrap">
-                          {art.content_markdown}
-                        </pre>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <SEOWorkspace
+              seoData={seoData}
+              seoUrlInput={seoUrlInput}
+              setSeoUrlInput={setSeoUrlInput}
+              seoKwInput={seoKwInput}
+              setSeoKwInput={setSeoKwInput}
+              seoTopicInput={seoTopicInput}
+              setSeoTopicInput={setSeoTopicInput}
+              apiFetch={apiFetch}
+              onReload={loadAllActiveData}
+              showNotice={showNotice}
+            />
           )}
 
-          {/* 05 & 14. REDES SOCIAIS & CALENDÁRIO EDITORIAL */}
-          {(activeMenu === "social" || activeMenu === "calendar") && (
-            <div className="space-y-6">
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-bold text-white">
-                      Calendário Editorial &amp; Publicações Individuais (Modo Assistido + Aprovação)
-                    </h3>
-                    <p className="text-xs text-slate-400">
-                      Crie um post individual agora ou gere 30 publicações de uma vez na Fábrica de Conteúdo. Sem OAuth conectado, prepara pacotes em 1 clique sem simular publicação.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => navigateTo("content_factory")}
-                      className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-300 text-xs font-semibold"
-                    >
-                      Ir para Fábrica (30 peças) →
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          await apiFetch("/api/v1/agents/AGENT_04_SOCIAL/execute", {
-                            method: "POST",
-                            body: JSON.stringify({}),
-                          });
-                          await loadAllActiveData();
-                          showNotice("Calendário multicanal gerado pelo AI Social Media Director!");
-                        } catch (err: any) {
-                          showNotice(err?.message || "Erro ao gerar calendário automático.");
-                        }
-                      }}
-                      className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
-                    >
-                      Gerar Lote de Posts Multicanal com IA
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3 pt-3 border-t border-slate-800 items-end text-xs">
-                  <div>
-                    <label htmlFor="ug-cal-title-input" className="block text-[11px] font-medium text-slate-300 mb-1">
-                      Título da Publicação *
-                    </label>
-                    <input
-                      id="ug-cal-title-input"
-                      value={calTitle}
-                      onChange={(e) => setCalTitle(e.target.value)}
-                      placeholder="Ex.: 3 formas de reduzir retrabalho com IA"
-                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="ug-cal-platform-select" className="block text-[11px] font-medium text-slate-300 mb-1">
-                      Rede Social
-                    </label>
-                    <select
-                      id="ug-cal-platform-select"
-                      value={calPlatform}
-                      onChange={(e) => setCalPlatform(e.target.value)}
-                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                    >
-                      <option value="instagram">Instagram</option>
-                      <option value="linkedin">LinkedIn</option>
-                      <option value="tiktok">TikTok</option>
-                      <option value="youtube">YouTube</option>
-                      <option value="facebook">Facebook</option>
-                      <option value="pinterest">Pinterest</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="ug-cal-format-select" className="block text-[11px] font-medium text-slate-300 mb-1">
-                      Formato
-                    </label>
-                    <select
-                      id="ug-cal-format-select"
-                      value={calFormat}
-                      onChange={(e) => setCalFormat(e.target.value)}
-                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                    >
-                      <option value="CAROUSEL">Carrossel</option>
-                      <option value="POST">Post Único</option>
-                      <option value="REELS_SHORT">Reels / Short / TikTok</option>
-                      <option value="VIDEO">Vídeo Longo</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="ug-cal-date-input" className="block text-[11px] font-medium text-slate-300 mb-1">
-                      Data e Hora (AAAA-MM-DD HH:MM)
-                    </label>
-                    <input
-                      id="ug-cal-date-input"
-                      value={calDate}
-                      onChange={(e) => setCalDate(e.target.value)}
-                      placeholder="Ex.: 2026-12-01 09:00"
-                      className="w-full px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!calTitle.trim()) {
-                        showNotice("Informe o Título da Publicação antes de agendar.");
-                        return;
-                      }
-                      try {
-                        await apiFetch("/api/v1/social/calendar", {
-                          method: "POST",
-                          body: JSON.stringify({
-                            title: calTitle.trim(),
-                            platform: calPlatform,
-                            content_format: calFormat,
-                            scheduled_for: calDate,
-                            auto_generate_copy: true,
-                          }),
-                        });
-                        setCalTitle("");
-                        await loadAllActiveData();
-                        showNotice("Publicação agendada e enviada para sua revisão/aprovação!");
-                      } catch (err: any) {
-                        showNotice(err?.message || "Erro ao agendar publicação.");
-                      }
-                    }}
-                    className="py-2 px-3 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold h-[34px]"
-                  >
-                    Agendar no Calendário
-                  </button>
-                </div>
-              </div>
-
-              {calendarData.length === 0 ? (
-                <EmptyState
-                  title="Nenhuma publicação no calendário ainda"
-                  description="Digite o título de um post acima e clique em 'Agendar no Calendário', ou gere 30 peças completas na Fábrica de Conteúdo."
-                  actionLabel="Abrir Fábrica de Conteúdo"
-                  onAction={() => navigateTo("content_factory")}
-                />
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {calendarData.map((item: any) => (
-                    <div key={item.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-2 text-xs">
-                      <div className="flex items-center justify-between">
-                        <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold uppercase text-[10px]">
-                          {item.platform} • {item.content_format}
-                        </span>
-                        <span className="text-slate-400 font-mono">{item.scheduled_for}</span>
-                      </div>
-                      <div className="font-bold text-white text-sm">{item.title}</div>
-                      <p className="text-slate-300 whitespace-pre-line">{item.caption}</p>
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-800 gap-2">
-                        <span className="text-[11px] text-amber-300">
-                          Aprovação:{" "}
-                          <strong>{item.approval_status === "APPROVED" ? "Aprovado" : "Aguardando"}</strong> • Envio:{" "}
-                          <strong>
-                            {item.publish_status === "PUBLISHED"
-                              ? "Publicado"
-                              : item.publish_status === "PENDING_CREDENTIALS"
-                              ? "Modo Assistido (sem OAuth)"
-                              : item.publish_status}
-                          </strong>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              const r = await apiFetch(`/api/v1/social/calendar/${item.id}/publish`, { method: "POST" });
-                              await loadAllActiveData();
-                              showNotice(r.message || "Status de publicação atualizado.");
-                            } catch (err: any) {
-                              showNotice(err?.message || "Erro ao tentar publicar.");
-                            }
-                          }}
-                          className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] shrink-0"
-                        >
-                          Aprovar &amp; Verificar Envio
-                        </button>
-                      </div>
-                      {item.last_error && <div className="text-[11px] text-amber-400/90">{item.last_error}</div>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+          {(activeMenu === "social" || activeMenu === "calendar" || activeMenu === "content_factory") && (
+            <SocialAndContentWorkspace
+              mode={activeMenu === "content_factory" ? "content_factory" : "social"}
+              meData={meData}
+              marketingData={marketingData}
+              calendarData={calendarData}
+              contentFactoryItems={contentFactoryItems}
+              cfFilter={cfFilter}
+              setCfFilter={setCfFilter}
+              cfFocusTheme={cfFocusTheme}
+              setCfFocusTheme={setCfFocusTheme}
+              cfReplaceDrafts={cfReplaceDrafts}
+              setCfReplaceDrafts={setCfReplaceDrafts}
+              setAssistedPackage={setAssistedPackage}
+              calTitle={calTitle}
+              setCalTitle={setCalTitle}
+              calPlatform={calPlatform}
+              setCalPlatform={setCalPlatform}
+              calFormat={calFormat}
+              setCalFormat={setCalFormat}
+              calDate={calDate}
+              setCalDate={setCalDate}
+              setLoading={setLoading}
+              navigateTo={navigateTo}
+              apiFetch={apiFetch}
+              onReload={loadAllActiveData}
+              showNotice={showNotice}
+            />
           )}
 
-          {/* FASE 14 — CONTENT FACTORY */}
-          {activeMenu === "content_factory" && (() => {
-            const cfPersonas = marketingData?.personas || [];
-            const cfLatestPersona = cfPersonas.length > 0 ? cfPersonas[cfPersonas.length - 1] : null;
-            const cfLatestCampaign = (marketingData?.campaigns || [])[0] || null;
-            const cfTenant = meData?.active_tenant;
-            const cfDraftCount = contentFactoryItems.filter((it: any) => it.status !== "PUBLISHED").length;
-
-            return (
-            <div className="space-y-6">
-              <div className="bg-[#0f1629] border border-indigo-500/30 p-5 rounded-xl space-y-4">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-base font-bold text-white flex items-center gap-2">
-                      <span>🏭</span> Fábrica de Conteúdo — Produção Mensal (30 Publicações Prontas)
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Gera 30 peças multicanal alinhadas à sua empresa, site, nicho, persona e campanha. Sem conta social conectada, use <strong>📋 Pacote 1-Clique</strong> para copiar e publicar manualmente.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => navigateTo("calendar")}
-                      className="px-3.5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold"
-                    >
-                      Criar 1 Post Manual →
-                    </button>
-                    {cfDraftCount > 0 && (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          setLoading(true);
-                          try {
-                            const res = await apiFetch("/api/v1/content-factory/drafts", { method: "DELETE" });
-                            await loadAllActiveData();
-                            showNotice(`${res.deleted_count} rascunho(s) não publicado(s) removido(s)!`);
-                          } catch (e: any) {
-                            showNotice(e.message || "Erro ao limpar rascunhos");
-                          } finally {
-                            setLoading(false);
-                          }
-                        }}
-                        className="px-3.5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold"
-                      >
-                        Limpar Rascunhos ({cfDraftCount})
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        setLoading(true);
-                        try {
-                          const res = await apiFetch("/api/v1/content-factory/generate-batch", {
-                            method: "POST",
-                            body: JSON.stringify({
-                              count: 30,
-                              company_name: cfTenant?.brand_name || cfTenant?.name || "",
-                              niche: cfTenant?.niche || "",
-                              target_audience: cfLatestPersona?.name || cfTenant?.target_audience || "",
-                              focus_theme: cfFocusTheme.trim(),
-                              replace_drafts: cfReplaceDrafts,
-                              persona_id: cfLatestPersona?.id || null,
-                              campaign_id: cfLatestCampaign?.id || null,
-                            }),
-                          });
-                          await loadAllActiveData();
-                          showNotice(`Fábrica de Conteúdo: ${res.total_generated} conteúdos criados para ${cfTenant?.brand_name || "sua marca"} (nota média ${res.average_quality_score}/100)!`);
-                        } catch (e: any) {
-                          showNotice(e.message || "Erro ao gerar lote");
-                        } finally {
-                          setLoading(false);
-                        }
-                      }}
-                      className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs shadow-lg flex items-center gap-2 whitespace-nowrap"
-                    >
-                      <span>⚡</span> Gerar Lote de 30 Publicações
-                    </button>
-                  </div>
-                </div>
-
-                {/* Contexto Real Lido pela Fábrica */}
-                <div className="p-3.5 rounded-lg bg-slate-900/90 border border-slate-800 text-xs space-y-2.5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-bold text-indigo-300">Contexto usado na criação dos conteúdos:</span>
-                    <button
-                      type="button"
-                      onClick={() => navigateTo("settings")}
-                      className="text-[11px] text-indigo-300 hover:underline"
-                    >
-                      Ajustar site/nicho em Configurações →
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 text-[11px]">
-                    <div className="p-2 rounded bg-slate-950/70 border border-slate-800">
-                      <span className="text-slate-400 block">Marca</span>
-                      <strong className="text-white">{cfTenant?.brand_name || "-"}</strong>
-                    </div>
-                    <div className="p-2 rounded bg-slate-950/70 border border-slate-800">
-                      <span className="text-slate-400 block">Site / Link</span>
-                      <strong className="text-emerald-300 break-all">{cfTenant?.domain || "Não informado"}</strong>
-                    </div>
-                    <div className="p-2 rounded bg-slate-950/70 border border-slate-800">
-                      <span className="text-slate-400 block">Nicho</span>
-                      <strong className="text-white">{cfTenant?.niche || "-"}</strong>
-                    </div>
-                    <div className="p-2 rounded bg-slate-950/70 border border-slate-800">
-                      <span className="text-slate-400 block">Persona Ativa</span>
-                      <strong className="text-white">{cfLatestPersona?.name || cfTenant?.target_audience || "-"}</strong>
-                    </div>
-                    <div className="p-2 rounded bg-slate-950/70 border border-slate-800">
-                      <span className="text-slate-400 block">Campanha Ativa</span>
-                      <strong className="text-white">{cfLatestCampaign?.name || "Padrão da marca"}</strong>
-                    </div>
-                  </div>
-                  <div className="flex flex-col md:flex-row md:items-center gap-3 pt-1">
-                    <div className="flex-1">
-                      <label htmlFor="ug-cf-focus-input" className="block text-[11px] text-slate-300 mb-1">
-                        Oferta / Chamada Principal que aparecerá nos posts (opcional):
-                      </label>
-                      <input
-                        id="ug-cf-focus-input"
-                        value={cfFocusTheme}
-                        onChange={(e) => setCfFocusTheme(e.target.value)}
-                        placeholder={cfLatestPersona?.value_proposition || "Ex.: Cadastro gratuito no site para receber pedidos de novos clientes"}
-                        className="w-full px-3 py-1.5 rounded bg-slate-950 border border-slate-700 text-xs text-white"
-                      />
-                    </div>
-                    <label className="inline-flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer pt-4">
-                      <input
-                        type="checkbox"
-                        checked={cfReplaceDrafts}
-                        onChange={(e) => setCfReplaceDrafts(e.target.checked)}
-                        className="rounded border-slate-600 bg-slate-900 text-indigo-600"
-                      />
-                      <span>Substituir rascunhos não publicados ao gerar novo lote</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Filtro de Canais */}
-              <div className="flex flex-wrap gap-2">
-                {["ALL", "instagram", "facebook", "tiktok", "youtube", "linkedin", "blog_seo", "email_marketing"].map((ch) => (
-                  <button
-                    key={ch}
-                    onClick={() => setCfFilter(ch)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                      cfFilter === ch
-                        ? "bg-indigo-600 text-white shadow"
-                        : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
-                    }`}
-                  >
-                    {ch === "ALL" ? "Todos os Canais" : ch.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-
-              {/* Lista de Itens da Content Factory */}
-              {(() => {
-                const visibleCf = contentFactoryItems.filter((it: any) => cfFilter === "ALL" || it.channel === cfFilter);
-                if (visibleCf.length === 0) {
-                  return (
-                    <EmptyState
-                      title="Nenhum conteúdo encontrado neste canal"
-                      description="Clique em 'Gerar Lote de 30 Publicações' acima para preencher automaticamente todos os canais ou selecione 'Todos os Canais'."
-                      actionLabel={cfFilter !== "ALL" ? "Ver Todos os Canais" : undefined}
-                      onAction={cfFilter !== "ALL" ? () => setCfFilter("ALL") : undefined}
-                    />
-                  );
-                }
-                return (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {visibleCf.map((it: any) => (
-                      <div key={it.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-3 text-xs flex flex-col justify-between">
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold uppercase text-[10px]">
-                              {it.channel} • {it.content_type}
-                            </span>
-                            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
-                              Nota {it.quality_score}/100
-                            </span>
-                          </div>
-                          <div className="font-bold text-white text-sm line-clamp-2">{it.title}</div>
-                          <p className="text-slate-300 line-clamp-4 whitespace-pre-line text-[11px]">{it.body_text}</p>
-                          <div className="p-2 rounded bg-slate-900/80 border border-slate-800 text-[11px] text-indigo-300">
-                            <strong>CTA:</strong> {it.cta}
-                          </div>
-                        </div>
-
-                        <div className="pt-3 border-t border-slate-800 space-y-2">
-                          <div className="flex items-center justify-between text-[10px] text-slate-400">
-                            <span>Data: <strong>{it.scheduled_for?.split("T")[0]}</strong></span>
-                            <span>Status: <strong className="text-amber-300">{it.status === "PUBLISHED" ? "Publicado" : "Pronto para uso"}</strong></span>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={async () => {
-                                try {
-                                  const pkg = await apiFetch(`/api/v1/content-factory/assisted-export/${it.id}`);
-                                  setAssistedPackage(pkg);
-                                } catch (e: any) {
-                                  showNotice(e.message || "Erro ao exportar");
-                                }
-                              }}
-                              className="flex-1 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 text-[11px] font-medium"
-                            >
-                              📋 Pacote 1-Clique
-                            </button>
-                            <button
-                              aria-label={`Marcar ${it.title} como publicado`}
-                              onClick={async () => {
-                                try {
-                                  await apiFetch(`/api/v1/content-factory/items/${it.id}/publish`, { method: "POST" });
-                                  await loadAllActiveData();
-                                  showNotice("Status atualizado para Publicado!");
-                                } catch (e: any) {
-                                  showNotice(e.message || "Erro ao publicar");
-                                }
-                              }}
-                              className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-medium"
-                            >
-                              ✓
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-            </div>
-            );
-          })()}
-
-          {/* FASE 14 — PLANO DIÁRIO CEO */}
-          {activeMenu === "ceo_plan" && (
-            <div className="space-y-6">
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-[#0f1629] border border-indigo-500/30 p-5 rounded-xl">
-                <div>
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <span>📋</span> AI CEO — Plano Diário de Execução & Delegação
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {ceoDailyPlan?.headline || "Missões executivas diárias distribuídas para todos os especialistas."}
-                  </p>
-                </div>
-                <button
-                  onClick={async () => {
-                    setLoading(true);
-                    try {
-                      const res = await apiFetch("/api/v1/ceo/daily-plan/generate", { method: "POST" });
-                      setCeoDailyPlan(res);
-                      showNotice("Novo Plano Diário de Execução gerado com sucesso!");
-                    } catch (e: any) {
-                      showNotice(e.message || "Erro ao gerar plano");
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  className="px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg whitespace-nowrap"
-                >
-                  🔄 Regenerar Missões Diárias
-                </button>
-              </div>
-
-              {/* Grid de Missões Delegadas */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {ceoDailyPlan?.tasks?.map((task: any) => (
-                  <div key={task.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="px-2.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold text-[11px]">
-                        {task.target_agent}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        task.priority === "CRITICAL"
-                          ? "bg-red-500/20 text-red-300 border border-red-500/30"
-                          : task.priority === "HIGH"
-                          ? "bg-amber-500/20 text-amber-300"
-                          : "bg-slate-700 text-slate-300"
-                      }`}>
-                        {task.priority}
-                      </span>
-                    </div>
-
-                    <div className="font-bold text-white text-sm">{task.title}</div>
-                    <p className="text-slate-300 text-xs">{task.objective}</p>
-
-                    <div className="p-2.5 rounded bg-slate-900 border border-slate-800 text-[11px] text-slate-300">
-                      <strong className="text-indigo-400">Entregável Esperado:</strong> {task.deliverable}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-                      <span className="text-[11px] text-slate-400">
-                        Status: <strong className={task.status === "COMPLETED" ? "text-emerald-400" : "text-amber-400"}>{task.status}</strong>
-                      </span>
-                      <div className="flex gap-1.5">
-                        {task.status !== "COMPLETED" && (
-                          <button
-                            onClick={async () => {
-                              try {
-                                await apiFetch(`/api/v1/ceo/daily-plan/tasks/${task.id}`, {
-                                  method: "PUT",
-                                  body: JSON.stringify({ status: "COMPLETED", deliverable: "Executado e validado em produção." }),
-                                });
-                                await loadAllActiveData();
-                                showNotice(`Missão ${task.id} marcada como CONCLUÍDA!`);
-                              } catch (e: any) {
-                                showNotice(e.message || "Erro ao atualizar");
-                              }
-                            }}
-                            className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-medium"
-                          >
-                            Concluir Missão
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* FASE 14 — PAINEL OPERACIONAL 24/7 & ALERTAS */}
-          {activeMenu === "operational247" && (
-            <div className="space-y-6">
-              {/* Status da Infraestrutura */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
-                  <div className="text-slate-400">VPS Host (Coolify)</div>
-                  <div className="text-base font-bold text-emerald-400">{opDashboard?.vps_status?.status || "HEALTHY"}</div>
-                  <div className="text-[11px] text-slate-400">IP: {opDashboard?.vps_status?.server_ip || "72.62.13.62"}</div>
-                </div>
-                <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
-                  <div className="text-slate-400">PostgreSQL 16</div>
-                  <div className="text-base font-bold text-emerald-400">{opDashboard?.database_status?.connection || "CONECTADO"}</div>
-                  <div className="text-[11px] text-slate-400">{opDashboard?.database_status?.total_records_monitored || 0} registros ativos</div>
-                </div>
-                <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
-                  <div className="text-slate-400">APScheduler (America/Sao_Paulo)</div>
-                  <div className="text-base font-bold text-emerald-400">17 Rotinas Ativas</div>
-                  <div className="text-[11px] text-slate-400">100% Internalizado no Python</div>
-                </div>
-                <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
-                  <div className="text-slate-400">Garantia Custo Cloud</div>
-                  <div className="text-base font-bold text-indigo-400">R$ 0,00 Externo</div>
-                  <div className="text-[11px] text-slate-400">100% Ferramentas Open-Source</div>
-                </div>
-              </div>
-
-              {/* Tabela de 10 Rotinas Diárias (07h às 18h) */}
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white">Rotinas Operacionais Contínuas (America/Sao_Paulo)</h3>
-                  <button
-                    onClick={async () => {
-                      try {
-                        const r = await apiFetch("/api/v1/seo/weekly-report", { method: "POST" });
-                        await loadAllActiveData();
-                        showNotice(`Auditoria Semanal de SEO executada! Score: ${r.audit_score}/100`);
-                      } catch (e: any) {
-                        showNotice(e.message || "Erro");
-                      }
-                    }}
-                    className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs"
-                  >
-                    🔍 Executar Auditoria Semanal de SEO
-                  </button>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs text-left">
-                    <thead className="text-[11px] text-slate-400 border-b border-slate-800">
-                      <tr>
-                        <th className="py-2">Horário</th>
-                        <th className="py-2">Rotina Automatizada</th>
-                        <th className="py-2">Agente Responsável</th>
-                        <th className="py-2">Frequência</th>
-                        <th className="py-2">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800 text-slate-300">
-                      {opDashboard?.daily_routines_status?.map((r: any, idx: number) => (
-                        <tr key={idx} className="hover:bg-slate-900/50">
-                          <td className="py-2.5 font-mono text-indigo-300 font-bold">{r.hour}</td>
-                          <td className="py-2.5 font-medium text-white">{r.routine}</td>
-                          <td className="py-2.5 text-slate-400">{r.agent}</td>
-                          <td className="py-2.5">{r.frequency}</td>
-                          <td className="py-2.5">
-                            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
-                              {r.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Alertas Inteligentes do Sistema */}
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <span>🚨</span> Alertas Operacionais Inteligentes & Sugestões de Ação
-                </h3>
-                <div className="space-y-3">
-                  {systemAlerts.map((a: any) => (
-                    <div
-                      key={a.id}
-                      className={`p-4 rounded-xl border text-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-3 ${
-                        a.severity === "CRITICAL"
-                          ? "bg-red-500/10 border-red-500/30"
-                          : a.severity === "WARNING"
-                          ? "bg-amber-500/10 border-amber-500/30"
-                          : "bg-indigo-500/10 border-indigo-500/30"
-                      }`}
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            a.severity === "CRITICAL" ? "bg-red-600 text-white" : a.severity === "WARNING" ? "bg-amber-600 text-white" : "bg-indigo-600 text-white"
-                          }`}>
-                            {a.severity}
-                          </span>
-                          <span className="font-bold text-white">{a.title}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">[{a.category}]</span>
-                        </div>
-                        <p className="text-slate-300 text-[11px]">{a.message}</p>
-                        <p className="text-emerald-300 text-[11px]">👉 <strong>Ação Sugerida:</strong> {a.suggested_action}</p>
-                      </div>
-                      {!a.is_resolved && (
-                        <button
-                          onClick={async () => {
-                            try {
-                              await apiFetch(`/api/v1/system/alerts/${a.id}/resolve`, { method: "POST" });
-                              await loadAllActiveData();
-                              showNotice("Alerta marcado como resolvido!");
-                            } catch (e: any) {
-                              showNotice(e.message || "Erro");
-                            }
-                          }}
-                          className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs whitespace-nowrap"
-                        >
-                          Marcar Resolvido
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* FASE 14 — PILOTO 7 DIAS */}
-          {activeMenu === "pilot7d" && (
-            <div className="space-y-6">
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-[#0f1629] border border-indigo-500/30 p-5 rounded-xl">
-                <div>
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <span>🚀</span> Piloto Operacional Autônomo de 7 Dias Consecutivos
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Simulação e validação ponta a ponta dos 7 dias de rotinas empresariais (Briefings diários, produção de 30 conteúdos na Content Factory, auditorias de SEO, qualificação de leads e consolidação financeira).
-                  </p>
-                </div>
-                <button
-                  onClick={async () => {
-                    setLoading(true);
-                    try {
-                      const res = await apiFetch("/api/v1/system/pilot-7-days", { method: "POST" });
-                      setPilotData(res);
-                      showNotice(`Piloto de 7 Dias executado! ${res.total_content_pieces_produced} conteúdos produzidos e ${res.total_leads_qualified} leads qualificados.`);
-                    } catch (e: any) {
-                      showNotice(e.message || "Erro ao executar piloto");
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-emerald-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white font-semibold text-xs shadow-lg whitespace-nowrap"
-                >
-                  🚀 Executar Piloto de 7 Dias
-                </button>
-              </div>
-
-              {pilotData && (
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
-                    <div className="text-slate-400">Dias Auditados</div>
-                    <div className="text-lg font-bold text-white">{pilotData.days_simulated} Dias</div>
-                  </div>
-                  <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
-                    <div className="text-slate-400">Conteúdos Produzidos</div>
-                    <div className="text-lg font-bold text-indigo-400">{pilotData.total_content_pieces_produced} Peças</div>
-                  </div>
-                  <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
-                    <div className="text-slate-400">Leads Qualificados</div>
-                    <div className="text-lg font-bold text-emerald-400">{pilotData.total_leads_qualified} Oportunidades</div>
-                  </div>
-                  <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
-                    <div className="text-slate-400">Auditorias de SEO</div>
-                    <div className="text-lg font-bold text-amber-400">{pilotData.total_seo_routines_executed} Executadas</div>
-                  </div>
-                  <div className="bg-[#0f1629] border border-slate-800 p-4 rounded-xl text-xs space-y-1">
-                    <div className="text-slate-400">Custo Adicional</div>
-                    <div className="text-lg font-bold text-emerald-400">R$ 0,00</div>
-                  </div>
-                </div>
-              )}
-
-              {/* Linha do Tempo dos 7 Dias */}
-              <div className="space-y-3">
-                {pilotData?.daily_runs?.map((d: any) => (
-                  <div key={d.day_number} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 text-xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white text-sm">
-                        Dia {d.day_number} — {d.date}
-                      </span>
-                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">
-                        {d.status}
-                      </span>
-                    </div>
-                    <ul className="space-y-1 text-slate-300 text-[11px] list-disc list-inside">
-                      {d.actions?.map((act: string, idx: number) => (
-                        <li key={idx}>{act}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* MODAL DE EXPORTAÇÃO ASSISTIDA (1 CLIQUE) */}
-          {assistedPackage && (
-            <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-              <div className="bg-[#0f1629] border border-indigo-500/40 rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl text-xs">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                    <span>📋</span> Pacote de Publicação Assistida (1 Clique) — {assistedPackage.channel.toUpperCase()}
-                  </h3>
-                  <button
-                    onClick={() => setAssistedPackage(null)}
-                    className="text-slate-400 hover:text-white text-base font-bold"
-                  >
-                    ✕
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-slate-300 font-semibold">Legenda Formatada com Hashtags:</label>
-                  <textarea
-                    readOnly
-                    rows={6}
-                    value={assistedPackage.formatted_copy_for_clipboard}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white text-xs font-mono"
-                  />
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(assistedPackage.formatted_copy_for_clipboard);
-                      showNotice("Texto copiado para a área de transferência com sucesso!");
-                    }}
-                    className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs"
-                  >
-                    📄 Copiar Texto Completo para o Clipboard
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 pt-2">
-                  <a
-                    href={assistedPackage.platform_upload_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="py-2 text-center rounded bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 font-medium"
-                  >
-                    🔗 Abrir Central Oficial da Rede
-                  </a>
-                  <button
-                    onClick={() => {
-                      showNotice("Download de mídia iniciado.");
-                      setAssistedPackage(null);
-                    }}
-                    className="py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
-                  >
-                    💾 Baixar Criativo Visual
-                  </button>
-                </div>
-
-                <div className="pt-2 border-t border-slate-800 space-y-1 text-slate-400 text-[11px]">
-                  <p className="font-semibold text-slate-300">Checklist Rápido:</p>
-                  {assistedPackage.checklist?.map((c: string, idx: number) => (
-                    <p key={idx}>{c}</p>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 06. CREATIVE STUDIO */}
-          {activeMenu === "creative" && (
-            <div className="space-y-6">
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                <h3 className="text-sm font-bold text-white">
-                  AGENTE 05 — AI Creative Studio (Fábrica Real de Artes PNG, Carrosséis, Roteiros e E-books)
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                  <input
-                    value={creativeTitle}
-                    onChange={(e) => setCreativeTitle(e.target.value)}
-                    placeholder="Nome do Criativo"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <select
-                    value={creativeType}
-                    onChange={(e) => setCreativeType(e.target.value)}
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  >
-                    <option value="SOCIAL_POST">Post 1080x1080</option>
-                    <option value="CAROUSEL">Carrossel Multi-Slide</option>
-                    <option value="THUMBNAIL">Thumbnail YouTube 1280x720</option>
-                    <option value="COVER">Capa Stories/Reels 1080x1920</option>
-                    <option value="BANNER">Banner Comercial 1200x628</option>
-                    <option value="INFOGRAPHIC">Infográfico 1080x1600</option>
-                    <option value="VIDEO_SCRIPT">Roteiro de Vídeo</option>
-                    <option value="SHORT_VIDEO">Roteiro Reels/TikTok/Shorts</option>
-                    <option value="EBOOK">E-book Executivo</option>
-                    <option value="PRESENTATION">Apresentação Comercial</option>
-                  </select>
-                  <input
-                    value={creativeHeadline}
-                    onChange={(e) => setCreativeHeadline(e.target.value)}
-                    placeholder="Headline Principal da Arte"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white md:col-span-2"
-                  />
-                  <button
-                    onClick={async () => {
-                      await apiFetch("/api/v1/creative/assets/generate", {
-                        method: "POST",
-                        body: JSON.stringify({
-                          title: creativeTitle,
-                          asset_type: creativeType,
-                          platform: "instagram",
-                          headline_text: creativeHeadline,
-                          cta_text: creativeCta,
-                        }),
-                      });
-                      await loadAllActiveData();
-                      showNotice("Ativo visual renderizado em PNG com sucesso!");
-                    }}
-                    className="py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
-                  >
-                    Produzir Ativo Visual
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {creativeData.map((asset: any) => (
-                  <div
-                    key={asset.id}
-                    className="bg-[#0f1629] border border-slate-800 rounded-xl overflow-hidden flex flex-col"
-                  >
-                    {asset.preview_data_uri && (
-                      <img
-                        src={asset.preview_data_uri}
-                        alt={asset.title}
-                        className="w-full h-56 object-contain bg-slate-950 border-b border-slate-800"
-                      />
-                    )}
-                    <div className="p-4 space-y-2 text-xs flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-indigo-300">{asset.asset_type}</span>
-                        <span className="text-slate-400">{asset.dimensions}</span>
-                      </div>
-                      <div className="font-bold text-white text-sm">{asset.title}</div>
-                      <div className="text-[10px] text-emerald-400">{asset.license_info}</div>
-                      {asset.content?.slides && (
-                        <div className="p-2 rounded bg-slate-900 text-[11px] text-slate-300 space-y-1">
-                          <div className="font-semibold text-indigo-300">Slides do Carrossel:</div>
-                          {asset.content.slides.map((s: any) => (
-                            <div key={s.slide}>
-                              <strong>S{s.slide}:</strong> {s.title}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {asset.preview_data_uri && (
-                        <a
-                          href={asset.preview_data_uri}
-                          download={`${asset.title}.png`}
-                          className="inline-block mt-2 px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-white text-[11px]"
-                        >
-                          Baixar PNG Original
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 07. COPYWRITER */}
-          {activeMenu === "copywriter" && (
-            <div className="space-y-6">
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                <h3 className="text-sm font-bold text-white">
-                  AGENTE 06 — AI Copywriter (Textos Persuasivos com Variantes A/B e Verificação Ética)
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-                  <input
-                    value={copyTitle}
-                    onChange={(e) => setCopyTitle(e.target.value)}
-                    placeholder="Título da Copy"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <select
-                    value={copyType}
-                    onChange={(e) => setCopyType(e.target.value)}
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  >
-                    <option value="LANDING_PAGE">Landing Page</option>
-                    <option value="SALES_PAGE">Página de Vendas</option>
-                    <option value="AD_COPY">Anúncio Pago</option>
-                    <option value="EMAIL_SEQUENCE">Sequência de E-mail</option>
-                    <option value="SALES_SCRIPT">Script de Vendas</option>
-                    <option value="WHATSAPP_MESSAGE">Mensagem WhatsApp</option>
-                    <option value="HEADLINE">Headline & CTA</option>
-                    <option value="PRODUCT_DESCRIPTION">Descrição de Produto</option>
-                  </select>
-                  <select
-                    value={copyFramework}
-                    onChange={(e) => setCopyFramework(e.target.value)}
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  >
-                    <option value="AIDA">Framework AIDA</option>
-                    <option value="PAS">Framework PAS</option>
-                    <option value="BAB">Framework BAB</option>
-                    <option value="FAB">Framework FAB</option>
-                    <option value="4PS">Framework 4Ps</option>
-                    <option value="STORYBRAND">StoryBrand</option>
-                  </select>
-                  <input
-                    value={copyOffer}
-                    onChange={(e) => setCopyOffer(e.target.value)}
-                    placeholder="Produto / Oferta"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <input
-                    value={copyBenefit}
-                    onChange={(e) => setCopyBenefit(e.target.value)}
-                    placeholder="Benefício Principal"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <button
-                    onClick={async () => {
-                      await apiFetch("/api/v1/copywriter/generate", {
-                        method: "POST",
-                        body: JSON.stringify({
-                          title: copyTitle,
-                          copy_type: copyType,
-                          framework: copyFramework,
-                          product_or_offer: copyOffer,
-                          target_audience: meData?.active_tenant?.target_audience || "Empresas B2B",
-                          key_benefit: copyBenefit,
-                        }),
-                      });
-                      await loadAllActiveData();
-                      showNotice("Variantes A/B de Copy geradas com sucesso!");
-                    }}
-                    className="py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
-                  >
-                    Gerar Copy A/B
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {copyData.map((c: any) => (
-                  <div key={c.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white text-sm">
-                        {c.title} ({c.copy_type} • {c.framework})
-                      </span>
-                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">
-                        Compliance Ético Verificado
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-3 rounded bg-slate-900 border border-slate-800 whitespace-pre-line">
-                        <div className="font-bold text-indigo-300 mb-1">Variante A (Controle)</div>
-                        {c.variant_a}
-                      </div>
-                      <div className="p-3 rounded bg-slate-900 border border-slate-800 whitespace-pre-line">
-                        <div className="font-bold text-emerald-300 mb-1">Variante B (Desafiante Teste A/B)</div>
-                        {c.variant_b}
-                      </div>
-                    </div>
-                    <div className="text-slate-400">
-                      <strong>Hipótese A/B:</strong> {c.ab_test_hypothesis}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* 08. GROWTH HACKER */}
-          {activeMenu === "growth" && (
-            <div className="space-y-6">
-              <div className="bg-[#0f1629] border border-slate-800 p-5 rounded-xl space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white">
-                    AGENTE 07 — AI Growth Hacker (Experimentos, Hipóteses ICE e Otimização de Funil)
-                  </h3>
-                  <button
-                    onClick={async () => {
-                      await apiFetch("/api/v1/agents/AGENT_07_GROWTH/execute", {
-                        method: "POST",
-                        body: JSON.stringify({}),
-                      });
-                      await loadAllActiveData();
-                      showNotice("Novo experimento de Growth estruturado pela IA!");
-                    }}
-                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
-                  >
-                    Gerar Experimento ICE Automático
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2 border-t border-slate-800">
-                  <input
-                    value={expTitle}
-                    onChange={(e) => setExpTitle(e.target.value)}
-                    placeholder="Título do Experimento"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <input
-                    value={expChannel}
-                    onChange={(e) => setExpChannel(e.target.value)}
-                    placeholder="Canal (ex: Landing Page)"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <input
-                    value={expHyp}
-                    onChange={(e) => setExpHyp(e.target.value)}
-                    placeholder="Hipótese Testável"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <button
-                    onClick={async () => {
-                      if (!expTitle || !expHyp) return;
-                      await apiFetch("/api/v1/growth/experiments", {
-                        method: "POST",
-                        body: JSON.stringify({
-                          title: expTitle,
-                          channel: expChannel,
-                          hypothesis: expHyp,
-                          objective: expObj,
-                          impact: 9,
-                          confidence: 8,
-                          ease: 8,
-                        }),
-                      });
-                      setExpTitle("");
-                      setExpHyp("");
-                      await loadAllActiveData();
-                      showNotice("Experimento de Growth registrado!");
-                    }}
-                    className="py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
-                  >
-                    Registrar Experimento
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {growthData.map((exp: any) => (
-                  <div key={exp.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white text-sm">{exp.title}</span>
-                      <OriginBadge origin={exp.data_origin} />
-                    </div>
-                    <div className="text-indigo-300 font-semibold">
-                      Canal: {exp.channel} • ICE Score: {exp.ice_score}/10 • Status: {exp.status}
-                    </div>
-                    <p className="text-slate-300">
-                      <strong>Hipótese:</strong> {exp.hypothesis}
-                    </p>
-                    <p className="text-slate-300">
-                      <strong>Indicador:</strong> {exp.indicator_metric}
-                    </p>
-                    <p className="text-slate-300">
-                      <strong>Linha de Base:</strong> {exp.baseline_conversion_pct}% |{" "}
-                      <strong>Resultado Real:</strong>{" "}
-                      {exp.real_result_conversion_pct !== null
-                        ? `${exp.real_result_conversion_pct}%`
-                        : "Aguardando coleta"}
-                    </p>
-                    <p className="text-emerald-300">
-                      <strong>Conclusão:</strong> {exp.conclusion}
-                    </p>
-                    {exp.status !== "COMPLETED" && (
-                      <button
-                        onClick={async () => {
-                          await apiFetch(`/api/v1/growth/experiments/${exp.id}/result`, {
-                            method: "PUT",
-                            body: JSON.stringify({
-                              real_result_conversion_pct: Number((exp.baseline_conversion_pct * 1.45).toFixed(2)),
-                              real_result_summary: "Resultado real validado em produção.",
-                              conclusion: "Hipótese validada com ganho real de conversão.",
-                              status: "COMPLETED",
-                            }),
-                          });
-                          await loadAllActiveData();
-                          showNotice("Resultado real aferido e experimento concluído!");
-                        }}
-                        className="mt-2 px-3 py-1 rounded bg-slate-800 hover:bg-emerald-700 text-white text-[11px]"
-                      >
-                        Registrar Resultado Real Aferido
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+          {(activeMenu === "creative" || activeMenu === "copywriter" || activeMenu === "growth") && (
+            <CreativeCopyAndGrowthLabWorkspace
+              mode={activeMenu}
+              meData={meData}
+              creativeData={creativeData}
+              creativeTitle={creativeTitle}
+              setCreativeTitle={setCreativeTitle}
+              creativeType={creativeType}
+              setCreativeType={setCreativeType}
+              creativeHeadline={creativeHeadline}
+              setCreativeHeadline={setCreativeHeadline}
+              creativeCta={creativeCta}
+              copyData={copyData}
+              copyTitle={copyTitle}
+              setCopyTitle={setCopyTitle}
+              copyType={copyType}
+              setCopyType={setCopyType}
+              copyFramework={copyFramework}
+              setCopyFramework={setCopyFramework}
+              copyOffer={copyOffer}
+              setCopyOffer={setCopyOffer}
+              copyBenefit={copyBenefit}
+              setCopyBenefit={setCopyBenefit}
+              growthData={growthData}
+              expTitle={expTitle}
+              setExpTitle={setExpTitle}
+              expChannel={expChannel}
+              setExpChannel={setExpChannel}
+              expHyp={expHyp}
+              setExpHyp={setExpHyp}
+              expObj={expObj}
+              apiFetch={apiFetch}
+              onReload={loadAllActiveData}
+              onNavigate={navigateTo}
+              showNotice={showNotice}
+            />
           )}
 
           {/* 09. CRM & LEADS */}
@@ -3022,862 +1493,103 @@ export default function UnionGrowthOSPortal() {
             />
           )}
 
-          {/* 12. FINANCEIRO & PERFORMANCE */}
-          {activeMenu === "finance" && financeData && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
-                  <div className="text-xs text-slate-400">Receita Real / Importada</div>
-                  <div className="text-xl font-bold text-emerald-400">
-                    R$ {financeData.kpis.real_revenue.toLocaleString("pt-BR")}
-                  </div>
-                </div>
-                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
-                  <div className="text-xs text-slate-400">Lucro Líquido Real</div>
-                  <div className="text-xl font-bold text-white">
-                    R$ {financeData.kpis.real_profit.toLocaleString("pt-BR")}
-                  </div>
-                </div>
-                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
-                  <div className="text-xs text-slate-400">Margem / ROI / ROAS</div>
-                  <div className="text-xl font-bold text-indigo-400">
-                    {financeData.kpis.margin_pct}% | {financeData.kpis.roi_pct}% | {financeData.kpis.roas_multiplier}x
-                  </div>
-                </div>
-                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
-                  <div className="text-xs text-slate-400">CAC / Ticket Médio / LTV</div>
-                  <div className="text-xl font-bold text-amber-400">
-                    R$ {financeData.kpis.cac_brl} / R$ {financeData.kpis.average_ticket_brl}
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                <h4 className="text-sm font-bold text-white">
-                  Registrar / Importar Lançamento Financeiro (Separação Estrita Real vs Estimativa)
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                  <select
-                    value={finType}
-                    onChange={(e) => setFinType(e.target.value)}
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  >
-                    <option value="REVENUE">Receita (REVENUE)</option>
-                    <option value="EXPENSE">Despesa Operacional (EXPENSE)</option>
-                    <option value="AD_SPEND">Investimento em Mídia (AD_SPEND)</option>
-                  </select>
-                  <input
-                    type="number"
-                    value={finAmount}
-                    onChange={(e) => setFinAmount(e.target.value)}
-                    placeholder="Valor R$"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <select
-                    value={finOrigin}
-                    onChange={(e) => setFinOrigin(e.target.value)}
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  >
-                    <option value="REAL">DADO REAL</option>
-                    <option value="IMPORTED">DADO IMPORTADO</option>
-                    <option value="ESTIMATED">ESTIMATIVA</option>
-                    <option value="GOAL">META</option>
-                  </select>
-                  <input
-                    value={finDesc}
-                    onChange={(e) => setFinDesc(e.target.value)}
-                    placeholder="Descrição do lançamento"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <button
-                    onClick={async () => {
-                      await apiFetch("/api/v1/finance/records", {
-                        method: "POST",
-                        body: JSON.stringify({
-                          period_date: new Date().toISOString().slice(0, 10),
-                          record_type: finType,
-                          amount: Number(finAmount) || 0,
-                          data_origin: finOrigin,
-                          description: finDesc,
-                        }),
-                      });
-                      await loadAllActiveData();
-                      showNotice("Lançamento financeiro registrado e KPIs recalculados!");
-                    }}
-                    className="py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
-                  >
-                    Registrar Lançamento
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-2">
-                <h4 className="text-sm font-bold text-white">Razão de Lançamentos Financeiros</h4>
-                {financeData.records.map((r: any) => (
-                  <div
-                    key={r.id}
-                    className="flex items-center justify-between p-3 rounded bg-slate-900 border border-slate-800 text-xs"
-                  >
-                    <div>
-                      <span className="font-bold text-white">{r.record_type}</span> • {r.description} ({r.period_date})
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-bold text-slate-200">R$ {r.amount.toLocaleString("pt-BR")}</span>
-                      <OriginBadge origin={r.data_origin} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {/* ÁREAS MODULARES DS 4.0 — FINANCEIRO, CS, AUTOMAÇÕES, RELATÓRIOS, INTEGRAÇÕES, CONFIG & MULTI-BUSINESS */}
+          {((activeMenu === "finance" && financeData) || (activeMenu === "reports" && reportsData)) && (
+            <FinanceAndReportsWorkspace
+              mode={activeMenu}
+              financeData={financeData}
+              finType={finType}
+              setFinType={setFinType}
+              finAmount={finAmount}
+              setFinAmount={setFinAmount}
+              finDesc={finDesc}
+              setFinDesc={setFinDesc}
+              finOrigin={finOrigin}
+              setFinOrigin={setFinOrigin}
+              reportsData={reportsData}
+              analyticsAttrData={analyticsAttrData}
+              apiFetch={apiFetch}
+              onReload={loadAllActiveData}
+              showNotice={showNotice}
+            />
           )}
 
-          {/* 13. CUSTOMER SUCCESS */}
           {activeMenu === "cs" && csData && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
-                  <div className="text-xs text-slate-400">NPS Médio</div>
-                  <div className="text-2xl font-bold text-emerald-400">{csData.summary.average_nps} / 10</div>
-                </div>
-                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
-                  <div className="text-xs text-slate-400">CSAT Médio</div>
-                  <div className="text-2xl font-bold text-indigo-400">{csData.summary.average_csat} / 5</div>
-                </div>
-                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
-                  <div className="text-xs text-slate-400">Clientes em Risco de Churn</div>
-                  <div className="text-2xl font-bold text-red-400">{csData.summary.high_churn_risk_count}</div>
-                </div>
-                <div className="p-4 bg-[#0f1629] border border-slate-800 rounded-xl">
-                  <div className="text-xs text-slate-400">Oportunidades de Upsell</div>
-                  <div className="text-2xl font-bold text-amber-400">{csData.summary.upsell_ready_count}</div>
-                </div>
-              </div>
-
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                <h4 className="text-sm font-bold text-white">
-                  Registrar Pesquisa de Satisfação (NPS / CSAT) & Detectar Risco ou Upsell
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                  <input
-                    value={csName}
-                    onChange={(e) => setCsName(e.target.value)}
-                    placeholder="Nome do Cliente"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <input
-                    value={csEmail}
-                    onChange={(e) => setCsEmail(e.target.value)}
-                    placeholder="E-mail do Cliente"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <select
-                    value={csNps}
-                    onChange={(e) => setCsNps(e.target.value)}
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  >
-                    {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map((n) => (
-                      <option key={n} value={n}>
-                        Nota NPS: {n}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    value={csText}
-                    onChange={(e) => setCsText(e.target.value)}
-                    placeholder="Feedback do cliente"
-                    className="px-3 py-2 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                  />
-                  <button
-                    onClick={async () => {
-                      if (!csName || !csText) return;
-                      await apiFetch("/api/v1/customer-success/feedbacks", {
-                        method: "POST",
-                        body: JSON.stringify({
-                          customer_name: csName,
-                          customer_email: csEmail,
-                          nps_score: Number(csNps),
-                          csat_score: Number(csNps) >= 8 ? 5 : 3,
-                          feedback_text: csText,
-                        }),
-                      });
-                      setCsName("");
-                      setCsEmail("");
-                      setCsText("");
-                      await loadAllActiveData();
-                      showNotice("Feedback analisado pelo AI Customer Success!");
-                    }}
-                    className="py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
-                  >
-                    Analisar Feedback
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {csData.feedbacks.map((f: any) => (
-                  <div key={f.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 text-xs space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-white">{f.customer_name}</span>
-                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">
-                        NPS {f.nps_score} • Risco Churn: {f.churn_risk}
-                      </span>
-                    </div>
-                    <p className="text-slate-300">&ldquo;{f.feedback_text}&rdquo;</p>
-                    <div className="text-indigo-300">
-                      <strong>Ação de Retenção:</strong> {f.retention_suggestion}
-                    </div>
-                    <div className="text-emerald-300">
-                      <strong>Oportunidade Comercial (Upsell):</strong> {f.upsell_opportunity}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <CustomerSuccessWorkspace
+              csData={csData}
+              csName={csName}
+              setCsName={setCsName}
+              csEmail={csEmail}
+              setCsEmail={setCsEmail}
+              csNps={csNps}
+              setCsNps={setCsNps}
+              csText={csText}
+              setCsText={setCsText}
+              apiFetch={apiFetch}
+              onReload={loadAllActiveData}
+              showNotice={showNotice}
+            />
           )}
 
-          {/* AUTOMAÇÕES NATIVAS PYTHON */}
-          {activeMenu === "automations" && automationsData && (
-            <div className="space-y-6 max-w-6xl mx-auto">
-              <ConversationalAutomationPanel
-                apiFetch={apiFetch}
-                onReload={loadAllActiveData}
-                showNotice={showNotice}
-                uiMode={uiMode}
-              />
-
-              <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--ug-border)]">
-                <div>
-                  <h3 className="text-sm font-semibold text-[var(--ug-text-primary)]">
-                    {uiMode === "SIMPLE"
-                      ? "Rotinas Automáticas Ativas da Sua Empresa (100% Nativo • Zero n8n)"
-                      : "Central de Automações 100% Nativa em Python (Zero Dependência de n8n)"}
-                  </h3>
-                  <p className="text-xs text-[var(--ug-text-muted)]">
-                    {uiMode === "SIMPLE"
-                      ? `O sistema monitora ${automationsData.rules?.length || 0} rotinas automáticas com segurança na nuvem.`
-                      : `Motor: ${automationsData.scheduler?.engine} • Status: `}
-                    {uiMode === "ADVANCED" && (
-                      <strong className="text-emerald-400">
-                        {automationsData.scheduler?.running ? "ATIVO NO SERVIDOR CLOUD" : "PARADO"}
-                      </strong>
-                    )}
-                  </p>
-                </div>
-                {uiMode === "SIMPLE" && (
-                  <button
-                    type="button"
-                    onClick={() => setUiMode("ADVANCED")}
-                    className="px-3 py-1.5 rounded-lg border border-[var(--ug-border)] hover:bg-white/[0.04] text-[11px] text-[var(--ug-text-secondary)] font-medium"
-                  >
-                    Ver logs e ajustes técnicos (Avançado)
-                  </button>
-                )}
-              </div>
-
-              <div className="ug-card rounded-2xl divide-y divide-white/[0.05]">
-                {(uiMode === "SIMPLE" ? automationsData.rules.slice(0, 6) : automationsData.rules).map((r: any) => (
-                  <div key={r.id} className="px-4 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs hover:bg-white/[0.02] transition">
-                    <div className="space-y-0.5 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-[var(--ug-text-primary)]">{r.name}</span>
-                        <span className="px-2 py-0.5 rounded bg-indigo-500/12 text-indigo-300 text-[10px]">
-                          {uiMode === "SIMPLE" ? r.frequency_label : `${r.trigger_type} • ${r.frequency_label}`}
-                        </span>
-                      </div>
-                      {uiMode === "ADVANCED" ? (
-                        <div className="text-[11px] text-[var(--ug-text-muted)] tabular-nums">
-                          Agente: <strong className="text-[var(--ug-text-secondary)]">{r.action_agent}</strong> • Execuções: {r.run_count} • Status:{" "}
-                          <strong className="text-emerald-400">{r.last_status}</strong>
-                        </div>
-                      ) : (
-                        <div className="text-[11px] text-[var(--ug-text-muted)] tabular-nums">
-                          Execuções: <strong className="text-[var(--ug-text-secondary)]">{r.run_count}</strong> • Estado:{" "}
-                          <strong className="text-emerald-400">{r.last_status === "READY" ? "Pronta" : r.last_status}</strong>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          await apiFetch(`/api/v1/automations/${r.id}/run`, {
-                            method: "POST",
-                            body: JSON.stringify({}),
-                          });
-                          await loadAllActiveData();
-                          showNotice(`Automação '${r.name}' executada imediatamente!`);
-                        }}
-                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-medium"
-                      >
-                        Executar Agora
-                      </button>
-                      {uiMode === "ADVANCED" && (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            const res = await apiFetch(`/api/v1/automations/${r.id}/run`, {
-                              method: "POST",
-                              body: JSON.stringify({ simulate_transient_failure: true }),
-                            });
-                            await loadAllActiveData();
-                            showNotice(
-                              `Retry com Backoff validado: status ${res.status} na tentativa #${res.attempt_number}!`
-                            );
-                          }}
-                          className="px-2.5 py-1.5 rounded-lg border border-[var(--ug-border)] hover:bg-white/[0.04] text-[var(--ug-text-secondary)] text-[11px]"
-                        >
-                          Testar Retry + Backoff
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {uiMode === "ADVANCED" && automationsData.executions?.length > 0 && (
-                <div className="ug-card rounded-xl divide-y divide-white/[0.05]">
-                  <div className="px-4 py-3 text-xs font-semibold text-[var(--ug-text-primary)]">
-                    Histórico Persistido de Execuções
-                  </div>
-                  {automationsData.executions.map((ex: any) => (
-                    <div key={ex.id} className="px-4 py-2.5 text-xs flex flex-wrap justify-between gap-2">
-                      <div>
-                        <span className="font-medium text-indigo-400">Regra #{ex.rule_id}</span> •{" "}
-                        <span className="text-[var(--ug-text-secondary)]">{ex.result_summary?.summary || ex.error_message}</span>
-                      </div>
-                      <div className="text-[var(--ug-text-muted)] tabular-nums">
-                        <strong className="text-emerald-400">{ex.status}</strong> (Tentativa #{ex.attempt_number} • {ex.duration_ms}ms)
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+          {((activeMenu === "automations" && automationsData) || activeMenu === "approvals") && (
+            <AIAutonomyAndOpsWorkspace
+              mode={activeMenu}
+              meData={meData}
+              ceoData={ceoData}
+              goalTitle={goalTitle}
+              setGoalTitle={setGoalTitle}
+              goalPeriod={goalPeriod}
+              setGoalPeriod={setGoalPeriod}
+              goalMetric={goalMetric}
+              goalTarget={goalTarget}
+              setGoalTarget={setGoalTarget}
+              ceoDailyPlan={ceoDailyPlan}
+              setCeoDailyPlan={setCeoDailyPlan}
+              opDashboard={opDashboard}
+              systemAlerts={systemAlerts}
+              pilotData={pilotData}
+              setPilotData={setPilotData}
+              automationsData={automationsData}
+              approvalsData={approvalsData}
+              uiMode={uiMode}
+              setUiMode={setUiMode}
+              setLoading={setLoading}
+              apiFetch={apiFetch}
+              onReload={loadAllActiveData}
+              showNotice={showNotice}
+            />
           )}
 
-          {/* 16. APROVAÇÕES */}
-          {activeMenu === "approvals" && (
-            <div className="space-y-4">
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-4">
-                <h3 className="text-sm font-bold text-white">
-                  Central de Aprovações Humanas & Governança de Ações de Alto Impacto
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Publicações externas, ativação de orçamento pago e alterações críticas aguardam validação humana por padrão.
-                </p>
-              </div>
-              {approvalsData.map((req: any) => (
-                <div
-                  key={req.id}
-                  className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 flex items-center justify-between text-xs"
-                >
-                  <div className="space-y-1">
-                    <div className="font-bold text-white text-sm">{req.title}</div>
-                    <div className="text-slate-400">
-                      Agente: {req.agent_id} • Tipo: {req.action_type} • Status:{" "}
-                      <strong className="text-amber-300">{req.status}</strong>
-                    </div>
-                  </div>
-                  {req.status === "PENDING" && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={async () => {
-                          await apiFetch(`/api/v1/approvals/${req.id}/decide`, {
-                            method: "POST",
-                            body: JSON.stringify({
-                              decision: "APPROVE",
-                              confirmation_token: meData?.high_impact_confirmation_token || "CONFIRMED_BY_HUMAN",
-                            }),
-                          });
-                          await loadAllActiveData();
-                          showNotice("Solicitação aprovada e processada!");
-                        }}
-                        className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
-                      >
-                        Aprovar
-                      </button>
-                      <button
-                        onClick={async () => {
-                          await apiFetch(`/api/v1/approvals/${req.id}/decide`, {
-                            method: "POST",
-                            body: JSON.stringify({ decision: "REJECT" }),
-                          });
-                          await loadAllActiveData();
-                          showNotice("Solicitação rejeitada.");
-                        }}
-                        className="px-3 py-1.5 rounded bg-red-600/80 hover:bg-red-600 text-white font-semibold"
-                      >
-                        Rejeitar
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+          {((activeMenu === "integrations") || (activeMenu === "settings" && meData) || (activeMenu === "audit" && auditData)) && (
+            <IntegrationsAndSettingsWorkspace
+              mode={activeMenu}
+              meData={meData}
+              integrationsData={integrationsData}
+              intgStatusFilter={intgStatusFilter}
+              setIntgStatusFilter={setIntgStatusFilter}
+              credInputs={credInputs}
+              credFieldInputs={credFieldInputs}
+              setCredFieldInputs={setCredFieldInputs}
+              plansOverview={plansOverview}
+              editCompanyName={editCompanyName}
+              setEditCompanyName={setEditCompanyName}
+              editBrandName={editBrandName}
+              setEditBrandName={setEditBrandName}
+              editDomain={editDomain}
+              setEditDomain={setEditDomain}
+              editNiche={editNiche}
+              setEditNiche={setEditNiche}
+              editAudience={editAudience}
+              setEditAudience={setEditAudience}
+              newTenantName={newTenantName}
+              setNewTenantName={setNewTenantName}
+              auditData={auditData}
+              apiFetch={apiFetch}
+              onReload={loadAllActiveData}
+              showNotice={showNotice}
+            />
           )}
 
-          {/* 17. RELATÓRIOS & ANALYTICS */}
-          {activeMenu === "reports" && reportsData && (
-            <div className="space-y-6">
-              <AnalyticsAttributionPanel attribution={analyticsAttrData} />
-
-              <div className="ug-card rounded-2xl overflow-hidden">
-                <div className="px-5 py-4 border-b border-[var(--ug-border-subtle)] flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-[var(--ug-text-primary)]">Relatório Executivo Consolidado</h3>
-                    <p className="text-xs text-[var(--ug-text-muted)] mt-0.5">
-                      Empresa: {reportsData.tenant?.brand_name || reportsData.tenant?.name || "—"} • Plano:{" "}
-                      {reportsData.tenant?.plan_tier || "—"} • Gerado em{" "}
-                      {reportsData.generated_at ? new Date(reportsData.generated_at).toLocaleString("pt-BR") : "agora"}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const bkp = await apiFetch("/api/v1/system/backup", { method: "POST" });
-                      showNotice(`Backup persistente criado: ${bkp.backup_file} (${bkp.size_bytes} bytes)`);
-                    }}
-                    className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium"
-                  >
-                    Gerar Snapshot &amp; Backup Agora
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.06]">
-                  <div className="p-4">
-                    <div className="text-[11px] text-[var(--ug-text-muted)]">Receita Real Confirmada</div>
-                    <div className="text-lg font-semibold text-emerald-400 mt-1 tabular-nums">
-                      R$ {Number(reportsData.financial_performance?.real_revenue || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <div className="text-[11px] text-[var(--ug-text-muted)]">Lucro Real / Margem</div>
-                    <div className="text-lg font-semibold text-[var(--ug-text-primary)] mt-1 tabular-nums">
-                      R$ {Number(reportsData.financial_performance?.real_profit || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (
-                      {Number(reportsData.financial_performance?.margin_pct || 0)}%)
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <div className="text-[11px] text-[var(--ug-text-muted)]">Leads Reais &amp; Conversão</div>
-                    <div className="text-lg font-semibold text-indigo-400 mt-1 tabular-nums">
-                      {reportsData.financial_performance?.leads_total ?? 0} leads •{" "}
-                      {reportsData.financial_performance?.conversion_rate_pct ?? 0}% conv.
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <div className="text-[11px] text-[var(--ug-text-muted)]">Conexões Externas</div>
-                    <div className="text-lg font-semibold text-amber-300 mt-1 tabular-nums">
-                      {(reportsData.integrations_summary?.connected || []).length} ativas •{" "}
-                      {(reportsData.integrations_summary?.pending_credentials || []).length} opcionais
-                    </div>
-                  </div>
-                </div>
-
-                {reportsData.ceo_briefing && (
-                  <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2 text-xs">
-                    <div className="font-bold text-white">
-                      Resumo Executivo ({reportsData.ceo_briefing.date || "Hoje"}): {reportsData.ceo_briefing.headline}
-                    </div>
-                    {Array.isArray(reportsData.ceo_briefing.what_happened) && reportsData.ceo_briefing.what_happened.length > 0 && (
-                      <ul className="list-disc pl-4 text-slate-300 space-y-1">
-                        {reportsData.ceo_briefing.what_happened.map((item: string, idx: number) => (
-                          <li key={idx}>{item}</li>
-                        ))}
-                      </ul>
-                    )}
-                    {Array.isArray(reportsData.ceo_briefing.recommendations) && reportsData.ceo_briefing.recommendations.length > 0 && (
-                      <div className="pt-2 border-t border-slate-800">
-                        <span className="font-semibold text-indigo-300">Recomendações Prioritárias: </span>
-                        <span className="text-slate-300">{reportsData.ceo_briefing.recommendations.join(" • ")}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <details className="rounded-xl bg-slate-950 border border-slate-800">
-                  <summary className="px-4 py-2.5 text-xs font-semibold text-slate-300 cursor-pointer hover:text-white">
-                    Ver Detalhes Técnicos Completos (JSON de Auditoria)
-                  </summary>
-                  <pre className="p-4 border-t border-slate-800 text-xs text-slate-300 overflow-x-auto">
-                    {JSON.stringify(reportsData, null, 2)}
-                  </pre>
-                </details>
-              </div>
-            </div>
-          )}
-
-          {/* INTEGRAÇÕES / CONECTAR FERRAMENTAS EXTERNAS */}
-          {activeMenu === "integrations" && (
-            <div className="space-y-5 max-w-6xl mx-auto">
-              <div className="flex flex-wrap items-end justify-between gap-3 pb-3 border-b border-[var(--ug-border)]">
-                <div>
-                  <h3 className="text-base font-semibold text-[var(--ug-text-primary)]">
-                    {uiMode === "SIMPLE"
-                      ? "Conectar Ferramentas Externas (Status Real)"
-                      : "Central de Integrações Oficiais (Criptografia Fernet • Status Real)"}
-                  </h3>
-                  <p className="text-xs text-[var(--ug-text-muted)]">
-                    Contas sem conexão continuam funcionando no Modo Assistido em 1 clique, sem simular envios.
-                  </p>
-                </div>
-                <div className="flex items-center gap-1.5" role="group" aria-label="Filtrar status de integrações">
-                  {[
-                    { id: "ALL", label: `Todas (${integrationsData.length})` },
-                    {
-                      id: "CONNECTED",
-                      label: `Conectadas (${integrationsData.filter((i: any) => i.status === "CONNECTED").length})`,
-                    },
-                    {
-                      id: "PENDING",
-                      label: `Pendentes (${integrationsData.filter((i: any) => i.status !== "CONNECTED").length})`,
-                    },
-                  ].map((f) => (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onClick={() => setIntgStatusFilter(f.id as any)}
-                      className={`px-3 py-1 rounded-lg text-xs font-medium border transition ${
-                        intgStatusFilter === f.id
-                          ? "bg-indigo-600 text-white border-indigo-500"
-                          : "border-[var(--ug-border)] text-[var(--ug-text-secondary)] hover:bg-white/[0.04]"
-                      }`}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {integrationsData
-                  .filter((intg: any) => {
-                    if (intgStatusFilter === "CONNECTED") return intg.status === "CONNECTED";
-                    if (intgStatusFilter === "PENDING") return intg.status !== "CONNECTED";
-                    return true;
-                  })
-                  .map((intg: any) => {
-                    const reqFields: string[] = intg.setup_guide?.required_credentials || ["api_key"];
-                    const provMap = credFieldInputs[intg.provider_key] || {};
-                    const isConn = intg.status === "CONNECTED";
-                    return (
-                      <div
-                        key={intg.provider_key}
-                        className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-2.5 text-xs"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-bold text-white text-sm">{intg.provider_name}</span>
-                          <StatusPill
-                            status={isConn ? "EXECUTED" : intg.status === "ERROR" ? "FAILED" : "NEEDS_CREDENTIALS"}
-                            label={isConn ? "Conectada" : intg.status === "ERROR" ? "Falha na Conexão" : "Aguardando Conexão"}
-                          />
-                        </div>
-                        <div className="text-slate-300">
-                          <strong>O que habilita:</strong> {intg.setup_guide.features_unlocked}
-                        </div>
-                        <div className="text-slate-400">
-                          <strong>Onde conseguir:</strong> {intg.setup_guide.where_to_obtain}
-                        </div>
-                        {!isConn && (
-                          <div className="p-2 rounded-lg bg-slate-900/90 border border-slate-800 text-[11px] text-slate-300">
-                            <strong className="text-indigo-300">Sem esta integração:</strong> o sistema continua operando no <strong>Modo Assistido</strong> (prepara conteúdos, análises e pacotes 1-clique sem envio externo automático).
-                          </div>
-                        )}
-                        <details className="text-[11px] text-slate-400">
-                          <summary className="cursor-pointer hover:text-slate-200">
-                            Ver permissões / escopos técnicos ({reqFields.length} credencial(is))
-                          </summary>
-                          <div className="pt-1 text-slate-400">
-                            Campos exigidos: {reqFields.join(", ")} • Escopos: {intg.setup_guide.permissions_required.join(", ")}
-                          </div>
-                        </details>
-                        {intg.last_error && <div className="text-amber-400 text-[11px]">{intg.last_error}</div>}
-                        <div className="pt-1 space-y-2">
-                          <div className="grid grid-cols-1 gap-2">
-                            {reqFields.map((rk) => {
-                              const inputId = `ug-intg-${intg.provider_key}-${rk}`;
-                              const val = provMap[rk] ?? "";
-                              return (
-                                <div key={rk}>
-                                  <label htmlFor={inputId} className="block text-[10px] font-medium text-slate-300 mb-0.5">
-                                    {rk.replace(/_/g, " ").toUpperCase()}
-                                  </label>
-                                  <input
-                                    id={inputId}
-                                    type={rk.includes("secret") || rk.includes("token") || rk.includes("key") ? "password" : "text"}
-                                    value={val}
-                                    onChange={(e) =>
-                                      setCredFieldInputs({
-                                        ...credFieldInputs,
-                                        [intg.provider_key]: { ...provMap, [rk]: e.target.value },
-                                      })
-                                    }
-                                    placeholder={`Ex.: cole ${rk} de ${intg.provider_name}`}
-                                    className="w-full px-2.5 py-1.5 rounded bg-slate-900 border border-slate-700 text-xs text-white"
-                                  />
-                                </div>
-                              );
-                            })}
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                const credsObj: Record<string, string> = {};
-                                const missing: string[] = [];
-                                for (const rk of reqFields) {
-                                  const v = (provMap[rk] || credInputs[intg.provider_key] || "").trim();
-                                  if (!v) missing.push(rk);
-                                  credsObj[rk] = v;
-                                }
-                                if (missing.length > 0) {
-                                  showNotice(`Preencha os campos obrigatórios de ${intg.provider_name}: ${missing.join(", ")}.`);
-                                  return;
-                                }
-                                try {
-                                  const r = await apiFetch("/api/v1/integrations/connect", {
-                                    method: "POST",
-                                    body: JSON.stringify({
-                                      provider_key: intg.provider_key,
-                                      credentials: credsObj,
-                                    }),
-                                  });
-                                  await loadAllActiveData();
-                                  showNotice(`${intg.provider_name}: ${r.message}`);
-                                } catch (err: any) {
-                                  showNotice(err?.message || `Erro ao conectar ${intg.provider_name}.`);
-                                }
-                              }}
-                              className="flex-1 px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
-                            >
-                              Salvar &amp; Testar Conexão
-                            </button>
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                try {
-                                  const r = await apiFetch(`/api/v1/integrations/${intg.provider_key}/test`, {
-                                    method: "POST",
-                                  });
-                                  await loadAllActiveData();
-                                  showNotice(`${intg.provider_name}: ${r.message}`);
-                                } catch (err: any) {
-                                  showNotice(err?.message || `Falha ao testar ${intg.provider_name}.`);
-                                }
-                              }}
-                              className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-white font-medium"
-                            >
-                              Testar Conexão
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            </div>
-          )}
-
-          {/* 19. CONFIGURAÇÕES, AUTONOMIA & PLANOS SAAS */}
-          {activeMenu === "settings" && meData && (
-            <div className="space-y-6 max-w-7xl mx-auto ug-fade-in">
-              {/* FLUXO 1 — CONFIGURAR EMPRESA E MARCA ATIVA */}
-              <div className="ug-card rounded-xl p-5 space-y-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-[var(--ug-text-primary)]">Identidade da Empresa &amp; Marca Ativa</h3>
-                  <p className="text-xs text-[var(--ug-text-muted)] mt-0.5">
-                    Preencha como sua empresa atua para que todos os agentes, propostas e conteúdos usem sua marca corretamente.
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-                  <div>
-                    <label htmlFor="ug-edit-company-input" className="block text-[11px] font-medium text-[var(--ug-text-secondary)] mb-1">
-                      Nome Oficial da Empresa *
-                    </label>
-                    <input
-                      id="ug-edit-company-input"
-                      value={editCompanyName}
-                      onChange={(e) => setEditCompanyName(e.target.value)}
-                      placeholder="Ex.: Union Soluções Digitais Ltda"
-                      className="w-full px-3 py-2 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border)] text-xs text-[var(--ug-text-primary)]"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="ug-edit-brand-input" className="block text-[11px] font-medium text-[var(--ug-text-secondary)] mb-1">
-                      Nome da Marca (exibição) *
-                    </label>
-                    <input
-                      id="ug-edit-brand-input"
-                      value={editBrandName}
-                      onChange={(e) => setEditBrandName(e.target.value)}
-                      placeholder="Ex.: Union Tech"
-                      className="w-full px-3 py-2 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border)] text-xs text-[var(--ug-text-primary)]"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="ug-edit-domain-input" className="block text-[11px] font-medium text-[var(--ug-text-secondary)] mb-1">
-                      Site / Domínio Principal
-                    </label>
-                    <input
-                      id="ug-edit-domain-input"
-                      value={editDomain}
-                      onChange={(e) => setEditDomain(e.target.value)}
-                      placeholder="Ex.: https://suaempresa.com.br"
-                      className="w-full px-3 py-2 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border)] text-xs text-[var(--ug-text-primary)]"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="ug-edit-niche-input" className="block text-[11px] font-medium text-[var(--ug-text-secondary)] mb-1">
-                      Nicho / Segmento de Atuação
-                    </label>
-                    <input
-                      id="ug-edit-niche-input"
-                      value={editNiche}
-                      onChange={(e) => setEditNiche(e.target.value)}
-                      placeholder="Ex.: Automação Comercial & IA B2B"
-                      className="w-full px-3 py-2 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border)] text-xs text-[var(--ug-text-primary)]"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label htmlFor="ug-edit-audience-input" className="block text-[11px] font-medium text-[var(--ug-text-secondary)] mb-1">
-                      Público-Alvo Principal (quem compra de você)
-                    </label>
-                    <input
-                      id="ug-edit-audience-input"
-                      value={editAudience}
-                      onChange={(e) => setEditAudience(e.target.value)}
-                      placeholder="Ex.: Diretores e gestores de empresas com 10 a 200 funcionários"
-                      className="w-full px-3 py-2 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border)] text-xs text-[var(--ug-text-primary)]"
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                  <span className="text-[11px] text-[var(--ug-text-muted)]">
-                    Empresa ativa: <strong className="text-indigo-400">{meData.active_tenant?.brand_name}</strong> • Alterações isoladas neste workspace.
-                  </span>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!editCompanyName.trim() || !editBrandName.trim()) {
-                        showNotice("Preencha o Nome Oficial da Empresa e o Nome da Marca antes de salvar.");
-                        return;
-                      }
-                      try {
-                        await apiFetch("/api/v1/tenants/current", {
-                          method: "PUT",
-                          body: JSON.stringify({
-                            name: editCompanyName.trim(),
-                            brand_name: editBrandName.trim(),
-                            domain: editDomain.trim(),
-                            niche: editNiche.trim(),
-                            target_audience: editAudience.trim(),
-                          }),
-                        });
-                        await loadAllActiveData();
-                        showNotice("Identidade da empresa e marca atualizada com sucesso!");
-                      } catch (err: any) {
-                        showNotice(err?.message || "Erro ao salvar dados da empresa.");
-                      }
-                    }}
-                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
-                  >
-                    Salvar Identidade da Empresa
-                  </button>
-                </div>
-              </div>
-
-              <div className="ug-card rounded-xl p-5 space-y-4">
-                <h3 className="text-sm font-semibold text-[var(--ug-text-primary)]">Nível de Autonomia Operacional da IA</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {[
-                    {
-                      level: 1,
-                      title: "NÍVEL 1 — ASSISTIDO",
-                      desc: "A IA analisa, diagnostica e recomenda; o usuário executa todas as ações.",
-                    },
-                    {
-                      level: 2,
-                      title: "NÍVEL 2 — SEMIAUTÔNOMO (Padrão Recomendado)",
-                      desc: "A IA prepara tudo automaticamente e solicita aprovação humana antes de ações externas.",
-                    },
-                    {
-                      level: 3,
-                      title: "NÍVEL 3 — AUTÔNOMO",
-                      desc: "A IA executa automaticamente as atividades autorizadas dentro dos limites de segurança.",
-                    },
-                  ].map((lvl) => (
-                    <button
-                      type="button"
-                      key={lvl.level}
-                      onClick={async () => {
-                        await apiFetch("/api/v1/tenants/current", {
-                          method: "PUT",
-                          body: JSON.stringify({ autonomy_default_level: lvl.level }),
-                        });
-                        await loadAllActiveData();
-                        showNotice(`Nível de Autonomia atualizado para Nível ${lvl.level}!`);
-                      }}
-                      className={`p-4 rounded-xl border text-left transition ${
-                        meData.active_tenant.autonomy_default_level === lvl.level
-                          ? "bg-indigo-600/15 border-indigo-500 text-[var(--ug-text-primary)]"
-                          : "bg-[var(--ug-bg)] border-[var(--ug-border)] text-[var(--ug-text-secondary)]"
-                      }`}
-                    >
-                      <div className="font-semibold text-xs mb-1">{lvl.title}</div>
-                      <div className="text-[11px] text-[var(--ug-text-muted)]">{lvl.desc}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <PlansAndUsagePanel
-                meData={meData}
-                plansOverview={plansOverview}
-                apiFetch={apiFetch}
-                onReload={loadAllActiveData}
-                showNotice={showNotice}
-              />
-
-              <BrandIntelligenceCenter
-                apiFetch={apiFetch}
-                onReload={loadAllActiveData}
-                showNotice={showNotice}
-              />
-
-              <div className="ug-card rounded-xl p-5 space-y-4">
-                <h3 className="text-sm font-semibold text-[var(--ug-text-primary)]">Nova Empresa / Unidade (Isolamento Completo)</h3>
-                <div className="flex flex-wrap gap-3">
-                  <input
-                    value={newTenantName}
-                    onChange={(e) => setNewTenantName(e.target.value)}
-                    placeholder="Ex.: Nova Unidade Comercial Ltda"
-                    aria-label="Nome da Nova Empresa ou Filial"
-                    className="flex-1 min-w-[220px] px-3 py-2 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border)] text-xs text-[var(--ug-text-primary)]"
-                  />
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!newTenantName.trim()) {
-                        showNotice("Informe o nome da nova empresa antes de adicionar.");
-                        return;
-                      }
-                      await apiFetch("/api/v1/tenants", {
-                        method: "POST",
-                        body: JSON.stringify({ name: newTenantName.trim(), brand_name: newTenantName.trim() }),
-                      });
-                      setNewTenantName("");
-                      await loadAllActiveData();
-                      showNotice("Nova empresa criada com isolamento multi-tenant completo!");
-                    }}
-                    className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold"
-                  >
-                    Adicionar Empresa
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* FASE 17 — OPERAÇÃO COMERCIAL MULTINEGÓCIO (3 UNIDADES) */}
           {activeMenu === "multibusiness" && mbDashboard && (
             <MultiBusinessAndProposalsWorkspace
               mbDashboard={mbDashboard}
@@ -3907,49 +1619,6 @@ export default function UnionGrowthOSPortal() {
               onNavigate={navigateTo}
               showNotice={showNotice}
             />
-          )}
-
-          {/* 20. AUDITORIA E LOGS */}
-          {activeMenu === "audit" && auditData && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
-                <h4 className="text-sm font-bold text-white">Logs de Execução dos Agentes de IA</h4>
-                <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                  {auditData.agent_execution_logs.map((l: any) => (
-                    <div key={l.id} className="p-3 rounded bg-slate-900 border border-slate-800 text-xs">
-                      <div className="flex justify-between font-bold text-indigo-300">
-                        <span>{l.agent_name}</span>
-                        <span>
-                          {l.duration_ms}ms • {l.status}
-                        </span>
-                      </div>
-                      <div className="text-slate-300">
-                        Tarefa: {l.task_name} • Workflow: {l.workflow_run_id}
-                      </div>
-                      <div className="text-[10px] text-slate-500">{l.created_at}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
-                <h4 className="text-sm font-bold text-white">Trilha de Auditoria & Segurança</h4>
-                <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                  {auditData.audit_logs.map((a: any) => (
-                    <div key={a.id} className="p-3 rounded bg-slate-900 border border-slate-800 text-xs">
-                      <div className="flex justify-between font-bold text-emerald-300">
-                        <span>{a.action}</span>
-                        <span>IP: {a.ip_address}</span>
-                      </div>
-                      <div className="text-slate-300">
-                        Ator: {a.actor} • Recurso: {a.resource_type} #{a.resource_id}
-                      </div>
-                      <div className="text-[10px] text-slate-500">{a.created_at}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
           )}
 
           {/* 25. FASE 19 — UNION AI ENGINE HUB */}
@@ -3988,6 +1657,50 @@ export default function UnionGrowthOSPortal() {
           )}
         </main>
       </div>
+
+      {assistedPackage && (
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-label="Pacote de Publicação Assistida">
+          <div className="ug-card rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl text-xs">
+            <div className="flex items-center justify-between border-b border-[var(--ug-border-subtle)] pb-3">
+              <h3 className="text-sm font-bold text-[var(--ug-text-primary)]">
+                Pacote de Publicação Assistida (1 Clique) — {String(assistedPackage.channel || "").toUpperCase()}
+              </h3>
+              <button type="button" onClick={() => setAssistedPackage(null)} aria-label="Fechar pacote assistido" className="text-[var(--ug-text-muted)] hover:text-[var(--ug-text-primary)] text-base font-bold">✕</button>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="ug-assisted-copy" className="text-[var(--ug-text-secondary)] font-semibold block">Legenda Formatada com Hashtags:</label>
+              <textarea id="ug-assisted-copy" readOnly rows={6} value={assistedPackage.formatted_copy_for_clipboard || ""} className="w-full bg-[var(--ug-bg)] border border-[var(--ug-border)] rounded-lg p-3 text-[var(--ug-text-primary)] text-xs font-mono" />
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(assistedPackage.formatted_copy_for_clipboard || "");
+                  showNotice("Texto copiado para a área de transferência com sucesso!");
+                }}
+                className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs"
+              >
+                Copiar Texto Completo para o Clipboard
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {assistedPackage.media_download_url && (
+                <a href={assistedPackage.media_download_url} target="_blank" rel="noopener noreferrer" className="py-2 px-3 rounded-lg border border-[var(--ug-border)] text-center text-[var(--ug-text-primary)] hover:bg-white/[0.04] font-medium">
+                  Baixar Mídia / Arte PNG
+                </a>
+              )}
+              {assistedPackage.platform_upload_url && (
+                <a href={assistedPackage.platform_upload_url} target="_blank" rel="noopener noreferrer" className="py-2 px-3 rounded-lg border border-indigo-500/30 text-center text-indigo-400 hover:bg-indigo-500/10 font-medium">
+                  Abrir Canal para Publicar →
+                </a>
+              )}
+            </div>
+            {Array.isArray(assistedPackage.checklist) && assistedPackage.checklist.length > 0 && (
+              <ul className="space-y-1 text-[11px] text-[var(--ug-text-muted)] list-disc pl-4">
+                {assistedPackage.checklist.map((c: string, i: number) => <li key={i}>{c}</li>)}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
 
       <CommandCenter
         open={commandOpen}

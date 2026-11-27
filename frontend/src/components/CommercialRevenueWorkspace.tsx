@@ -68,6 +68,7 @@ export function CRMAndLeadsWorkspace({
   showNotice: (msg: string) => void;
 }) {
   const [followUpBusyId, setFollowUpBusyId] = useState<number | null>(null);
+  const [smartFollowupByLead, setSmartFollowupByLead] = useState<Record<number, any>>({});
   const revSum = revenueIntel?.summary;
   const hotLeads: any[] = revenueIntel?.hot_uncontacted_leads || [];
   const hotLeadIds = new Set(hotLeads.map((x) => x.lead_id));
@@ -332,11 +333,31 @@ export function CRMAndLeadsWorkspace({
                       {l.qualification_status} • {l.pipeline_stage} • Est.: R$ {l.estimated_value}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
                     <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-semibold tabular-nums">
                       Score {l.lead_score}/100
                     </span>
                     <OriginBadge origin={l.data_origin} />
+                    <button
+                      type="button"
+                      disabled={followUpBusyId === l.id}
+                      onClick={async () => {
+                        setFollowUpBusyId(l.id);
+                        try {
+                          const res = await apiFetch(`/api/v1/crm/leads/${l.id}/smart-followup`, { method: "POST" });
+                          setSmartFollowupByLead((prev) => ({ ...prev, [l.id]: res }));
+                          await onReload();
+                          showNotice(res?.message || "Sugestão de follow-up gerada!");
+                        } catch (err: any) {
+                          showNotice(err?.message || "Não foi possível preparar follow-up.");
+                        } finally {
+                          setFollowUpBusyId(null);
+                        }
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-indigo-600/15 border border-indigo-500/30 hover:bg-indigo-600/25 text-indigo-300 text-[11px] font-medium"
+                    >
+                      Follow-up IA
+                    </button>
                     {hotLeadIds.has(l.id) && (
                       <button
                         type="button"
@@ -357,6 +378,34 @@ export function CRMAndLeadsWorkspace({
                       </button>
                     )}
                   </div>
+                  {smartFollowupByLead[l.id] && (
+                    <div className="w-full mt-2 p-2.5 rounded-lg bg-[var(--ug-bg)] border border-indigo-500/25 text-[11px] space-y-1.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="font-semibold text-indigo-300">
+                          {smartFollowupByLead[l.id].channel_connected
+                            ? "Canal conectado • Aguardando Aprovação"
+                            : "Modo Manual Seguro (nenhum canal externo conectado)"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await navigator.clipboard.writeText(smartFollowupByLead[l.id].draft_message || "");
+                              showNotice("Mensagem copiada! Nenhuma mensagem foi enviada automaticamente.");
+                            } catch {
+                              showNotice("Copie o texto abaixo manualmente.");
+                            }
+                          }}
+                          className="px-2 py-0.5 rounded border border-[var(--ug-border)] hover:bg-white/[0.05] text-[var(--ug-text-primary)]"
+                        >
+                          Copiar Texto
+                        </button>
+                      </div>
+                      <div className="text-[var(--ug-text-secondary)] whitespace-pre-line">
+                        {smartFollowupByLead[l.id].draft_message}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -581,19 +630,25 @@ export function CommercialPipelineWorkspace({
                           <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" aria-label="Negociação parada" />
                         )}
                       </div>
-                      <div className="text-emerald-400 font-semibold tabular-nums">
-                        R$ {Number(d.value || 0).toLocaleString("pt-BR")}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-emerald-400 font-semibold tabular-nums">
+                          R$ {Number(d.value || 0).toLocaleString("pt-BR")}
+                        </span>
+                        <span className="text-[10px] text-[var(--ug-text-muted)] tabular-nums inline-flex items-center gap-1">
+                          Prob.: {d.probability_pct ?? 50}% <OriginBadge origin="ESTIMATED" />
+                        </span>
                       </div>
                       <select
                         aria-label={`Mover etapa de ${d.title}`}
                         value={d.stage}
                         onChange={async (e) => {
-                          await apiFetch(`/api/v1/crm/deals/${d.id}/stage`, {
-                            method: "PUT",
-                            body: JSON.stringify({ stage: e.target.value }),
+                          const nextStage = e.target.value;
+                          const mv = await apiFetch(`/api/v1/crm/deals/${d.id}/move-stage`, {
+                            method: "POST",
+                            body: JSON.stringify({ stage: nextStage }),
                           });
                           await onReload();
-                          showNotice(`Negociação movida para ${e.target.value}!`);
+                          showNotice(`Negociação movida para ${nextStage} (Prob. ${mv?.probability_pct ?? "-"}%)!`);
                         }}
                         className="w-full px-2 py-1 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border)] text-[11px] text-[var(--ug-text-secondary)]"
                       >

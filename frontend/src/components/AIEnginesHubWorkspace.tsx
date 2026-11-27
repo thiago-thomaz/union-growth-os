@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { CheckCircle2, Cpu, KeyRound, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 import { FilterTabBar, MetricStrip, OriginBadge, StatusPill } from "@/components/DesignSystem";
 
@@ -597,9 +597,23 @@ export function PlansAndUsagePanel({
   onReload: () => Promise<void>;
   showNotice: (msg: string) => void;
 }) {
-  const catalog = plansOverview?.plans_catalog || meData?.plans_catalog || {};
-  const meters = Object.values(plansOverview?.usage_meters || {}) as any[];
+  const [entitlements, setEntitlements] = useState<any>(null);
+  useEffect(() => {
+    let active = true;
+    apiFetch("/api/v1/plans/entitlements")
+      .then((res) => {
+        if (active) setEntitlements(res);
+      })
+      .catch(() => null);
+    return () => {
+      active = false;
+    };
+  }, [apiFetch, meData?.active_tenant?.plan_tier]);
+
+  const catalog = entitlements?.plans_catalog || plansOverview?.plans_catalog || meData?.plans_catalog || {};
+  const meters = Object.values(entitlements?.usage_meters || plansOverview?.usage_meters || {}) as any[];
   const activeTier = meData?.active_tenant?.plan_tier || "ENTERPRISE";
+  const billingReady = entitlements?.billing_readiness;
 
   return (
     <section className="ug-card rounded-xl p-5 space-y-5 text-xs">
@@ -610,10 +624,13 @@ export function PlansAndUsagePanel({
             <span>Planos PLG &amp; Consumo do Workspace</span>
           </h3>
           <p className="text-[11px] text-[var(--ug-text-muted)] mt-0.5">
-            Medidores reais do seu tenant comparados aos limites comerciais de referência (sem cobrança automática ativa).
+            Medidores reais e prontidão de cobrança: <strong>{billingReady ? (billingReady.charge_enabled ? "Cobrança Ativa" : "Cobrança desativada (autorização explícita exigida)") : "Sem cobrança automática ativa"}</strong>.
           </p>
         </div>
-        <OriginBadge origin="REAL" />
+        <div className="flex items-center gap-2">
+          <StatusPill status="EXECUTED" label={billingReady?.checkout_mode === "STRIPE_OR_ASAAS_READY_DISABLED" ? "Pronto (R$ 0 agora)" : "Sem cobrança live"} />
+          <OriginBadge origin="REAL" />
+        </div>
       </div>
 
       {meters.length > 0 && (
