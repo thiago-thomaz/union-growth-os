@@ -535,9 +535,11 @@ async def run_phase22_e2e():
 
             await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Modelos & Provedores")
             await asyncio.sleep(0.6)
-            prov_ok = await cdp.click_by_text("main button", "2. Provedores")
+            prov_ok = (await cdp.click_by_text("main button", "Provedores & Chaves")) or (await cdp.click_by_text("main button", "2. Provedores"))
+            await asyncio.sleep(0.35)
             prov_has_key = await cdp.evaluate("(document.querySelector('main')?.innerText || '').includes('AQ....rlw')")
-            hist_ok = await cdp.click_by_text("main button", "9. Histórico")
+            hist_ok = (await cdp.click_by_text("main button", "Histórico & Testes")) or (await cdp.click_by_text("main button", "9. Histórico"))
+            await asyncio.sleep(0.35)
             hist_has_txt = await cdp.evaluate("(document.querySelector('main')?.innerText || '').includes('Histórico de Execuções')")
             sh9 = await cdp.screenshot("09_ia_motores_provedores.png")
             if sh9:

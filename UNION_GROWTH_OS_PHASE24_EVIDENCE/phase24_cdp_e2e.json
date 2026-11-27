@@ -3,7 +3,7 @@
   "profiles": {
     "P1_Usuario_Iniciante": {
       "clicks_core_flow": 3,
-      "elapsed_s": 28.93,
+      "elapsed_s": 9.68,
       "ask_union_ok": true,
       "health_drawer_ok": true,
       "light_mode_ok": true,
@@ -15,7 +15,7 @@
       "passed": true
     },
     "P2_Usuario_Operacional": {
-      "elapsed_s": 7.07,
+      "elapsed_s": 6.08,
       "meu_trabalho_clean": true,
       "ondemand_guide_drawer": true,
       "marketing_clean": true,
@@ -23,14 +23,14 @@
       "passed": true
     },
     "P3_Usuario_Avancado": {
-      "elapsed_s": 6.43,
+      "elapsed_s": 6.08,
       "layman_simple_mode": true,
       "advanced_mode_controls": true,
       "passed": true
     }
   },
   "clutter_and_design": {
-    "total_elapsed_s": 60.6,
+    "total_elapsed_s": 44.42,
     "permanent_guide_wall_removed": true,
     "double_dashboard_eliminated": true,
     "card_in_card_eliminated": true
@@ -96,19 +96,19 @@
   "screenshots": [
     {
       "file": "01_phase24_home_dark.png",
-      "size_bytes": 228460
+      "size_bytes": 228496
     },
     {
       "file": "02_phase24_ask_union.png",
-      "size_bytes": 265745
+      "size_bytes": 269465
     },
     {
       "file": "03_phase24_health_12_drawer.png",
-      "size_bytes": 341889
+      "size_bytes": 343007
     },
     {
       "file": "04_phase24_home_light.png",
-      "size_bytes": 264689
+      "size_bytes": 267148
     },
     {
       "file": "05_phase24_meu_trabalho.png",
@@ -116,7 +116,7 @@
     },
     {
       "file": "06_phase24_comercial_propostas.png",
-      "size_bytes": 165696
+      "size_bytes": 222181
     },
     {
       "file": "07_phase24_marketing_campanhas.png",
@@ -128,7 +128,7 @@
     },
     {
       "file": "09_phase24_ia_agentes.png",
-      "size_bytes": 196982
+      "size_bytes": 197974
     },
     {
       "file": "10_phase24_automacoes_avancado.png",
@@ -136,11 +136,11 @@
     },
     {
       "file": "11_phase24_viewport_notebook_1366x768.png",
-      "size_bytes": 162349
+      "size_bytes": 162613
     },
     {
       "file": "11_phase24_viewport_mobile_small_360x800.png",
-      "size_bytes": 61549
+      "size_bytes": 61709
     }
   ],
   "telemetry": {

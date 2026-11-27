@@ -1,5 +1,16 @@
 # Changelog — UNION GROWTH OS
 
+## [2.2.0 — FASE 25] — 2026-11-27
+
+### Auditoria Global, Inteligência Competitiva (32 Plataformas), PLG, Revenue Intelligence & Resiliência Cloud
+- **Estrutura PLG & Medidores de Consumo Reais (`plans_and_audit.py`, `GET /api/v1/plans/overview`)**: Inclusão do tier **`FREE` (Ativação PLG)** ao lado de `STARTER`, `PRO`, `BUSINESS` e `ENTERPRISE` com preços referenciais auditados e medidores em tempo real por tenant (`empresas`, `usuários`, `leads`, `automações`, `ações IA`), mantendo **`billing_status: PLG_STRUCTURE_SIMULATION_ONLY_NO_LIVE_BILLING`** e zero cobrança automática ativa.
+- **CRM Revenue Intelligence & Ativação TTFV (`phase25_product_engine.py`)**:
+  - `GET /api/v1/growth-os/revenue-intelligence` & `POST /api/v1/crm/leads/{lead_id}/quick-followup`: detecção de leads quentes sem contato (`score >= 65`), negociações estagnadas (`>= 5 dias` ou sem atividade CRM) e agendamento de follow-up em 1 clique com bloqueio LGPD (`opt_out`).
+  - `GET /api/v1/growth-os/activation-retention`: checklist de 6 marcos reais de Time-to-First-Value + `daily_return_triggers` exibido discretamente em `HomeWorkspace.tsx` até `first_value_achieved`.
+- **SEO Técnico Ao Vivo (`seo_and_market_engine.py`)**: Extração HTTP pública real de `canonical_url`, `has_viewport`, tags OpenGraph (`og_title`/`og_description`/`og_image`) e `body_word_count` sem custo adicional, além de disclaimer transparente de Google Search Console.
+- **Decomposição Modular & DS 3.0 (`CommercialRevenueWorkspace.tsx`, `AIEnginesHubWorkspace.tsx`, `UnionGrowthOSPortal.tsx`, `AITeamAndGovernanceView.tsx`)**: Extração de ~1.500 linhas do monólito principal para módulos DS 3.0 Obsidian/Alabaster (Leads & CRM, Pipeline Kanban, Multinegócio com funil de 17 etapas colapsável, Concorrentes, AI Engine Hub sem abas numeradas e painel `PlansAndUsagePanel`), correção do aviso enganoso de chave IA ausente e hidratação **Wave 1 + Wave 2** com trava `loadSeqRef`.
+- **Infraestrutura, CI/CD & Validação E2E Total**: Adicionado `--timeout-keep-alive 75 --proxy-headers` no `Dockerfile` (zerando `502` no swap Traefik/Uvicorn), correção de scanner regex no `.github/workflows/ci-cd.yml`, tolerância a swap no `scripts/ci_deploy_and_verify.py` (GitHub Actions run `46043812259` `success`), **`52/52` testes `pytest`** aprovados e **4 suítes Chrome CDP ao vivo** (`phase25_cdp_e2e.py`, `phase24_cdp_e2e.py`, `phase23_cdp_e2e.py`, `phase22_cdp_ux_e2e.py`) 100% verdes em produção, com 21 relatórios independentes e Scorecard.
+
 ## [2.1.0 — FASE 24] — 2026-11-27
 
 ### Reconstrução Radical de UX/UI & Design System 3.0

@@ -1,0 +1,111 @@
+{
+  "prod_url": "https://automacao.projetosunion.cloud",
+  "checks": {
+    "switched_qa": true,
+    "crm_revenue_intel_ok": true,
+    "light_mode_crm_ok": true,
+    "pipeline_ds3_ok": true,
+    "multibusiness_ds3_ok": true,
+    "seo_technical_signals_ok": true,
+    "ai_hub_ds3_ok": true,
+    "plg_plans_and_meters_ok": true,
+    "total_elapsed_s": 30.05
+  },
+  "accessibility": {
+    "lang": "pt-BR",
+    "total_buttons": 60,
+    "unlabeled_buttons": 0,
+    "unlabeled_inputs": 0,
+    "passed": true
+  },
+  "viewports": {
+    "desktop_1920x1080": {
+      "scrollWidth": 1914,
+      "clientWidth": 1914,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "desktop_1440x900": {
+      "scrollWidth": 1434,
+      "clientWidth": 1434,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "notebook_1366x768": {
+      "scrollWidth": 1360,
+      "clientWidth": 1360,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "compact_1024x768": {
+      "scrollWidth": 1018,
+      "clientWidth": 1018,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "tablet_768x1024": {
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "mobile_390x844": {
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "mobile_small_360x800": {
+      "scrollWidth": 360,
+      "clientWidth": 360,
+      "overflowPx": 0,
+      "passed": true
+    }
+  },
+  "screenshots": [
+    {
+      "file": "01_phase25_home_dark.png",
+      "size_bytes": 228496
+    },
+    {
+      "file": "02_phase25_crm_revenue_intel.png",
+      "size_bytes": 238429
+    },
+    {
+      "file": "08_phase25_light_mode_crm.png",
+      "size_bytes": 235509
+    },
+    {
+      "file": "03_phase25_pipeline_ds3.png",
+      "size_bytes": 123758
+    },
+    {
+      "file": "04_phase25_multibusiness_ds3.png",
+      "size_bytes": 222181
+    },
+    {
+      "file": "05_phase25_seo_technical_signals.png",
+      "size_bytes": 132149
+    },
+    {
+      "file": "06_phase25_ai_hub_honest.png",
+      "size_bytes": 118012
+    },
+    {
+      "file": "07_phase25_settings_plg_plans.png",
+      "size_bytes": 186427
+    },
+    {
+      "file": "09_phase25_viewport_mobile_360x800.png",
+      "size_bytes": 61709
+    }
+  ],
+  "telemetry": {
+    "console_errors_count": 0,
+    "exceptions_count": 0,
+    "network_4xx_5xx_count": 0,
+    "url_token_leaks_count": 0,
+    "network_4xx_5xx": []
+  },
+  "all_phase25_e2e_passed": true
+}

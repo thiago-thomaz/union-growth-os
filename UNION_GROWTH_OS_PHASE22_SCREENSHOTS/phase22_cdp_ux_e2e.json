@@ -86,7 +86,7 @@
         "found": true,
         "count": 7,
         "urls": [
-          "blob:https://automacao.projetosunion.cloud/5ddac3b3-9330-4b49-ae73-a0a1e8d91502"
+          "blob:https://automacao.projetosunion.cloud/67e5bd22-684d-41f4-b31f-33b70a926f55"
         ]
       },
       "passed": true
@@ -176,19 +176,19 @@
   "screenshots": [
     {
       "file": "01_inicio_dashboard_dark.png",
-      "size_bytes": 237767
+      "size_bytes": 237435
     },
     {
       "file": "02_inicio_light_mode.png",
-      "size_bytes": 234596
+      "size_bytes": 229628
     },
     {
       "file": "03_command_center_ctrl_k.png",
-      "size_bytes": 298214
+      "size_bytes": 297200
     },
     {
       "file": "04_todos_recursos_favoritos.png",
-      "size_bytes": 87176
+      "size_bytes": 87174
     },
     {
       "file": "05_meu_trabalho_drawer.png",
@@ -196,7 +196,7 @@
     },
     {
       "file": "06_comercial_propostas.png",
-      "size_bytes": 165642
+      "size_bytes": 222121
     },
     {
       "file": "07_marketing_campanhas.png",
@@ -208,11 +208,11 @@
     },
     {
       "file": "09_ia_motores_provedores.png",
-      "size_bytes": 230426
+      "size_bytes": 153345
     },
     {
       "file": "10b_gestao_relatorios.png",
-      "size_bytes": 142514
+      "size_bytes": 142507
     },
     {
       "file": "10_gestao_integracoes.png",
@@ -224,15 +224,15 @@
     },
     {
       "file": "12_responsive_notebook_1366.png",
-      "size_bytes": 169447
+      "size_bytes": 169617
     },
     {
       "file": "13_responsive_tablet_768.png",
-      "size_bytes": 120310
+      "size_bytes": 120625
     },
     {
       "file": "14_responsive_mobile_390.png",
-      "size_bytes": 64920
+      "size_bytes": 65095
     },
     {
       "file": "15_public_landing_page.png",
@@ -240,7 +240,7 @@
     }
   ],
   "telemetry": {
-    "total_network_requests": 102,
+    "total_network_requests": 111,
     "console_errors_count": 0,
     "console_errors": [],
     "runtime_exceptions_count": 0,
