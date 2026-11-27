@@ -170,7 +170,7 @@ export function AuditCenterWorkspace({
           </div>
           <div className="text-[var(--ug-text-secondary)]">
             Arquivo: <strong>{restoreResult.backup_tested}</strong> • SHA-256: <code className="font-mono">{restoreResult.sha256}</code> •
-            Registros verificados: <strong className="tabular-nums">{restoreResult.restore_report?.total_restored_records ?? "-"}</strong>
+            Registros verificados: <strong className="tabular-nums">{restoreResult.total_restored_records ?? restoreResult.restore_report?.total_restored_records ?? 0}</strong> ({restoreResult.restored_tables ?? "-"} tabelas)
           </div>
         </div>
       )}

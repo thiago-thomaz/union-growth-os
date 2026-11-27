@@ -1,0 +1,129 @@
+{
+  "prod_url": "https://automacao.projetosunion.cloud",
+  "checks": {
+    "login_ok": true,
+    "switched_qa": true,
+    "header_semver_ok": true,
+    "release_drawer_ok": true,
+    "audit_25_categories_ok": false,
+    "traceability_matrix_ok": false,
+    "backup_restore_sha256_ok": true,
+    "growth_center_persisted_ok": true,
+    "ai_benchmark_12_agents_ok": false,
+    "automations_presets_flow_ok": false,
+    "plans_entitlements_ok": true,
+    "light_mode_ok": true,
+    "total_elapsed_s": 57.58
+  },
+  "accessibility": {
+    "lang": "pt-BR",
+    "total_buttons": 62,
+    "unlabeled_buttons": 0,
+    "unlabeled_inputs": 0,
+    "passed": true
+  },
+  "viewports": {
+    "desktop_1920x1080": {
+      "scrollWidth": 1914,
+      "clientWidth": 1914,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "desktop_1440x900": {
+      "scrollWidth": 1434,
+      "clientWidth": 1434,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "notebook_1366x768": {
+      "scrollWidth": 1360,
+      "clientWidth": 1360,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "compact_1024x768": {
+      "scrollWidth": 1018,
+      "clientWidth": 1018,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "tablet_768x1024": {
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "mobile_430x932": {
+      "scrollWidth": 430,
+      "clientWidth": 430,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "mobile_390x844": {
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "mobile_small_360x800": {
+      "scrollWidth": 360,
+      "clientWidth": 360,
+      "overflowPx": 0,
+      "passed": true
+    }
+  },
+  "screenshots": [
+    {
+      "file": "01_phase27_header_semver_badge.png",
+      "size_bytes": 237282
+    },
+    {
+      "file": "02_phase27_release_history_drawer.png",
+      "size_bytes": 253095
+    },
+    {
+      "file": "03_phase27_audit_25_categories.png",
+      "size_bytes": 179888
+    },
+    {
+      "file": "04_phase27_traceability_matrix.png",
+      "size_bytes": 179707
+    },
+    {
+      "file": "05_phase27_backup_restore_test.png",
+      "size_bytes": 171539
+    },
+    {
+      "file": "06_phase27_persistent_growth_center.png",
+      "size_bytes": 241094
+    },
+    {
+      "file": "07_phase27_ai_benchmark_12_agents.png",
+      "size_bytes": 219003
+    },
+    {
+      "file": "08_phase27_automations_presets_flow.png",
+      "size_bytes": 219009
+    },
+    {
+      "file": "09_phase27_plans_entitlements.png",
+      "size_bytes": 183018
+    },
+    {
+      "file": "10_phase27_light_mode.png",
+      "size_bytes": 181258
+    },
+    {
+      "file": "11_phase27_mobile_360x800.png",
+      "size_bytes": 65649
+    }
+  ],
+  "telemetry": {
+    "console_errors_count": 0,
+    "exceptions_count": 0,
+    "network_4xx_5xx_count": 0,
+    "url_token_leaks_count": 0,
+    "network_4xx_5xx": []
+  },
+  "all_phase27_e2e_passed": false
+}

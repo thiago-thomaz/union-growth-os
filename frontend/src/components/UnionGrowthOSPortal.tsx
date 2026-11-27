@@ -965,7 +965,20 @@ export default function UnionGrowthOSPortal() {
               <div className="text-[11px] font-medium text-[var(--ug-text-primary)] truncate">
                 {meData?.user?.full_name}
               </div>
-              <div className="text-[10px] text-[var(--ug-text-muted)] truncate">{meData?.user?.role}</div>
+              <div className="flex items-center gap-1.5 text-[10px] text-[var(--ug-text-muted)] truncate">
+                <span>{meData?.user?.role}</span>
+                <span>•</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setReleaseDrawerOpen(true);
+                  }}
+                  className="font-mono text-emerald-400 hover:underline"
+                >
+                  v{versionInfo?.version || "2.4.0"}
+                </button>
+              </div>
             </div>
           )}
           <button
@@ -1020,15 +1033,15 @@ export default function UnionGrowthOSPortal() {
                 type="button"
                 onClick={() => setReleaseDrawerOpen(true)}
                 aria-label={`Versão ${versionInfo?.version || "2.4.0"} — Abrir histórico de releases e ambiente`}
-                className="px-2.5 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-[11px] font-medium inline-flex items-center gap-1.5 transition"
+                className="hidden sm:inline-flex px-2.5 py-1 rounded-full border border-emerald-500/35 bg-emerald-500/12 hover:bg-emerald-500/20 text-emerald-400 text-[11px] font-medium items-center gap-1.5 transition"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
                 <span className="font-mono font-semibold">v{versionInfo?.version || "2.4.0"}</span>
-                <span className="hidden xl:inline text-emerald-300/80">
+                <span className="hidden xl:inline text-emerald-400/90">
                   • {versionInfo?.environment_label || "PRODUCTION | STABLE"}
                 </span>
                 {versionInfo?.short_commit && (
-                  <span className="hidden 2xl:inline font-mono text-[10px] text-emerald-200/70">
+                  <span className="hidden 2xl:inline font-mono text-[10px] text-emerald-400/80">
                     • {versionInfo.short_commit}
                   </span>
                 )}

@@ -152,12 +152,12 @@ export function FinanceAndReportsWorkspace({
               onClick={async () => {
                 const res = await apiFetch("/api/v1/system/backup/test-restore", { method: "POST" });
                 showNotice(
-                  res.restore_test_passed
-                    ? `Restauração isolada OK (${res.records_checked} registros, SHA-256 validado)`
+                  res.status === "RESTORE_VERIFIED" || res.restore_test_passed
+                    ? `Restauração isolada OK (${res.total_restored_records ?? res.records_checked ?? 0} registros, SHA-256 ${String(res.sha256 || "").slice(0, 10)})`
                     : `Teste de restauração: ${res.status || "verificar logs"}`
                 );
               }}
-              className="px-3.5 py-1.5 rounded-lg border border-emerald-500/35 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-medium"
+              className="px-3.5 py-1.5 rounded-lg border border-emerald-500/35 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-medium"
             >
               Testar Restauração Isolada (SHA-256)
             </button>

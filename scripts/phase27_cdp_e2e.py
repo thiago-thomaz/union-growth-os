@@ -129,6 +129,14 @@ class CDPClient:
                 return True
         return False
 
+    async def wait_for_text(self, selector: str, substring: str, timeout_s: float = 14.0) -> bool:
+        for _ in range(int(timeout_s / 0.4)):
+            found = await self.evaluate(f"((document.querySelector({json.dumps(selector)})?.innerText) || '').includes({json.dumps(substring)})")
+            if found:
+                return True
+            await asyncio.sleep(0.4)
+        return False
+
     async def close(self):
         self._reader_task.cancel()
 
@@ -224,11 +232,12 @@ async def run_phase27_e2e():
 
             # 2. Release History Drawer
             await cdp.evaluate("document.querySelector('#ug-version-badge-btn')?.click()")
-            await asyncio.sleep(1.2)
+            await cdp.wait_for_text("body", "Histórico de Releases (6)", timeout_s=10.0)
+            await asyncio.sleep(0.4)
             release_drawer_ok = await cdp.evaluate("""
                 (() => {
                     const t = document.body.innerText || '';
-                    return t.includes('Controle SemVer') && t.includes('2.4.0') && t.includes('Histórico de Releases');
+                    return t.includes('Controle SemVer') && t.includes('2.4.0') && t.includes('Histórico de Releases') && t.includes('v2.3.0');
                 })()
             """)
             sh2 = await cdp.screenshot("02_phase27_release_history_drawer.png")
@@ -245,7 +254,8 @@ async def run_phase27_e2e():
 
             # 3. 25-Category Evidence Audit Center
             await cdp.click_by_text("main button", "EXECUTAR AUDITORIA COMPLETA")
-            await asyncio.sleep(3.5)
+            await cdp.wait_for_text("main", "Scorecard Objetivo das 25 Categorias", timeout_s=20.0)
+            await asyncio.sleep(0.5)
             audit_25_ok = await cdp.evaluate("""
                 (() => {
                     const t = document.querySelector('main')?.innerText || '';
@@ -258,7 +268,8 @@ async def run_phase27_e2e():
 
             # 4. Traceability Matrix
             await cdp.click_by_text("main button", "Matriz de Rastreabilidade")
-            await asyncio.sleep(0.8)
+            await cdp.wait_for_text("main", "Sistema SemVer + Histórico de Releases", timeout_s=8.0)
+            await asyncio.sleep(0.4)
             traceability_ok = await cdp.evaluate("""
                 (() => {
                     const t = document.querySelector('main')?.innerText || '';
@@ -273,7 +284,8 @@ async def run_phase27_e2e():
             await cdp.click_by_text("main button", "Backup, Histórico")
             await asyncio.sleep(0.6)
             await cdp.click_by_text("main button", "Testar Restauração Isolada")
-            await asyncio.sleep(2.5)
+            await cdp.wait_for_text("main", "Teste de Recuperação Isolada Concluído", timeout_s=15.0)
+            await asyncio.sleep(0.4)
             restore_sha_ok = await cdp.evaluate("""
                 (() => {
                     const t = document.querySelector('main')?.innerText || '';
@@ -290,10 +302,9 @@ async def run_phase27_e2e():
             await cdp.click_by_text("main button", "Centro de Crescimento (0–90d)")
             await asyncio.sleep(1.2)
             await cdp.click_by_text("main button", "Gerar Plano 0–90d")
-            await asyncio.sleep(2.2)
-            await cdp.wait_idle()
+            await cdp.wait_for_text("main", "Plano de Execução Priorizado", timeout_s=15.0)
             await cdp.click_by_text("main button", "Concluir")
-            await asyncio.sleep(1.5)
+            await cdp.wait_for_text("main", "Concluído", timeout_s=10.0)
             await cdp.click_by_text("main button", "Replanejar")
             await asyncio.sleep(1.5)
             growth_persist_ok = await cdp.evaluate("""
@@ -306,27 +317,11 @@ async def run_phase27_e2e():
             if sh6:
                 report["screenshots"].append(sh6)
 
-            # 7. AI Benchmark 12 Agents (R$ 0,00)
+            # 7. AI Benchmark 12 Agents (R$ 0,00) + 8. Visual Automations Presets
             await cdp.click_by_text("aside button", "Inteligência Artificial")
-            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Motores & Chaves AI")
-            await asyncio.sleep(1.0)
-            await cdp.click_by_text("main button", "Política & Agentes")
-            await asyncio.sleep(0.6)
-            await cdp.click_by_text("main button", "Benchmark 12 Agentes")
-            await asyncio.sleep(2.0)
-            ai_benchmark_ok = await cdp.evaluate("""
-                (() => {
-                    const t = document.querySelector('main')?.innerText || '';
-                    return t.includes('Resultado do Benchmark (12 agentes') && t.includes('Custo: R$ 0,00');
-                })()
-            """)
-            sh7 = await cdp.screenshot("07_phase27_ai_benchmark_12_agents.png")
-            if sh7:
-                report["screenshots"].append(sh7)
-
-            # 8. Visual Automations Presets & Linear Flow + Plans Tier Readiness
-            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Automações Python")
-            await asyncio.sleep(1.0)
+            await asyncio.sleep(0.8)
+            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Automações 24/7")
+            await cdp.wait_for_text("main", "Templates Visuais em 1 Clique", timeout_s=10.0)
             auto_presets_ok = await cdp.evaluate("""
                 (() => {
                     const t = document.querySelector('main')?.innerText || '';
@@ -336,6 +331,29 @@ async def run_phase27_e2e():
             sh8 = await cdp.screenshot("08_phase27_automations_presets_flow.png")
             if sh8:
                 report["screenshots"].append(sh8)
+
+            # Revelar sub-abas avançadas para abrir Motores & Chaves AI e rodar Benchmark 12 Agentes
+            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Avançado")
+            await asyncio.sleep(1.0)
+            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Motores")
+            await cdp.wait_for_text("main", "Política & Agentes", timeout_s=10.0)
+            await cdp.click_by_text("main button", "Política & Agentes")
+            await asyncio.sleep(0.6)
+            await cdp.click_by_text("main button", "Benchmark 12 Agentes")
+            await cdp.wait_for_text("main", "Resultado do Benchmark (12 agentes", timeout_s=12.0)
+            await asyncio.sleep(0.4)
+            ai_benchmark_ok = await cdp.evaluate("""
+                (() => {
+                    const t = document.querySelector('main')?.innerText || '';
+                    return t.includes('Resultado do Benchmark (12 agentes') && t.includes('Custo: R$ 0,00');
+                })()
+            """)
+            sh7 = await cdp.screenshot("07_phase27_ai_benchmark_12_agents.png")
+            if sh7:
+                report["screenshots"].append(sh7)
+            # Restaurar Modo Simples para manter o estado limpo
+            await cdp.click_by_text("header button", "Modo Avançado")
+            await asyncio.sleep(0.6)
 
             await cdp.click_by_text("aside button", "Gestão")
             await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Configurações & Planos")
