@@ -211,7 +211,7 @@ from app.services.phase13_services import (
     save_autonomy_config,
     verify_all_automations,
 )
-from app.services.plans_and_audit import SAAS_PLANS, get_tenant_plan_info, record_audit_log
+from app.services.plans_and_audit import SAAS_PLANS, enforce_tenant_entitlement, get_tenant_plan_info, record_audit_log
 from app.services.seo_and_market_engine import (
     analyze_competitor_public,
     generate_seo_factory_article,
@@ -492,6 +492,10 @@ def create_additional_tenant(
     user: User = Depends(require_roles("owner", "admin")),
     db: Session = Depends(get_db),
 ):
+    cur_tenant = _get_tenant_or_404(db, get_active_tenant_id(user))
+    ent = enforce_tenant_entitlement(db, cur_tenant, "companies", owner_email=user.email)
+    if not ent["allowed"]:
+        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=ent["detail"])
     slug = f"{re.sub(r'[^a-z0-9]+', '-', payload.name.lower()).strip('-')}-{uuid.uuid4().hex[:6]}"
     t = Tenant(
         name=sanitize_text(payload.name),
@@ -1581,6 +1585,10 @@ def get_crm_overview(
 @router.post("/crm/leads", status_code=status.HTTP_201_CREATED)
 def create_crm_lead(payload: CRMLeadCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     tid = get_active_tenant_id(user)
+    tenant = _get_tenant_or_404(db, tid)
+    ent = enforce_tenant_entitlement(db, tenant, "crm_leads", owner_email=user.email)
+    if not ent["allowed"]:
+        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail=ent["detail"])
     if not payload.consent_lgpd:
         raise HTTPException(
             status_code=400,
@@ -4123,10 +4131,12 @@ def growth_os_activation_retention(
     return get_activation_and_retention_service(db, tenant_id=tid)
 
 
-# Monta sub-roteador modular da Fase 26 sobre o prefixo /api/v1 preservando contratos legados
+# Monta sub-roteadores modulares (Fases 26 & 27) sobre o prefixo /api/v1 preservando contratos legados
 from app.api.routers.phase26_routes import phase26_router as _phase26_router
+from app.api.routers.phase27_routes import phase27_router as _phase27_router
 
 router.include_router(_phase26_router)
+router.include_router(_phase27_router)
 
 
 

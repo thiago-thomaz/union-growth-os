@@ -231,6 +231,8 @@ export function HomeWorkspace({
       origin: "REAL",
       source: "Auditoria 12 Pilares",
       period: "Atualizado hoje",
+      statusLabel: gs.score >= 70 ? "Saudável" : "Em evolução",
+      calculationMethod: "Média ponderada real dos 12 pilares operacionais do tenant no PostgreSQL",
       onClick: () => setHealthDrawerOpen(true),
     },
     {
@@ -241,6 +243,8 @@ export function HomeWorkspace({
       origin: "REAL",
       source: "CRM PostgreSQL",
       period: "Acumulado ativo",
+      statusLabel: "LGPD ativo",
+      calculationMethod: "Contagem exata de leads reais com base legal registrada",
       onClick: () => onNavigate("crm"),
     },
     {
@@ -251,6 +255,8 @@ export function HomeWorkspace({
       origin: openDealsCount > 0 ? "REAL" : "ESTIMATED",
       source: "Funil Comercial",
       period: "Em aberto",
+      statusLabel: openDealsCount > 0 ? "Pipeline ativo" : "Sem deals",
+      calculationMethod: "Negócios em estágio diferente de CLOSED_WON / CLOSED_LOST",
       onClick: () => onNavigate("commercial"),
     },
     {
@@ -261,6 +267,8 @@ export function HomeWorkspace({
       origin: "REAL",
       source: "Marketing & Conteúdo",
       period: "Ativas",
+      statusLabel: "Operação pronta",
+      calculationMethod: "Total de campanhas e peças prontas na Fábrica de Conteúdo",
       onClick: () => onNavigate("marketing"),
     },
     {
@@ -271,6 +279,8 @@ export function HomeWorkspace({
       origin: "REAL",
       source: "Governança & Alertas",
       period: "Agora",
+      statusLabel: pendingApprovals.length + openAlerts.length === 0 ? "Em dia" : "Revisar",
+      calculationMethod: "Soma de aprovações pendentes e alertas operacionais abertos",
       onClick: () => onNavigate("my_work"),
     },
   ];

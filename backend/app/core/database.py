@@ -7,12 +7,24 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Generator
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import settings
 
 logger = logging.getLogger("union_growth_os.database")
+
+
+def _configure_sqlite_pragmas(eng) -> None:
+    @event.listens_for(eng, "connect")
+    def _set_sqlite_pragma(dbapi_connection, _connection_record):
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA busy_timeout=30000")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+        finally:
+            cursor.close()
 
 
 class Base(DeclarativeBase):
@@ -25,9 +37,10 @@ def _build_engine():
         if db_url.startswith("sqlite"):
             engine = create_engine(
                 db_url,
-                connect_args={"check_same_thread": False},
+                connect_args={"check_same_thread": False, "timeout": 30},
                 pool_pre_ping=True,
             )
+            _configure_sqlite_pragmas(engine)
         else:
             engine = create_engine(
                 db_url,
@@ -47,9 +60,10 @@ def _build_engine():
         )
         fallback_engine = create_engine(
             settings.FALLBACK_SQLITE_URL,
-            connect_args={"check_same_thread": False},
+            connect_args={"check_same_thread": False, "timeout": 30},
             pool_pre_ping=True,
         )
+        _configure_sqlite_pragmas(fallback_engine)
         return fallback_engine, settings.FALLBACK_SQLITE_URL, True
 
 

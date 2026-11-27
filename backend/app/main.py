@@ -14,6 +14,7 @@ from app.core.database import Base, SessionLocal, check_db_health, engine, run_a
 from app.services.automation_scheduler import get_scheduler_status, start_native_scheduler
 from app.services.seed_service import ensure_initial_workspace_seeded
 from app.services.seo_and_market_engine import generate_dynamic_robots_txt, generate_dynamic_sitemap_xml
+from app.services.versioning_engine import sync_release_records_service
 
 
 @asynccontextmanager
@@ -23,6 +24,7 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         ensure_initial_workspace_seeded(db)
+        sync_release_records_service(db)
     finally:
         db.close()
     start_native_scheduler()
@@ -78,6 +80,9 @@ def health_endpoint():
         "status": "ok" if db_info["status"] == "healthy" else "degraded",
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
+        "environment": settings.ENVIRONMENT,
+        "release_channel": "STABLE",
+        "git_tag": f"v{settings.APP_VERSION}",
         "git_commit": os.getenv("SOURCE_COMMIT", "local"),
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "database": db_info,
@@ -94,6 +99,8 @@ def readiness_endpoint():
         "ready": True,
         "service": settings.APP_NAME,
         "version": settings.APP_VERSION,
+        "environment": settings.ENVIRONMENT,
+        "git_tag": f"v{settings.APP_VERSION}",
         "git_commit": os.getenv("SOURCE_COMMIT", "local"),
         "database": db_info,
         "scheduler": get_scheduler_status(),

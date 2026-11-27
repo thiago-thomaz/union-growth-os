@@ -2887,6 +2887,134 @@ def test_52_phase26_growth_center_bootstrap_agents_matrix_crm_followup_and_entit
     assert "h1_count" in seo_j["technical_signals"]
 
 
+def test_53_phase27_versioning_25cat_audit_persistent_growth_and_entitlement_limits(client: TestClient):
+    r_reg = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": f"phase27.{RUN_SUFFIX}@union.test",
+            "password": "StrongPassword#2026!",
+            "full_name": "Fundador Fase 27",
+            "company_name": f"GrowthOS P27 {RUN_SUFFIX}",
+            "lgpd_consent": True,
+        },
+    )
+    assert r_reg.status_code in (200, 201)
+    h = _auth_headers(r_reg.json()["access_token"])
+
+    # 1. Versionamento SemVer real + histórico persistido em banco
+    r_ver = client.get("/api/v1/system/version")
+    assert r_ver.status_code == 200
+    ver = r_ver.json()
+    assert ver["version"] == "2.4.0"
+    assert ver["semver"] == {"major": 2, "minor": 4, "patch": 0}
+    assert ver["git_tag"] == "v2.4.0"
+    assert "health" in ver
+
+    r_rel = client.get("/api/v1/system/releases")
+    assert r_rel.status_code == 200
+    rel = r_rel.json()
+    assert rel["current_version"] == "2.4.0"
+    assert rel["total_releases"] >= 6
+    assert rel["releases"][0]["version"] == "2.4.0"
+
+    # 2. Central de Auditoria 25 Categorias + Matriz de Rastreabilidade (sem inflar para 100/100)
+    r_aud = client.post("/api/v1/system/audit/run", headers=h)
+    assert r_aud.status_code == 200
+    aud = r_aud.json()
+    assert len(aud["categories"]) == 25
+    assert 0 < aud["global_score"] < 100
+    assert len(aud["traceability_matrix"]) >= 8
+    assert isinstance(aud["external_blockers"], list) and len(aud["external_blockers"]) >= 1
+
+    r_hist = client.get("/api/v1/system/audit/history", headers=h)
+    assert r_hist.status_code == 200
+    hist = r_hist.json()
+    assert hist["total_runs"] >= 1
+    assert hist["latest"]["audit_id"] == aud["audit_id"]
+
+    # 3. Plano de Crescimento persistente no banco + atualização de etapa (COMPLETE / REPLAN / CANCEL)
+    r_gp = client.post(
+        "/api/v1/growth-os/growth-plan",
+        headers=h,
+        json={"objective": "Aumentar clientes B2B com SEO e CRM", "budget_brl": 0, "deadline_days": 90},
+    )
+    assert r_gp.status_code == 200
+    gp = r_gp.json()
+    assert gp["persisted"] is True
+    assert len(gp["actions"]) >= 4
+    first_step = gp["actions"][0]
+    assert first_step["db_id"] > 0
+    assert "owner_label" in first_step and "due_date" in first_step and "success_metric" in first_step
+
+    r_cur = client.get("/api/v1/growth-os/growth-plan/current", headers=h)
+    assert r_cur.status_code == 200
+    assert r_cur.json()["plan"]["db_plan_id"] == gp["db_plan_id"]
+
+    r_done = client.patch(
+        f"/api/v1/growth-os/growth-plan/steps/{first_step['db_id']}",
+        headers=h,
+        json={"command": "COMPLETE"},
+    )
+    assert r_done.status_code == 200
+    assert r_done.json()["step"]["status"] == "COMPLETED"
+
+    second_step = gp["actions"][1]
+    r_rep = client.patch(
+        f"/api/v1/growth-os/growth-plan/steps/{second_step['db_id']}",
+        headers=h,
+        json={"command": "REPLAN", "horizon": "NEXT_30_DAYS"},
+    )
+    assert r_rep.status_code == 200
+    assert r_rep.json()["step"]["status"] == "REPLANNED"
+    assert r_rep.json()["step"]["horizon"] == "NEXT_30_DAYS"
+
+    r_can = client.patch(
+        f"/api/v1/growth-os/growth-plan/steps/{second_step['db_id']}",
+        headers=h,
+        json={"command": "CANCEL"},
+    )
+    assert r_can.status_code == 200
+    assert r_can.json()["step"]["status"] == "CANCELLED"
+
+    # 4. Benchmark honesto dos 12 agentes de IA (custo zero)
+    r_bm = client.get("/api/v1/ai/benchmark", headers=h)
+    assert r_bm.status_code == 200
+    bm = r_bm.json()
+    assert bm["agents_total"] == 12
+    assert bm["cost_incurred_brl"] == 0.0
+
+    # 5. Troca de plano sem cobrança + Enforcement real de cota no backend (HTTP 402 no plano FREE)
+    r_free = client.post(
+        "/api/v1/plans/change-tier",
+        headers=h,
+        json={"plan_tier": "FREE", "sandbox_checkout_ack": True},
+    )
+    assert r_free.status_code == 200
+    assert r_free.json()["new_plan"] == "FREE"
+    assert r_free.json()["charge_enabled"] is False
+
+    r_blocked = client.post(
+        "/api/v1/tenants",
+        headers=h,
+        json={"name": "Empresa Bloqueada Free", "brand_name": "Bloqueada", "niche": "B2B"},
+    )
+    assert r_blocked.status_code == 402
+
+    r_ent = client.post(
+        "/api/v1/plans/change-tier",
+        headers=h,
+        json={"plan_tier": "ENTERPRISE", "sandbox_checkout_ack": True},
+    )
+    assert r_ent.status_code == 200
+    r_ok = client.post(
+        "/api/v1/tenants",
+        headers=h,
+        json={"name": "Empresa Enterprise Liberada", "brand_name": "Liberada", "niche": "B2B"},
+    )
+    assert r_ok.status_code == 201
+
+
+
 
 
 

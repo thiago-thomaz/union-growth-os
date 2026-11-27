@@ -1305,5 +1305,107 @@ class AskUnionActionLog(Base):
     created_at = Column(DateTime, default=utcnow)
 
 
+class ReleaseRecord(Base):
+    """Histórico oficial e rastreável de releases SemVer em PostgreSQL (Fase 27)."""
+
+    __tablename__ = "release_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    version = Column(String(40), unique=True, index=True, nullable=False)
+    git_tag = Column(String(50), default="")
+    release_date = Column(String(40), default="")
+    phase_label = Column(String(50), default="")
+    commit_sha = Column(String(80), default="")
+    environment = Column(String(40), default="production")
+    deploy_status = Column(String(40), default="PUBLISHED")
+    title = Column(String(255), nullable=False)
+    features_json = Column(Text, default="[]")
+    fixes_json = Column(Text, default="[]")
+    security_json = Column(Text, default="[]")
+    tests_summary = Column(String(255), default="")
+    audit_score = Column(Float, nullable=True)
+    readiness_status = Column(String(40), default="PRODUCTION_READY")
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class SystemAuditSnapshot(Base):
+    """Snapshot persistente das auditorias de 25 categorias baseadas em evidência (Fase 27)."""
+
+    __tablename__ = "system_audit_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    version = Column(String(40), nullable=False)
+    git_commit = Column(String(80), default="")
+    environment = Column(String(40), default="production")
+    global_score = Column(Float, nullable=False)
+    readiness_status = Column(String(40), nullable=False)  # NOT_READY, DEVELOPMENT, BETA, PRODUCTION_READY, SCALE_READY
+    categories_json = Column(Text, nullable=False, default="[]")
+    traceability_matrix_json = Column(Text, nullable=False, default="[]")
+    blockers_json = Column(Text, nullable=False, default="[]")
+    next_actions_json = Column(Text, nullable=False, default="[]")
+    triggered_by = Column(String(255), default="system")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class GrowthPlanRecord(Base):
+    """Plano de Execução de Crescimento persistido por empresa/tenant (Fase 27)."""
+
+    __tablename__ = "growth_plans"
+
+    id = Column(Integer, primary_key=True, index=True)
+    plan_uuid = Column(String(60), unique=True, index=True, nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    objective = Column(String(300), nullable=False)
+    product_or_service = Column(String(220), default="")
+    target_audience = Column(String(220), default="")
+    region = Column(String(120), default="Brasil")
+    budget_brl = Column(Float, default=0.0)
+    target_goal = Column(String(220), default="")
+    deadline_days = Column(Integer, default=90)
+    real_baseline_json = Column(Text, default="{}")
+    status = Column(String(40), default="ACTIVE")
+    created_by = Column(String(255), default="")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class GrowthPlanStepRecord(Base):
+    """Etapa acionável do Plano de Crescimento com status, responsável, prazo e evidência (Fase 27)."""
+
+    __tablename__ = "growth_plan_steps"
+
+    id = Column(Integer, primary_key=True, index=True)
+    plan_id = Column(Integer, ForeignKey("growth_plans.id", ondelete="CASCADE"), index=True, nullable=False)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    step_key = Column(String(80), nullable=False)
+    horizon = Column(String(30), index=True, nullable=False)  # TODAY, NEXT_7_DAYS, NEXT_30_DAYS, NEXT_90_DAYS
+    horizon_label = Column(String(60), default="")
+    title = Column(String(255), nullable=False)
+    description = Column(Text, default="")
+    action_type = Column(String(80), nullable=False)
+    priority_score = Column(Float, default=80.0)
+    impact_score = Column(Integer, default=8)
+    confidence_score = Column(Integer, default=8)
+    effort_score = Column(Integer, default=3)
+    cost_brl = Column(Float, default=0.0)
+    risk_level = Column(String(30), default="BAIXO")
+    time_estimate = Column(String(80), default="1 min")
+    owner_label = Column(String(120), default="AI Growth Director + Proprietário")
+    due_date = Column(String(40), default="")
+    dependencies_json = Column(Text, default="[]")
+    success_metric = Column(String(255), default="")
+    data_source = Column(String(120), default="PostgreSQL Real Snapshot")
+    evidence_text = Column(Text, default="")
+    next_action = Column(String(255), default="")
+    probability_pct = Column(Float, default=70.0)
+    probability_origin = Column(String(30), default="ESTIMATED")
+    can_auto_execute = Column(Boolean, default=True)
+    requires_approval = Column(Boolean, default=False)
+    status = Column(String(40), default="PENDING")  # PENDING, IN_PROGRESS, COMPLETED, CANCELLED, REQUIRES_CREDENTIALS
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
+
 
 

@@ -1,0 +1,144 @@
+{
+  "product": "UNION GROWTH OS",
+  "current_version": "2.4.0",
+  "semver": {
+    "major": 2,
+    "minor": 4,
+    "patch": 0
+  },
+  "release_channel": "STABLE",
+  "git_tag": "v2.4.0",
+  "phase": "FASE 27",
+  "versioning_policy": "SemVer (MAJOR.MINOR.PATCH) — single source of truth via release_manifest.json + Git Tags + Docker SOURCE_COMMIT",
+  "releases": [
+    {
+      "version": "2.4.0",
+      "git_tag": "v2.4.0",
+      "release_date": "2026-11-27",
+      "phase": "FASE 27",
+      "title": "Versionamento SemVer, Auditoria 25 Categorias, Centro de Crescimento Persistente & UX 5.0",
+      "environment_default": "production",
+      "deploy_status": "PUBLISHED",
+      "features": [
+        "Sistema oficial SemVer (MAJOR.MINOR.PATCH) com badge global discreta no header e Release History Drawer",
+        "Central Persistente de Auditoria Completa (25 categorias ponderadas, Matriz de Rastreabilidade e Testar Restauração SHA-256)",
+        "Growth Execution Center persistido no PostgreSQL (Executar, Concluir, Cancelar, Replanejar, Prazo, Dependências e Evidência)",
+        "Enforcement real de entitlements no backend para limites de empresas, leads CRM e automações",
+        "Automações Python com Presets em 1 clique, fluxo visual linear e Benchmark real de IA (FREE_ONLY)"
+      ],
+      "fixes": [
+        "Eliminação de versão estática 1.0.0 em config.py /health e /ready",
+        "Exibição completa de metadados de métricas (fonte, período, atualização, status e método de cálculo)",
+        "Exposição na UI do botão Testar Restauração Isolada já existente no backend"
+      ],
+      "security_improvements": [
+        "Validação backend estrita de entitlements multi-tenant sem confiar apenas no frontend",
+        "Auditoria não destrutiva separando testes de dados reais de clientes"
+      ],
+      "tests_summary": "53+ testes pytest, tsc/Next build e 5 suítes Chrome CDP ao vivo"
+    },
+    {
+      "version": "2.3.0",
+      "git_tag": "v2.3.0",
+      "release_date": "2026-11-27",
+      "phase": "FASE 26",
+      "commit_sha": "5eefdd74d368e6dccc9aa2b35c3814e6e3021d1b",
+      "title": "Decomposição Modular do Portal, Centro 0-90d, Matriz de IA & Revenue Engine",
+      "environment_default": "production",
+      "deploy_status": "PUBLISHED",
+      "features": [
+        "Redução de 56,9% de UnionGrowthOSPortal.tsx com extração para módulos DS 4.0",
+        "Bootstrap executivo consolidado em 1 chamada (/growth-os/bootstrap)",
+        "Matriz real de 12 agentes (4 HYBRID / 8 DETERMINISTIC / 0 SIMULATED) + AIUsageTracker PostgreSQL",
+        "CRM move-stage (ESTIMATED) + smart-followup LGPD com cópia segura"
+      ],
+      "fixes": [
+        "Contraste Light/Dark no Login e módulo Customer Success",
+        "Correção do vínculo agent_id na matriz visual de agentes"
+      ],
+      "security_improvements": [
+        "Bloqueio de follow-up para contatos LGPD opt-out e ausência de envios automáticos sem canal conectado"
+      ],
+      "tests_summary": "53/53 pytest + 5/5 suítes Chrome CDP (8 viewports 0px overflow)"
+    },
+    {
+      "version": "2.2.0",
+      "git_tag": "v2.2.0",
+      "release_date": "2026-11-27",
+      "phase": "FASE 25",
+      "commit_sha": "97accb44472413c9064561487547c0f8c4bb9b9c",
+      "title": "Estrutura PLG (5 Planos), CRM Revenue Intelligence, Ativação TTFV & Hardening Proxy",
+      "environment_default": "production",
+      "deploy_status": "PUBLISHED",
+      "features": [
+        "Tier FREE PLG + 5 planos referenciais com medidores de consumo e charge_enabled: false",
+        "Revenue Intelligence para leads quentes e deals estagnados + TTFV 6 marcos"
+      ],
+      "fixes": [
+        "Adição de --timeout-keep-alive 75 --proxy-headers no Uvicorn reduzindo HTTP 502 durante swap"
+      ],
+      "security_improvements": [
+        "Proteção RBAC para role viewer e validação anti-SSRF"
+      ],
+      "tests_summary": "52/52 pytest + 4/4 suítes Chrome CDP"
+    },
+    {
+      "version": "2.1.0",
+      "git_tag": "v2.1.0",
+      "release_date": "2026-11-27",
+      "phase": "FASE 24",
+      "commit_sha": "8df9f6770b33fa3316fa8fac30206b11ec742b50",
+      "title": "Reconstrução Radical UX/UI & Design System 3.0 Obsidian / Alabaster",
+      "environment_default": "production",
+      "deploy_status": "PUBLISHED",
+      "features": [
+        "Home Executiva única, Meu Trabalho estilo triagem Linear, Command Center Ctrl+K"
+      ],
+      "fixes": [
+        "Eliminação de duplo dashboard empilhado e paredão fixo de instruções"
+      ],
+      "security_improvements": [
+        "Remoção total de vazamentos de token e acessibilidade WCAG"
+      ],
+      "tests_summary": "51/51 pytest + Fase 24/23/22 CDP"
+    },
+    {
+      "version": "2.0.0",
+      "git_tag": "v2.0.0",
+      "release_date": "2026-11-26",
+      "phase": "FASE 23",
+      "title": "AI Growth Command Center, ASK UNION, Brand Kit & Automação Conversacional",
+      "environment_default": "production",
+      "deploy_status": "PUBLISHED",
+      "features": [
+        "Business Health 12 dimensões, Growth Score auditável, Onboarding 6 etapas, Construtor Python"
+      ],
+      "fixes": [
+        "Alargamento PostgreSQL em logs e circuit breaker no roteador de IA"
+      ],
+      "security_improvements": [
+        "Anti-SSRF estrito + Fernet AES-128"
+      ],
+      "tests_summary": "51/51 pytest + 20/20 jornadas E2E"
+    },
+    {
+      "version": "1.0.0",
+      "git_tag": "v1.0.0",
+      "release_date": "2026-11-10",
+      "phase": "FASES 1-19",
+      "title": "Fundação Multi-Tenant PostgreSQL, 12 Agentes, CRM LGPD, SEO & AI Engine Hub",
+      "environment_default": "production",
+      "deploy_status": "PUBLISHED",
+      "features": [
+        "FastAPI + Next.js 15 + PostgreSQL 16 + 127 jobs APScheduler nativos sem n8n"
+      ],
+      "fixes": [
+        "Rotação de senha default fraca e isolamento por tenant"
+      ],
+      "security_improvements": [
+        "bcrypt, JWT HS256, rate-limit anti-bruteforce e SHA-256 backups"
+      ],
+      "tests_summary": "44+ testes base pytest"
+    }
+  ]
+}

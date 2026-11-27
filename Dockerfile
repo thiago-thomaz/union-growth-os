@@ -4,6 +4,7 @@ ARG SOURCE_COMMIT=unknown
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app/backend \
+    ENVIRONMENT=production \
     SOURCE_COMMIT=${SOURCE_COMMIT}
 
 WORKDIR /app
@@ -19,6 +20,7 @@ RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
 COPY backend /app/backend
 COPY frontend/out /app/frontend/out
+COPY release_manifest.json /app/release_manifest.json
 COPY .env.example /app/.env.example
 
 RUN mkdir -p /app/data/assets /app/data/backups

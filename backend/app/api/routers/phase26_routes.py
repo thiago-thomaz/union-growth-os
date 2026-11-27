@@ -17,11 +17,15 @@ from app.services.phase25_product_engine import get_activation_and_retention_ser
 from app.services.phase26_growth_os_engine import (
     build_phase26_ai_agents_matrix_service,
     execute_growth_plan_step_service,
-    generate_growth_execution_plan_service,
     get_saas_entitlements_and_billing_readiness_service,
     move_crm_deal_stage_service,
     prepare_smart_lead_followup_service,
 )
+from app.services.phase27_audit_and_growth_engine import (
+    create_persistent_growth_plan_service,
+    get_current_persistent_growth_plan_service,
+)
+from app.services.versioning_engine import get_system_version_payload
 
 phase26_router = APIRouter()
 
@@ -66,6 +70,8 @@ def growth_os_fast_bootstrap(
         "command_center": get_growth_command_center_service(db, tenant_id=tid),
         "activation_retention": get_activation_and_retention_service(db, tenant_id=tid),
         "ceo_daily_plan": get_ceo_daily_plan_service(db, tenant_id=tid),
+        "version_info": get_system_version_payload(db),
+        "growth_plan": get_current_persistent_growth_plan_service(db, tenant_id=tid),
     }
 
 
@@ -77,7 +83,7 @@ def create_growth_execution_plan(
 ):
     tid = get_active_tenant_id(user)
     try:
-        return generate_growth_execution_plan_service(db, tenant_id=tid, payload=payload.model_dump(), actor=user.email)
+        return create_persistent_growth_plan_service(db, tenant_id=tid, payload=payload.model_dump(), actor=user.email)
     except ValueError as ve:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(ve))
 

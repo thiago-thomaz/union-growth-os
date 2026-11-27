@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import json
 import os
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,10 +13,26 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 (DATA_DIR / "backups").mkdir(parents=True, exist_ok=True)
 
 
+def load_release_manifest() -> dict:
+    """Loads single-source-of-truth SemVer release manifest from repo/container root."""
+    for candidate in (BASE_DIR / "release_manifest.json", Path("/app/release_manifest.json")):
+        if candidate.exists():
+            try:
+                return json.loads(candidate.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+    return {"current_version": "2.4.0", "release_channel": "STABLE", "git_tag": "v2.4.0", "releases": []}
+
+
+_MANIFEST = load_release_manifest()
+
+
 class Settings(BaseSettings):
     APP_NAME: str = "UNION GROWTH OS"
-    APP_VERSION: str = "1.0.0"
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
+    APP_VERSION: str = str(_MANIFEST.get("current_version", "2.4.0"))
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT") or (
+        "production" if os.getenv("SOURCE_COMMIT", "local") not in ("", "local", "unknown") else "development"
+    )
     DEBUG: bool = False
 
     DATABASE_URL: str = f"sqlite:///{(DATA_DIR / 'union_growth_os.db').as_posix()}"

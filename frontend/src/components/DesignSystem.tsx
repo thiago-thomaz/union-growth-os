@@ -112,6 +112,9 @@ export interface MetricStripItem {
   origin?: string;
   source?: string;
   period?: string;
+  updatedAt?: string;
+  statusLabel?: string;
+  calculationMethod?: string;
   onClick?: () => void;
 }
 
@@ -127,6 +130,7 @@ export function MetricStrip({ items }: { items: MetricStripItem[] }) {
           <Wrapper
             key={item.key}
             {...(item.onClick ? { type: "button", onClick: item.onClick } : {})}
+            title={item.calculationMethod || undefined}
             className={`px-4 py-3.5 text-left space-y-1 transition ${
               item.onClick ? "hover:bg-white/[0.025] cursor-pointer" : ""
             }`}
@@ -143,9 +147,9 @@ export function MetricStrip({ items }: { items: MetricStripItem[] }) {
             {item.subtext && (
               <div className="text-[11px] text-[var(--ug-text-muted)] truncate">{item.subtext}</div>
             )}
-            {(item.source || item.period) && (
+            {(item.source || item.period || item.updatedAt || item.statusLabel) && (
               <div className="text-[10px] text-[var(--ug-text-muted)]/80 truncate pt-0.5">
-                {[item.source, item.period].filter(Boolean).join(" • ")}
+                {[item.source, item.period, item.updatedAt, item.statusLabel].filter(Boolean).join(" • ")}
               </div>
             )}
           </Wrapper>

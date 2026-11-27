@@ -68,6 +68,21 @@ export function AIEnginesHubWorkspace({
   const defaultProviderKey = aiEnginesConfig?.configuration?.default_provider_key || "gemini";
   const defaultProviderObj = (aiEnginesConfig?.providers || []).find((p: any) => p.provider_key === defaultProviderKey);
   const hasRealKey = Boolean(defaultProviderObj?.has_credential);
+  const [benchmarkData, setBenchmarkData] = useState<any>(null);
+  const [benchmarkBusy, setBenchmarkBusy] = useState(false);
+
+  const runAgentsBenchmark = async () => {
+    setBenchmarkBusy(true);
+    try {
+      const bm = await apiFetch("/api/v1/ai/benchmark");
+      setBenchmarkData(bm);
+      showNotice(`Benchmark concluído em ${bm.elapsed_ms}ms (${bm.agents_total} agentes, R$ 0,00)!`);
+    } catch (err: any) {
+      showNotice(err?.message || "Erro ao rodar benchmark.");
+    } finally {
+      setBenchmarkBusy(false);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto ug-fade-in">
@@ -316,7 +331,17 @@ export function AIEnginesHubWorkspace({
       {aiHubSubmenu === "configuration" && (
         <div className="space-y-4 text-xs">
           <div className="ug-card rounded-xl p-5 space-y-3">
-            <h4 className="text-sm font-semibold text-[var(--ug-text-primary)]">Política de Custos (FREE_ONLY vs OWNER_APPROVED)</h4>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h4 className="text-sm font-semibold text-[var(--ug-text-primary)]">Política de Custos (FREE_ONLY vs OWNER_APPROVED)</h4>
+              <button
+                type="button"
+                disabled={benchmarkBusy}
+                onClick={runAgentsBenchmark}
+                className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-xs font-semibold"
+              >
+                {benchmarkBusy ? "Avaliando..." : "Benchmark 12 Agentes (Custo R$ 0)"}
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2">
               {["FREE_ONLY", "OWNER_APPROVED"].map((mode) => (
                 <button
@@ -341,6 +366,30 @@ export function AIEnginesHubWorkspace({
               ))}
             </div>
           </div>
+
+          {benchmarkData && (
+            <div className="ug-card rounded-xl p-5 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="font-semibold text-[var(--ug-text-primary)]">
+                  Resultado do Benchmark ({benchmarkData.agents_total} agentes • {benchmarkData.elapsed_ms}ms)
+                </div>
+                <span className="text-[11px] text-emerald-400">
+                  Híbridos LLM: {benchmarkData.hybrid_agents_count} • Determinísticos: {benchmarkData.deterministic_agents_count} • Custo: R$ 0,00
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {(benchmarkData.agents || []).map((ag: any) => (
+                  <div key={ag.agent_id} className="p-3 rounded-lg bg-[var(--ug-bg)] border border-[var(--ug-border-subtle)] space-y-1">
+                    <div className="flex justify-between items-center gap-1">
+                      <span className="font-semibold text-[var(--ug-text-primary)] truncate">{ag.agent_name}</span>
+                      <StatusPill status={ag.execution_mode === "HYBRID" ? "PENDING" : "EXECUTED"} label={ag.execution_mode} />
+                    </div>
+                    <div className="text-[11px] text-[var(--ug-text-muted)]">{ag.notes}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="ug-card rounded-xl divide-y divide-white/[0.05]">
             {Object.values(aiEnginesConfig.configuration?.agent_routing || {}).map((ag: any) => (
@@ -687,12 +736,12 @@ export function PlansAndUsagePanel({
               <button
                 type="button"
                 onClick={async () => {
-                  await apiFetch("/api/v1/tenants/current", {
-                    method: "PUT",
-                    body: JSON.stringify({ plan_tier: pl.code }),
+                  const res = await apiFetch("/api/v1/plans/change-tier", {
+                    method: "POST",
+                    body: JSON.stringify({ plan_tier: pl.code, sandbox_checkout_ack: true }),
                   });
                   await onReload();
-                  showNotice(`Plano alterado para ${pl.name}!`);
+                  showNotice(res.detail || `Plano alterado para ${pl.name}!`);
                 }}
                 className={`w-full py-1.5 rounded-lg font-medium ${
                   isCurrent

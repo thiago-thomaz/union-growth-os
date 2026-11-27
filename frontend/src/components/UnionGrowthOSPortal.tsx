@@ -45,6 +45,7 @@ import { HomeWorkspace } from "@/components/HomeWorkspace";
 import { MyWorkHub } from "@/components/MyWorkHub";
 import { AITeamAndGovernanceView } from "@/components/AITeamAndGovernanceView";
 import { AllResourcesHub, HelpCenterDrawer } from "@/components/ResourceCenterAndHelp";
+import { ReleaseHistoryDrawer } from "@/components/ReleaseHistoryDrawer";
 import { AreaContextGuide } from "@/components/AreaContextGuide";
 import { BrandIntelligenceCenter } from "@/components/BrandAndOnboardingHub";
 import { AnalyticsAttributionPanel, ConversationalAutomationPanel } from "@/components/ConversationalAutomationAndAnalytics";
@@ -174,6 +175,10 @@ export default function UnionGrowthOSPortal() {
   const [plansOverview, setPlansOverview] = useState<any>(null);
   const [revenueIntel, setRevenueIntel] = useState<any>(null);
   const [activationData, setActivationData] = useState<any>(null);
+
+  // FASE 27 — Versionamento SemVer & Drawer de Releases
+  const [versionInfo, setVersionInfo] = useState<any>(null);
+  const [releaseDrawerOpen, setReleaseDrawerOpen] = useState<boolean>(false);
 
   // FASE 17 Multi-Business State Stores
   const [mbDashboard, setMbDashboard] = useState<any>(null);
@@ -334,7 +339,9 @@ export default function UnionGrowthOSPortal() {
       const cPlan = boot?.ceo_daily_plan ?? (await apiFetch("/api/v1/ceo/daily-plan").catch(() => null));
       const cmdRes = boot?.command_center ?? (await apiFetch("/api/v1/growth-os/command-center").catch(() => null));
       const actRes = boot?.activation_retention ?? (await apiFetch("/api/v1/growth-os/activation-retention").catch(() => null));
+      const verRes = boot?.version_info ?? (await apiFetch("/api/v1/system/version").catch(() => null));
       if (loadSeqRef.current !== seq) return;
+      if (verRes) setVersionInfo(verRes);
       setMeData(me);
       setEditCompanyName(me?.active_tenant?.name || "");
       setEditBrandName(me?.active_tenant?.brand_name || "");
@@ -1008,6 +1015,25 @@ export default function UnionGrowthOSPortal() {
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                id="ug-version-badge-btn"
+                type="button"
+                onClick={() => setReleaseDrawerOpen(true)}
+                aria-label={`Versão ${versionInfo?.version || "2.4.0"} — Abrir histórico de releases e ambiente`}
+                className="px-2.5 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-[11px] font-medium inline-flex items-center gap-1.5 transition"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
+                <span className="font-mono font-semibold">v{versionInfo?.version || "2.4.0"}</span>
+                <span className="hidden xl:inline text-emerald-300/80">
+                  • {versionInfo?.environment_label || "PRODUCTION | STABLE"}
+                </span>
+                {versionInfo?.short_commit && (
+                  <span className="hidden 2xl:inline font-mono text-[10px] text-emerald-200/70">
+                    • {versionInfo.short_commit}
+                  </span>
+                )}
+              </button>
+
               <button
                 type="button"
                 onClick={() => setCommandOpen(true)}
@@ -1729,6 +1755,17 @@ export default function UnionGrowthOSPortal() {
         onOpenCommandCenter={() => {
           setHelpOpen(false);
           setCommandOpen(true);
+        }}
+      />
+
+      <ReleaseHistoryDrawer
+        open={releaseDrawerOpen}
+        onClose={() => setReleaseDrawerOpen(false)}
+        versionInfo={versionInfo}
+        apiFetch={apiFetch}
+        onNavigate={(view) => {
+          setReleaseDrawerOpen(false);
+          navigateTo(view);
         }}
       />
 

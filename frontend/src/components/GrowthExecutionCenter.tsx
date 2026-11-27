@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Calendar, CheckCircle2, Play, Rocket, Sparkles, Target } from "lucide-react";
 import { FilterTabBar, MetricStrip, OriginBadge, PlainOrientationBar, StatusPill } from "@/components/DesignSystem";
 
@@ -31,6 +31,21 @@ export function GrowthExecutionCenter({
   const [execBusyStep, setExecBusyStep] = useState("");
   const [horizonFilter, setHorizonFilter] = useState("ALL");
 
+  useEffect(() => {
+    let active = true;
+    apiFetch("/api/v1/growth-os/growth-plan/current")
+      .then((res) => {
+        if (active && res?.plan) {
+          setPlanData(res.plan);
+        }
+      })
+      .catch(() => null);
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meData?.active_tenant?.id]);
+
   const quickGoals = [
     "Quero conseguir mais clientes",
     "Quero vender mais no CRM",
@@ -53,7 +68,7 @@ export function GrowthExecutionCenter({
         }),
       });
       setPlanData(res);
-      showNotice("Plano de Crescimento (0 / 7 / 30 / 90 dias) criado com dados reais da sua empresa!");
+      showNotice("Plano de Crescimento (0 / 7 / 30 / 90 dias) salvo no PostgreSQL!");
     } catch (err: any) {
       showNotice(err?.message || "Erro ao montar plano de crescimento.");
     } finally {
@@ -61,22 +76,48 @@ export function GrowthExecutionCenter({
     }
   };
 
-  const executeStep = async (step: any) => {
+  const updatePersistedStep = async (step: any, command: "EXECUTE" | "COMPLETE" | "CANCEL" | "REPLAN", nextHorizon?: string) => {
     setExecBusyStep(step.step_id);
     try {
-      const res = await apiFetch("/api/v1/growth-os/growth-plan/execute-step", {
-        method: "POST",
-        body: JSON.stringify({ action_type: step.action_type }),
-      });
-      await onReload();
-      if (res.target_view) onNavigate(res.target_view);
-      showNotice(res.detail || res.message || "Etapa executada!");
+      if (step.db_id) {
+        const res = await apiFetch(`/api/v1/growth-os/growth-plan/steps/${step.db_id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ command, horizon: nextHorizon }),
+        });
+        setPlanData((prev: any) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            actions: (prev.actions || []).map((a: any) =>
+              a.db_id === step.db_id ? { ...a, ...res.step } : a
+            ),
+          };
+        });
+        await onReload();
+        if (command === "EXECUTE" && res.execution?.target_view) {
+          onNavigate(res.execution.target_view);
+        }
+        showNotice(
+          res.execution?.detail ||
+            `Etapa '${step.title}' atualizada para ${res.step?.status || command}!`
+        );
+      } else {
+        const res = await apiFetch("/api/v1/growth-os/growth-plan/execute-step", {
+          method: "POST",
+          body: JSON.stringify({ action_type: step.action_type }),
+        });
+        await onReload();
+        if (res.target_view) onNavigate(res.target_view);
+        showNotice(res.detail || res.message || "Etapa executada!");
+      }
     } catch (err: any) {
-      showNotice(err?.message || "Erro ao executar etapa.");
+      showNotice(err?.message || "Erro ao atualizar etapa.");
     } finally {
       setExecBusyStep("");
     }
   };
+
+  const executeStep = async (step: any) => updatePersistedStep(step, "EXECUTE");
 
   const visibleActions = (planData?.actions || []).filter(
     (a: any) => horizonFilter === "ALL" || a.horizon === horizonFilter
@@ -252,6 +293,35 @@ export function GrowthExecutionCenter({
                       </span>
                       <span className="font-semibold text-[var(--ug-text-primary)] text-sm">{step.title}</span>
                       <OriginBadge origin={step.probability_origin} />
+                      {step.status && (
+                        <StatusPill
+                          status={
+                            step.status === "COMPLETED"
+                              ? "EXECUTED"
+                              : step.status === "IN_PROGRESS"
+                              ? "RUNNING"
+                              : step.status === "CANCELLED"
+                              ? "BLOCKED"
+                              : "PENDING"
+                          }
+                          label={
+                            step.status === "COMPLETED"
+                              ? "Concluído"
+                              : step.status === "IN_PROGRESS"
+                              ? "Em Execução"
+                              : step.status === "REPLANNED"
+                              ? "Replanejado"
+                              : step.status === "CANCELLED"
+                              ? "Cancelado"
+                              : "Planejado"
+                          }
+                        />
+                      )}
+                      {typeof step.priority_score === "number" && (
+                        <span className="px-2 py-0.5 rounded bg-white/[0.06] text-[10px] font-mono text-[var(--ug-text-secondary)]">
+                          Prioridade: {step.priority_score}/100
+                        </span>
+                      )}
                     </div>
                     <p className="text-[var(--ug-text-secondary)]">{step.why}</p>
                     <div className="flex flex-wrap gap-3 text-[11px] text-[var(--ug-text-muted)] tabular-nums">
@@ -261,10 +331,24 @@ export function GrowthExecutionCenter({
                       <span>Probabilidade (est.): <strong>{step.probability_pct}%</strong></span>
                       <span>Tempo: <strong>{step.time_estimate}</strong></span>
                       <span>Risco: <strong>{step.risk_level}</strong></span>
+                      {step.owner_label && <span>Responsável: <strong>{step.owner_label}</strong></span>}
+                      {step.due_date && <span>Prazo: <strong>{step.due_date}</strong></span>}
                     </div>
-                    <div className="text-[11px] text-emerald-400">Resultado esperado: {step.estimated_outcome}</div>
+                    {step.success_metric && (
+                      <div className="text-[11px] text-emerald-400">Meta de sucesso: {step.success_metric}</div>
+                    )}
+                    {!step.success_metric && (
+                      <div className="text-[11px] text-emerald-400">Resultado esperado: {step.estimated_outcome}</div>
+                    )}
+                    {(step.evidence || step.next_action) && (
+                      <div className="text-[11px] text-[var(--ug-text-muted)]">
+                        {[step.evidence && `Evidência: ${step.evidence}`, step.next_action && `Próxima ação: ${step.next_action}`]
+                          .filter(Boolean)
+                          .join(" • ")}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
                     {step.requires_approval && (
                       <StatusPill status="PENDING" label="Exige Confirmação" />
                     )}
@@ -277,6 +361,36 @@ export function GrowthExecutionCenter({
                       <Play className="w-3 h-3" aria-hidden="true" />
                       <span>{execBusyStep === step.step_id ? "Executando..." : "Executar Agora"}</span>
                     </button>
+                    {step.db_id > 0 && step.status !== "COMPLETED" && (
+                      <button
+                        type="button"
+                        disabled={execBusyStep === step.step_id}
+                        onClick={() => updatePersistedStep(step, "COMPLETE")}
+                        className="px-2.5 py-2 rounded-lg border border-emerald-500/35 text-emerald-300 hover:bg-emerald-500/10 text-[11px] font-medium"
+                      >
+                        Concluir
+                      </button>
+                    )}
+                    {step.db_id > 0 && step.status !== "REPLANNED" && (
+                      <button
+                        type="button"
+                        disabled={execBusyStep === step.step_id}
+                        onClick={() => updatePersistedStep(step, "REPLAN", "NEXT_30_DAYS")}
+                        className="px-2.5 py-2 rounded-lg border border-[var(--ug-border)] text-[var(--ug-text-secondary)] hover:bg-white/[0.04] text-[11px]"
+                      >
+                        Replanejar
+                      </button>
+                    )}
+                    {step.db_id > 0 && step.status !== "CANCELLED" && (
+                      <button
+                        type="button"
+                        disabled={execBusyStep === step.step_id}
+                        onClick={() => updatePersistedStep(step, "CANCEL")}
+                        className="px-2.5 py-2 rounded-lg border border-red-500/30 text-red-300 hover:bg-red-500/10 text-[11px]"
+                      >
+                        Cancelar
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

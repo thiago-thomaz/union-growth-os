@@ -379,9 +379,57 @@ export function AIAutonomyAndOpsWorkspace({
     );
   }
 
+  const quickPresets = [
+    {
+      label: "Lead Quente → Sugestão WhatsApp",
+      flow: "Lead (LGPD OK) → Qualificar Score ≥ 70 → Preparar Mensagem WhatsApp",
+      instruction: "Quando entrar novo lead no CRM com consentimento LGPD, qualificar e preparar abordagem imediata",
+    },
+    {
+      label: "Auditoria SEO Semanal → Fila CEO",
+      flow: "Cron Segunda 08h → Auditar Domínio HTTP → Enviar Correções SEO ao Painel",
+      instruction: "Toda segunda-feira rodar auditoria técnica SEO real e registrar plano de melhoria",
+    },
+    {
+      label: "Briefing Executivo Diário (08h)",
+      flow: "Cron Diário 08h → Consolidar CRM + Pipeline → Publicar Prioridades do Dia",
+      instruction: "Todo dia às 08h consolidar métricas do CRM e enviar briefing diário ao CEO",
+    },
+  ];
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto ug-fade-in">
       <ConversationalAutomationPanel apiFetch={apiFetch} onReload={onReload} showNotice={showNotice} uiMode={uiMode} />
+
+      <div className="ug-card rounded-2xl p-4 space-y-3">
+        <div className="text-xs font-semibold text-[var(--ug-text-primary)]">
+          Templates Visuais em 1 Clique (Fluxo Linear: Gatilho → Condição → Ação → Auditoria)
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {quickPresets.map((preset) => (
+            <div key={preset.label} className="p-3 rounded-xl bg-[var(--ug-bg)] border border-[var(--ug-border-subtle)] flex flex-col justify-between gap-2.5 text-xs">
+              <div className="space-y-1">
+                <div className="font-semibold text-[var(--ug-text-primary)]">{preset.label}</div>
+                <div className="text-[11px] text-indigo-300 font-mono">{preset.flow}</div>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  const res = await apiFetch("/api/v1/growth-os/conversational-automation", {
+                    method: "POST",
+                    body: JSON.stringify({ instruction_pt: preset.instruction, execute_now: false }),
+                  });
+                  await onReload();
+                  showNotice(res.rule?.name ? `Template ativado: ${res.rule.name}` : "Automação nativa criada!");
+                }}
+                className="w-full py-1.5 rounded-lg border border-indigo-500/35 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 font-medium"
+              >
+                Ativar Preset em 1 Clique
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--ug-border)]">
         <div>
           <h3 className="text-sm font-semibold text-[var(--ug-text-primary)]">

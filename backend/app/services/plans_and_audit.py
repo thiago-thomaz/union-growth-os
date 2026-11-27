@@ -171,7 +171,7 @@ def get_tenant_plan_info(tenant: Tenant) -> dict[str, Any]:
 
 
 def get_tenant_plan_usage_summary(db: Session, tenant: Tenant, owner_email: str = "") -> dict[str, Any]:
-    """Mede consumo real por tenant comparado aos limites do catálogo PLG (sem bloqueio destrutivo nem cobrança ativa)."""
+    """Mede consumo real por tenant comparado aos limites do catálogo PLG (sem cobrança ativa)."""
     plan = get_tenant_plan_info(tenant)
     tid = tenant.id
     owner = owner_email or tenant.owner_email or ""
@@ -212,6 +212,32 @@ def get_tenant_plan_usage_summary(db: Session, tenant: Tenant, owner_email: str 
         "charge_enabled": False,
         "data_origin": "REAL",
     }
+
+
+def enforce_tenant_entitlement(
+    db: Session,
+    tenant: Tenant,
+    resource_key: str,
+    owner_email: str = "",
+) -> dict[str, Any]:
+    """Valida no backend os limites reais do plano ativo (sem depender do frontend)."""
+    summary = get_tenant_plan_usage_summary(db, tenant, owner_email=owner_email)
+    meter = summary["usage_meters"].get(resource_key)
+    if not meter:
+        return {"allowed": True, "plan": summary["active_plan"]["code"]}
+    if meter["used"] >= meter["limit"]:
+        return {
+            "allowed": False,
+            "plan": summary["active_plan"]["code"],
+            "resource_key": resource_key,
+            "used": meter["used"],
+            "limit": meter["limit"],
+            "detail": (
+                f"Limite do plano {summary['active_plan']['name']} atingido para {meter['label']} "
+                f"({meter['used']}/{meter['limit']}). Selecione um plano superior ou ajuste a cota do workspace."
+            ),
+        }
+    return {"allowed": True, "plan": summary["active_plan"]["code"], "used": meter["used"], "limit": meter["limit"]}
 
 
 def record_audit_log(

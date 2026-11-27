@@ -6,6 +6,7 @@ import { MetricStrip, OriginBadge, PlainOrientationBar, StatusPill } from "@/com
 import { AnalyticsAttributionPanel } from "@/components/ConversationalAutomationAndAnalytics";
 import { BrandIntelligenceCenter } from "@/components/BrandAndOnboardingHub";
 import { PlansAndUsagePanel } from "@/components/AIEnginesHubWorkspace";
+import { AuditCenterWorkspace } from "@/components/AuditCenterWorkspace";
 
 export function FinanceAndReportsWorkspace({
   mode,
@@ -135,16 +136,32 @@ export function FinanceAndReportsWorkspace({
               Empresa: {reportsData.tenant?.brand_name || reportsData.tenant?.name || "—"} • Plano: {reportsData.tenant?.plan_tier || "—"}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={async () => {
-              const bkp = await apiFetch("/api/v1/system/backup", { method: "POST" });
-              showNotice(`Backup criado: ${bkp.backup_file} (${bkp.size_bytes} bytes)`);
-            }}
-            className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium"
-          >
-            Gerar Snapshot &amp; Backup Agora
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                const bkp = await apiFetch("/api/v1/system/backup", { method: "POST" });
+                showNotice(`Backup criado: ${bkp.backup_file} (${bkp.size_bytes} bytes)`);
+              }}
+              className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium"
+            >
+              Gerar Snapshot &amp; Backup Agora
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                const res = await apiFetch("/api/v1/system/backup/test-restore", { method: "POST" });
+                showNotice(
+                  res.restore_test_passed
+                    ? `Restauração isolada OK (${res.records_checked} registros, SHA-256 validado)`
+                    : `Teste de restauração: ${res.status || "verificar logs"}`
+                );
+              }}
+              className="px-3.5 py-1.5 rounded-lg border border-emerald-500/35 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-medium"
+            >
+              Testar Restauração Isolada (SHA-256)
+            </button>
+          </div>
         </div>
 
         <MetricStrip
@@ -392,39 +409,48 @@ export function IntegrationsAndSettingsWorkspace({
 
   if (mode === "audit" && auditData) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto ug-fade-in">
-        <div className="ug-card rounded-xl overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-[var(--ug-border-subtle)] text-sm font-semibold text-[var(--ug-text-primary)]">
-            Logs de Execução dos Agentes de IA
-          </div>
-          <div className="divide-y divide-white/[0.05] max-h-[520px] overflow-y-auto text-xs">
-            {auditData.agent_execution_logs.map((l: any) => (
-              <div key={l.id} className="px-5 py-3 space-y-1">
-                <div className="flex justify-between font-semibold text-indigo-400">
-                  <span>{l.agent_name}</span>
-                  <span className="tabular-nums">{l.duration_ms}ms • {l.status}</span>
+      <div className="space-y-6 max-w-7xl mx-auto ug-fade-in">
+        <AuditCenterWorkspace
+          auditData={auditData}
+          apiFetch={apiFetch}
+          onReload={onReload}
+          showNotice={showNotice}
+        />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="ug-card rounded-xl overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[var(--ug-border-subtle)] text-sm font-semibold text-[var(--ug-text-primary)]">
+              Logs de Execução dos Agentes de IA
+            </div>
+            <div className="divide-y divide-white/[0.05] max-h-[520px] overflow-y-auto text-xs">
+              {auditData.agent_execution_logs.map((l: any) => (
+                <div key={l.id} className="px-5 py-3 space-y-1">
+                  <div className="flex justify-between font-semibold text-indigo-400">
+                    <span>{l.agent_name}</span>
+                    <span className="tabular-nums">{l.duration_ms}ms • {l.status}</span>
+                  </div>
+                  <div className="text-[var(--ug-text-secondary)]">Tarefa: {l.task_name} • {l.workflow_run_id}</div>
+                  <div className="text-[10px] text-[var(--ug-text-muted)]">{l.created_at}</div>
                 </div>
-                <div className="text-[var(--ug-text-secondary)]">Tarefa: {l.task_name} • {l.workflow_run_id}</div>
-                <div className="text-[10px] text-[var(--ug-text-muted)]">{l.created_at}</div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="ug-card rounded-xl overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-[var(--ug-border-subtle)] text-sm font-semibold text-[var(--ug-text-primary)]">
-            Trilha de Auditoria &amp; Segurança
-          </div>
-          <div className="divide-y divide-white/[0.05] max-h-[520px] overflow-y-auto text-xs">
-            {auditData.audit_logs.map((a: any) => (
-              <div key={a.id} className="px-5 py-3 space-y-1">
-                <div className="flex justify-between font-semibold text-emerald-400">
-                  <span>{a.action}</span>
-                  <span className="tabular-nums">IP: {a.ip_address}</span>
+          <div className="ug-card rounded-xl overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[var(--ug-border-subtle)] text-sm font-semibold text-[var(--ug-text-primary)]">
+              Trilha de Auditoria &amp; Segurança
+            </div>
+            <div className="divide-y divide-white/[0.05] max-h-[520px] overflow-y-auto text-xs">
+              {auditData.audit_logs.map((a: any) => (
+                <div key={a.id} className="px-5 py-3 space-y-1">
+                  <div className="flex justify-between font-semibold text-emerald-400">
+                    <span>{a.action}</span>
+                    <span className="tabular-nums">IP: {a.ip_address}</span>
+                  </div>
+                  <div className="text-[var(--ug-text-secondary)]">Ator: {a.actor} • {a.resource_type} #{a.resource_id}</div>
+                  <div className="text-[10px] text-[var(--ug-text-muted)]">{a.created_at}</div>
                 </div>
-                <div className="text-[var(--ug-text-secondary)]">Ator: {a.actor} • {a.resource_type} #{a.resource_id}</div>
-                <div className="text-[10px] text-[var(--ug-text-muted)]">{a.created_at}</div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>

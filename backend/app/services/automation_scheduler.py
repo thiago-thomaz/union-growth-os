@@ -554,6 +554,13 @@ def recover_missed_runs(db: Session, lookback_hours: int = 36) -> list[dict[str,
         if last_slot is None:
             continue
         last_slot_utc = last_slot.astimezone(timezone.utc)
+        created_utc = (
+            r.created_at.replace(tzinfo=timezone.utc)
+            if (r.created_at and r.created_at.tzinfo is None)
+            else r.created_at
+        )
+        if not r.last_run_at and created_utc and last_slot_utc < created_utc:
+            continue
         last_run = r.last_run_at.replace(tzinfo=timezone.utc) if (r.last_run_at and r.last_run_at.tzinfo is None) else r.last_run_at
         if last_run and last_run >= last_slot_utc:
             continue
