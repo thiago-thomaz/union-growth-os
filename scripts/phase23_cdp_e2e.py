@@ -279,11 +279,11 @@ async def run_phase23_e2e():
                 report["screenshots"].append(sh5)
             report["journeys"]["J04_J05_Marketing_And_Content_Factory"] = {"has_context_panel": bool(cf_ctx), "passed": bool(cf_ctx)}
 
-            # J06: Comercial CRM
+            # J06: Comercial CRM & LGPD
             await cdp.click_by_text("aside button", "Comercial")
             await cdp.click_by_text('nav[aria-label*="Submenus"] button', "CRM")
             await cdp.wait_idle()
-            crm_ok = await cdp.evaluate("(document.body.innerText || '').includes('Consentimento LGPD')")
+            crm_ok = await cdp.evaluate("Boolean(document.querySelector('#ug-lead-lgpd-checkbox')) && (document.body.innerText || '').includes('LGPD') && (document.body.innerText || '').includes('Base de Leads Qualificados')")
             report["journeys"]["J06_CRM_And_LGPD"] = {"passed": bool(crm_ok)}
 
             # J07 & J08: AI Team (12 Agentes) + Conversational Automation Builder
