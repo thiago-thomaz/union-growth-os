@@ -5,7 +5,7 @@
 ---
 
 ## 1. Headers de Segurança Verificados em Produção (`https://automacao.projetosunion.cloud/health`)
-Verificação direta executada após deploy do commit `afb2912dd2fb4e46e1f569b664d0cf5761b4ac45`:
+Verificação direta executada após deploy do commit `4dacfb2fa3070f36985eef01afa30faa87fd4c9f`:
 - `Strict-Transport-Security`: `max-age=31536000; includeSubDomains`
 - `X-Content-Type-Options`: `nosniff`
 - `X-Frame-Options`: `SAMEORIGIN`
@@ -25,9 +25,14 @@ Verificação direta executada após deploy do commit `afb2912dd2fb4e46e1f569b66
 3. **Zero Vazamento de Tokens em URL & Segredos**:
    - Telemetria CDP em ambas as suítes (`phase23_cdp_e2e.json` e `phase22_cdp_ux_e2e.json`): `url_token_leaks_count: 0`.
    - `test_23` (`security/audit`) e o job `Security Audit & Secret Leak Check` do GitHub Actions confirmaram ausência de chaves privadas/senhas hardcoded e rejeição `HTTP 401` para `?access_token=` (`test_45`).
-4. **Sanitização Anti-XSS & Aprovações Humanas**:
+4. **Proteção Anti-SSRF (`test_49` + Probe Live `J20`)**:
+   - Implementados `validate_public_http_url` e `safe_public_http_get` em `backend/app/core/security.py` e aplicados em `seo_and_market_engine.py` e nas rotas `POST /api/v1/seo/audit` e `POST /api/v1/competitors` (`routes.py`).
+   - Endereços privados, loopback (`127.0.0.1`), link-local / cloud metadata (`169.254.169.254`), esquemas `file://`/`ftp://`, credenciais em URL e redirecionamentos para alvos internos são rejeitados com `HTTP 400` (`test_49` local + probe `J20` em produção).
+5. **RBAC Estrito por Papel (`test_50`)**:
+   - Endpoints mutáveis `/api/v1/growth-os/*` e `/api/v1/automations/conversational-build` exigem `require_roles("owner", "admin", "manager")` (papel inválido legado `"operator"` substituído por `"manager"`), bloqueando usuários `viewer`/`analyst` com `HTTP 403` (`test_50`).
+6. **Sanitização Anti-XSS & Aprovações Humanas**:
    - Inputs de Marca, ASK UNION e Conversational Automation Builder passam por `sanitize_text(...)` no backend antes da persistência.
    - Automações conversacionais criadas em linguagem natural são pré-visualizadas em `dry_run` com `requires_approval: True` e só gravadas como `AutomationRule` ativa após confirmação explícita (`approve_create=True`), nunca executando ações financeiras ou envios externos pagos.
-5. **LGPD & Política de Custo `FREE_ONLY`**:
+7. **LGPD & Política de Custo `FREE_ONLY`**:
    - Provedores pagos permanecem bloqueados com `BLOCKED_FREE_ONLY` (`test_43`, `test_45`); erros de cota `HTTP 402` são classificados como `QUOTA_OR_BILLING_REQUIRED` sem mascaramento por circuit breaker e sem cobrança.
    - Leads exigem consentimento LGPD (`consent_lgpd`), e leads de teste (`TEST`/`SIMULATION`/`QA`) permanecem isolados fora dos contadores reais (`test_45`).

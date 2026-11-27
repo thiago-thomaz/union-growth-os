@@ -1,6 +1,6 @@
 # FASE 23 — RELATÓRIO DE ACESSIBILIDADE, DESIGN SYSTEM & RESPONSIVIDADE
 
-**Metodologia**: Auditoria DOM real automatizada em produção (`https://automacao.projetosunion.cloud`) via Google Chrome CDP após deploy do commit `afb2912dd2fb4e46e1f569b664d0cf5761b4ac45`, complementada por inspeção visual das capturas PNG.
+**Metodologia**: Auditoria DOM real automatizada em produção (`https://automacao.projetosunion.cloud`) via Google Chrome CDP após deploy do commit `4dacfb2fa3070f36985eef01afa30faa87fd4c9f`, complementada por inspeção visual das capturas PNG.
 
 ---
 
@@ -9,7 +9,7 @@
 |---|---|---|
 | Idioma do documento (`<html lang>`) | `pt-BR` | `pt-BR` |
 | Landmarks semânticos (`aside`, `header`, `main`, `nav`) | Presentes | Todos `true` |
-| Botões visíveis sem texto/aria-label/title | **0** de 90 (`passed: true`) | **0** de 77 (`passed: true`) |
+| Botões visíveis sem texto/aria-label/title | **0** de 89 (`passed: true`) | **0** (`passed: true`) |
 | Inputs/selects/textareas visíveis sem label/aria-label/placeholder | **0** (`passed: true`) | **0** (`passed: true`) |
 | Modo Claro e Modo Escuro (`S04_theme_light_dark_toggle`) | Alternância + contraste validados | `htmlLight: true`, `bodyBg: rgb(241, 245, 249)`, `h1Color: rgb(15, 23, 42)` |
 

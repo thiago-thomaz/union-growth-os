@@ -86,7 +86,7 @@
         "found": true,
         "count": 7,
         "urls": [
-          "blob:https://automacao.projetosunion.cloud/2c30ba1e-11f8-42cd-ab1d-6054a13fa3bc"
+          "blob:https://automacao.projetosunion.cloud/b0fc8553-9072-4347-be35-d5b6074b3597"
         ]
       },
       "passed": true
@@ -176,15 +176,15 @@
   "screenshots": [
     {
       "file": "01_inicio_dashboard_dark.png",
-      "size_bytes": 242520
+      "size_bytes": 242519
     },
     {
       "file": "02_inicio_light_mode.png",
-      "size_bytes": 264264
+      "size_bytes": 264162
     },
     {
       "file": "03_command_center_ctrl_k.png",
-      "size_bytes": 315803
+      "size_bytes": 315621
     },
     {
       "file": "04_todos_recursos_favoritos.png",
@@ -192,39 +192,39 @@
     },
     {
       "file": "05_meu_trabalho_drawer.png",
-      "size_bytes": 286808
+      "size_bytes": 286799
     },
     {
       "file": "06_comercial_propostas.png",
-      "size_bytes": 187024
+      "size_bytes": 186755
     },
     {
       "file": "07_marketing_campanhas.png",
-      "size_bytes": 184527
+      "size_bytes": 181073
     },
     {
       "file": "08_ia_visao_e_agentes.png",
-      "size_bytes": 288118
+      "size_bytes": 282247
     },
     {
       "file": "09_ia_motores_provedores.png",
-      "size_bytes": 265799
+      "size_bytes": 271114
     },
     {
       "file": "10b_gestao_relatorios.png",
-      "size_bytes": 161927
+      "size_bytes": 161424
     },
     {
       "file": "10_gestao_integracoes.png",
-      "size_bytes": 195703
+      "size_bytes": 195271
     },
     {
       "file": "11_central_ajuda_drawer.png",
-      "size_bytes": 316873
+      "size_bytes": 315938
     },
     {
       "file": "12_responsive_notebook_1366.png",
-      "size_bytes": 172812
+      "size_bytes": 172708
     },
     {
       "file": "13_responsive_tablet_768.png",
@@ -240,7 +240,7 @@
     }
   ],
   "telemetry": {
-    "total_network_requests": 100,
+    "total_network_requests": 102,
     "console_errors_count": 0,
     "console_errors": [],
     "runtime_exceptions_count": 0,

@@ -1,8 +1,10 @@
 {
   "prod_url": "https://automacao.projetosunion.cloud",
   "journeys": {
-    "J01_CommandCenter_AskUnion_Modes": {
-      "switched_qa": true,
+    "J11_Ask_Union": {
+      "passed": true
+    },
+    "J15_Dashboard_Executivo": {
       "has_ask_union": true,
       "has_growth_score": true,
       "has_business_health": true,
@@ -10,39 +12,72 @@
       "has_opp_radar": true,
       "has_exec_center": true,
       "has_mode_toggle": true,
-      "mode_switched_to_advanced": true,
-      "ask_union_structured_ok": true,
       "passed": true
     },
-    "J02_Progressive_Onboarding_6Steps": {
-      "visible": true,
+    "J01_Empresa_Onboarding": {
       "passed": true
     },
-    "J03_Brand_Intelligence_And_Audit": {
+    "J03_Objetivos_Plano": {
       "passed": true
     },
-    "J04_J05_Marketing_And_Content_Factory": {
-      "has_context_panel": true,
+    "J02_Marca_Brand_Hub": {
       "passed": true
     },
-    "J06_CRM_And_LGPD": {
+    "J12_Indicadores_Analytics": {
       "passed": true
     },
-    "J07_J08_Agents12_And_Conversational_Automation": {
-      "agents_12_ok": true,
-      "conv_builder_ok": true,
+    "J05_Campanha": {
       "passed": true
     },
-    "J09_MyWork_And_Approvals": {
+    "J06_Conteudo": {
       "passed": true
     },
-    "J10_Analytics_And_Attribution": {
+    "J13_SEO_Intelligence": {
+      "passed": true
+    },
+    "J07_Lead_CRM": {
+      "passed": true
+    },
+    "J08_Oportunidade_Pipeline": {
+      "passed": true
+    },
+    "J14_Inteligencia_Competitiva": {
+      "passed": true
+    },
+    "J04_Agentes_12": {
+      "passed": true
+    },
+    "J09_Automacao_Conversacional": {
+      "passed": true
+    },
+    "J16_Modo_Simples": {
+      "passed": true
+    },
+    "J17_Modo_Avancado": {
+      "passed": true
+    },
+    "J10_Aprovacao": {
+      "passed": true
+    },
+    "J18_Responsividade_6_Viewports": {
+      "passed": true
+    },
+    "J19_MultiTenant_E_Permissoes": {
+      "switched_qa": true,
+      "invalid_tenant_403": true,
+      "passed": true
+    },
+    "J20_Seguranca_E_Telemetria": {
+      "https": true,
+      "ssrf_blocked_400": true,
+      "url_token_leaks_count": 0,
+      "unexpected_4xx_5xx_count": 0,
       "passed": true
     }
   },
   "accessibility": {
     "lang": "pt-BR",
-    "total_buttons": 90,
+    "total_buttons": 89,
     "unlabeled_buttons": 0,
     "unlabeled_inputs": 0,
     "passed": true
@@ -88,39 +123,51 @@
   "screenshots": [
     {
       "file": "01_command_center_inicio.png",
-      "size_bytes": 239130
+      "size_bytes": 238780
     },
     {
       "file": "02_ask_union_copilot.png",
-      "size_bytes": 285110
+      "size_bytes": 289946
     },
     {
       "file": "03_onboarding_6_steps.png",
-      "size_bytes": 215992
+      "size_bytes": 265645
     },
     {
       "file": "04_brand_intelligence_center.png",
-      "size_bytes": 151608
-    },
-    {
-      "file": "05_content_factory_contextual.png",
-      "size_bytes": 164143
-    },
-    {
-      "file": "06_conversational_automation_builder.png",
-      "size_bytes": 177425
+      "size_bytes": 150476
     },
     {
       "file": "07_analytics_and_attribution.png",
-      "size_bytes": 167236
+      "size_bytes": 166535
+    },
+    {
+      "file": "05_content_factory_contextual.png",
+      "size_bytes": 160427
+    },
+    {
+      "file": "09_seo_intelligence.png",
+      "size_bytes": 128893
+    },
+    {
+      "file": "10_competitors_intelligence.png",
+      "size_bytes": 105150
+    },
+    {
+      "file": "06_conversational_automation_builder.png",
+      "size_bytes": 167002
+    },
+    {
+      "file": "11_modo_avancado.png",
+      "size_bytes": 177513
     },
     {
       "file": "08_viewport_compact_1024x768.png",
-      "size_bytes": 97214
+      "size_bytes": 97043
     },
     {
       "file": "08_viewport_mobile_small_360x800.png",
-      "size_bytes": 47266
+      "size_bytes": 46939
     }
   ],
   "telemetry": {

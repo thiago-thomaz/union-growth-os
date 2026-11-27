@@ -1,38 +1,37 @@
 # FASE 23 — RELATÓRIO DE VALIDAÇÃO EM PRODUÇÃO (CLOUD COOLIFY + VPS + CI/CD)
 
-**Data da Validação Final**: `2026-11-26 / 2026-11-27 UTC`  
-**Infraestrutura**: VPS existente gerenciada por Coolify (`swpy83sa5wshb558fadlrzwc`), Traefik HTTPS, PostgreSQL 16, APScheduler nativo Python (zero `n8n` e zero recursos de terceiros modificados).
+**Data da Validação Final**: `2026-11-27 UTC`  
+**Infraestrutura**: VPS existente gerenciada por Coolify (`swpy83sa5wshb558fadlrzwc`), Traefik `v3.6.25` HTTPS, Docker `29.1.5`, PostgreSQL 16 (`union-growth-os-db` saudável), APScheduler nativo Python (zero `n8n` e zero recursos de terceiros modificados).
 
 ---
 
 ## 1. Registro de Commits, Pipeline GitHub Actions & Deploys Coolify
 | Etapa | Identificador Real | Status Verificado |
 |---|---|---|
-| Commit Base Fase 23 (`push origin main`) | `3db428b3eaf37664e49e0cfd2bf9c7f3a7412c53` | Push concluído; CI Run `45925681480` -> `completed / success`; Coolify Deploy `oxojj1ju3ocst4fyaillsxuq` -> `finished` |
-| Commit Correções Pós-Auditoria Live | **`afb2912dd2fb4e46e1f569b664d0cf5761b4ac45`** | Push concluído em `main` |
-| GitHub Actions Pipeline (`.github/workflows/ci-cd.yml`) | Run ID **`45927206281`** | Job 1 (`Backend Tests, Frontend Build, Security Audit & Docker Lint`): **`completed / success`**<br>Job 2 (`Automatic Deploy to Coolify VPS & Production Health Checks`): **`completed / success`** |
-| Coolify Deployment Ativo em Produção | Deployment UUID **`pnhvxxbmarh63vgeuj9hgkhj`** | `status: "finished"`, container healthy em `2026-11-27T02:15:57Z`, rollout concluído `02:16:06Z` |
+| Commit Base Fase 23 (`push origin main`) | `3db428b3eaf37664e49e0cfd2bf9c7f3a7412c53` | CI `45925681480` (`success`) • Coolify `oxojj1ju3ocst4fyaillsxuq` (`finished`) |
+| Commit Correções PostgreSQL Fase 23 | `afb2912dd2fb4e46e1f569b664d0cf5761b4ac45` | CI `45927206281` (`success`) • Coolify `pnhvxxbmarh63vgeuj9hgkhj` (`finished`) |
+| Commit Documentação & Evidências v1 | `782834cdd43ed4db050346c4164549b22c23956f` | CI `45928536225` (`success`) • Coolify `xyqfhcfgzdfob0nsac952lfi` (`finished`) |
+| Commit Hardening + UX Progressiva + 20 Jornadas | **`4dacfb2fa3070f36985eef01afa30faa87fd4c9f`** | Push concluído em `main` |
+| GitHub Actions Pipeline (`.github/workflows/ci-cd.yml`) | Run ID **`46005341388`** | Job 1 (`Backend Tests, Frontend Build, Security Audit & Docker Lint`): **`completed / success`**<br>Job 2 (`Automatic Deploy to Coolify VPS & Production Health Checks`): **`completed / success`** |
+| Coolify Deployment Validado com E2E 20 Jornadas | Deployment UUID **`pjawq26uudxwex95xb1rtkzd`** | `status: "finished"`, `is_api: true`, concluído em `2026-11-27T13:15:15Z` |
 
-> **Observação Técnica Honesta sobre Gatilho CI→Coolify**: O job `Automatic Deploy to Coolify VPS` do GitHub Actions validou o ambiente sem abrir um segundo deploy concorrente (mantendo proteção contra duplicidade); a compilação Docker e rollout na VPS foram acionados diretamente via integração oficial Coolify API (`is_api: true`) com validação subsequente de ambos os domínios.
+> **Observação Técnica Honesta sobre Gatilho CI→Coolify (`is_auto_deploy_enabled = false`)**: Detalhamento completo em [`UNION_GROWTH_OS_PHASE23_CICD_REPORT.md`](./UNION_GROWTH_OS_PHASE23_CICD_REPORT.md) — a flag `is_auto_deploy_enabled` no Coolify está `false` e não é exposta pela ferramenta MCP `application(action="update")`, razão pela qual os deploys são executados via integração oficial Coolify API (`coolify:deploy`).
 
 ---
 
-## 2. Verificação Direta de Endpoints em Produção (Commit `afb2912dd2fb4e46e1f569b664d0cf5761b4ac45`)
+## 2. Verificação Direta de Endpoints em Produção (Commit `4dacfb2fa3070f36985eef01afa30faa87fd4c9f`)
 - **Domínio Principal (`/health`)** `https://automacao.projetosunion.cloud/health` → **HTTP 200**
-  - `"status": "ok"`, `"git_commit": "afb2912dd2fb4e46e1f569b664d0cf5761b4ac45"`
+  - `"status": "ok"`, `"git_commit": "4dacfb2fa3070f36985eef01afa30faa87fd4c9f"`
   - `"database": {"status": "healthy", "engine": "postgresql", "is_fallback": false}`
-  - `"scheduler": {"running": true, "jobs_count": 127, "engine": "APScheduler Native Python (100% Internalized)", "boot_id": "474c8a014d39", "timezone": "America/Sao_Paulo"}`
+  - `"scheduler": {"running": true, "jobs_count": 127, "engine": "APScheduler Native Python (100% Internalized)"}`
 - **Domínio Principal (`/ready`)** `https://automacao.projetosunion.cloud/ready` → **HTTP 200** (`"ready": true`, PostgreSQL saudável)
-- **Domínio Principal (`/`)** `https://automacao.projetosunion.cloud/` → **HTTP 200** (servindo bundle Next.js estático `56bbdff193465dee.css`)
-- **Domínio Alternativo (`/health`)** `https://uniongrowth.72.62.13.62.sslip.io/health` → **HTTP 200** (`"git_commit": "afb2912dd2fb4e46e1f569b664d0cf5761b4ac45"`)
+- **Domínio Principal (`/`)** `https://automacao.projetosunion.cloud/` → **HTTP 200** (servindo bundle Next.js estático `page-6c78b26b1f5cd2b0.js`)
+- **Domínio Alternativo (`/health`)** `https://uniongrowth.72.62.13.62.sslip.io/health` → **HTTP 200** (`"git_commit": "4dacfb2fa3070f36985eef01afa30faa87fd4c9f"`)
 - **Domínio Alternativo (`/ready`)** `https://uniongrowth.72.62.13.62.sslip.io/ready` → **HTTP 200**
-- **Documentação OpenAPI (`/docs`)** `https://uniongrowth.72.62.13.62.sslip.io/docs` → **HTTP 200** (`UNION GROWTH OS — AI Business & Marketing Director - Swagger UI`)
+- **Documentação OpenAPI (`/docs`)** `https://uniongrowth.72.62.13.62.sslip.io/docs` → **HTTP 200**
 
 ---
 
-## 3. Falha Real Encontrada e Corrigida Durante a Validação em Produção
-Durante a primeira execução do E2E no deploy `oxojj1ju3ocst4fyaillsxuq` (`3db428b3`), a inspeção ativa dos `coolify:logs` identificou duas incompatibilidades reais em PostgreSQL que não haviam aparecido no SQLite vazio:
-1. **`AttributeError: 'CRMDeal' object has no attribute 'pipeline_stage'`** nos endpoints `command-center` e `analytics-attribution` para o Tenant 1 (`UNION GROWTH OS`, que possuía deals reais). Corrigido para usar `stage`/`status` do modelo `CRMDeal` e coberto no teste `test_47`.
-2. **`psycopg2.errors.StringDataRightTruncation: value too long for type character varying(80)`** na coluna `agent_execution_logs.provider_used` durante o *Boot Recovery* do `APScheduler`. Coluna alargada para `VARCHAR(180)` em ORM + migração automática DDL no startup (`database.py`) e truncamento seguro em `orchestrator.py`.
-
-Após o redeploy `pnhvxxbmarh63vgeuj9hgkhj` (`afb2912d`), os logs do container registraram startup limpo e **100% de respostas HTTP 200** durante ambas as baterias E2E (`phase23_cdp_e2e.py` e `phase22_cdp_ux_e2e.py`) — **zero erros 4xx/5xx, zero exceções de banco e zero interferência em outros projetos da VPS**.
+## 3. Integridade da VPS & Zero Interferência
+- Auditoria pós-deploy em `coolify:get_infrastructure_overview` confirmou todas as **11 aplicações + 1 banco + 1 serviço** da VPS preservados sem alteração, com `union-growth-os`, `union-growth-os-db`, `barberflow`, `cidade-ativa-prefeitura`, `radar-hub12verticais...` e `union-money-ai` todos em **`running:healthy`** e `arena-play` totalmente intocado e blindado.
+- Após o rollout `pjawq26uudxwex95xb1rtkzd` (`4dacfb2`), os logs do container registraram startup limpo e ambas as suítes CDP (`20/20` jornadas Fase 23 + `S01..S15` Fase 22 em 102 requests) encerraram com **0 erros de console, 0 exceções JS e 0 falhas 4xx/5xx não intencionais**.

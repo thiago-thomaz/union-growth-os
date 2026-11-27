@@ -5,35 +5,49 @@
 
 ---
 
-## 1. Resumo Executivo dos Resultados (Pós-Última Edição)
+## 1. Resumo Executivo dos Resultados (Pós-Última Edição — Commit `4dacfb2`)
 | Suíte | Escopo | Executados | Aprovados | Falhos / Pulados | Status Final |
 |---|---|---|---|---|---|
-| TypeScript + Next.js Build | `npx tsc --noEmit && npm run build` | Exportação estática `frontend/out` | OK | 0 | **PASS** |
-| Pytest Backend (`test_01..test_48`) | API, DB, Multi-Tenant, LGPD, Pagamentos Sandbox, AI Hub, Fase 23 + Rate Limit | 49 | **49** (`57.67s`) | **0** | **PASS** |
-| Chrome CDP Fase 23 (`scripts/phase23_cdp_e2e.py`) | 10 Jornadas + A11y + 6 Viewports em Produção (`afb2912d`) | 10 jornadas + 6 viewports + telemetria | **10/10 Jornadas + 6/6 Viewports** | **0 erros console / JS / HTTP** | **PASS** |
-| Chrome CDP Regressão Fase 22 (`scripts/phase22_cdp_ux_e2e.py`) | Regressão completa UX Fase 22 (`S01..S15`) em Produção (`afb2912d`) | 12 blocos (`S01..S15`) + 4 viewports | **Todos aprovados** | **0 falhas / 100 requests** | **PASS** |
+| TypeScript + Next.js Build | `npx tsc --noEmit && npm run build` | Exportação estática `frontend/out` (`74.2 kB / 180 kB`) | OK | 0 | **PASS** |
+| Pytest Backend (`test_01..test_50`) | API, DB, Multi-Tenant, LGPD, Pagamentos Sandbox, AI Hub, Fase 23, Rate Limit, SSRF & RBAC | 51 | **51** (`72.36s`) | **0** | **PASS** |
+| Chrome CDP Fase 23 (`scripts/phase23_cdp_e2e.py`) | **20 Jornadas (`J01..J20`)** + A11y (`89` botões) + 6 Viewports em Produção (`4dacfb2`) | 20 jornadas + 6 viewports + telemetria | **20/20 Jornadas + 6/6 Viewports** | **0 erros console / JS / HTTP** | **PASS** |
+| Chrome CDP Regressão Fase 22 (`scripts/phase22_cdp_ux_e2e.py`) | Regressão completa UX Fase 22 (`S01..S15`) em Produção (`4dacfb2`) | 12 blocos (`S01..S15`) + 4 viewports | **Todos aprovados** | **0 falhas / 102 requests** | **PASS** |
 
 ---
 
-## 2. Cobertura das 10 Jornadas E2E Reais em Produção (`phase23_cdp_e2e.json`)
-1. **J01 — Command Center + ASK UNION + Modo Simples/Avançado**: Validou login real, troca segura para `QA_AUTOMATED_TENANT`, presença de `ASK UNION`, `Growth Score Documentado`, `Business Health`, `AI CEO Briefing`, `Opportunity Radar`, `Executive Action Center`, alternância real do botão `#ug-ui-mode-toggle` (`Modo Simples` ↔ `Modo Avançado` com `PUT /api/v1/tenants/current`) e resposta estruturada `INCREASE_SALES` (`Plano Estruturado`) do copiloto. (`passed: true`)
-2. **J02 — Business Onboarding Progressivo em 6 Etapas**: Abertura e visualização completa do fluxo `Onboarding Inteligente em 6 Etapas` com salvamento e opção `Recomeçar`. (`passed: true`)
-3. **J03 — Brand Intelligence Center + Detector de Inconsistências**: Acesso a `Gestão → Configurações & Planos`, execução real de `POST /api/v1/growth-os/brand/audit` (`Detectar Inconsistências Agora`) exibindo pontuação e inconsistências reais. (`passed: true`)
-4. **J04 & J05 — Marketing & Fábrica de Conteúdo Contextual**: Navegação em `Marketing → Fábrica de Conteúdo`, validação do painel de contexto usado na geração (`QA_AUTOMATED_TENANT`, nicho, persona ativa e campanha). (`passed: true`)
-5. **J06 — Comercial CRM & LGPD**: Acesso via submenu `Comercial → CRM`, validação da trava explícita `#ug-lead-lgpd-checkbox` e lista `Base de Leads Qualificados`. (`passed: true`)
-6. **J07 & J08 — Equipe de 12 Agentes (`AGENT_12_DATA_ANALYST`) + Automation Builder Conversacional**: Verificação da presença do 12º especialista (`AI Data Analyst`), preenchimento de linguagem natural no `#ug-conv-auto-input`, execução real de `POST /api/v1/automations/conversational-build` (`Teste de Simulação`, `Python Nativo`, `Custo estimado: R$ 0`). (`passed: true`)
-7. **J09 — Meu Trabalho & Aprovações**: Verificação do inbox unificado e filtro `Precisa de mim`. (`passed: true`)
-8. **J10 — Analytics & Attribution Hub**: Validação em `Gestão → Relatórios` do funil de 6 etapas (`Dado Real`), tabela de atribuição First-Touch e indicação honesta `GA4 Externo: Não Disponível`. (`passed: true`)
+## 2. Cobertura das 20 Jornadas E2E Reais em Produção (`phase23_cdp_e2e.json`)
+1. **J01 — Criação/Seleção Empresa & Onboarding Progressivo em 6 Etapas**: Login admin, troca segura para `QA_AUTOMATED_TENANT`, abertura do wizard recuperável/reiniciável. (`passed: true`)
+2. **J02 — Identidade de Marca & Consistência (`Brand Intelligence Center`)**: Navegação até `Gestão → Configurações & Planos` e execução real de `POST /api/v1/growth-os/brand/audit` (`Detectar Inconsistências Agora`). (`passed: true`)
+3. **J03 — Objetivos & Plano Inicial**: Validação de plano inicial e ações recomendadas no fluxo de crescimento. (`passed: true`)
+4. **J04 — Equipe de 12 Agentes (`AGENT_12_DATA_ANALYST`)**: Validação em `Inteligência Artificial` da listagem completa incluindo o 12º especialista (`AI Data Analyst`). (`passed: true`)
+5. **J05 — Campanha Contextual**: Acesso e criação/inspeção em `Marketing → Campanhas & Personas`. (`passed: true`)
+6. **J06 — Fábrica de Conteúdo Contextual**: Validação em `Marketing → Fábrica de Conteúdo` usando empresa, nicho, persona ativa e campanha do tenant. (`passed: true`)
+7. **J07 — CRM & Leads com LGPD**: Acesso a `Comercial → CRM`, validação de trava `#ug-lead-lgpd-checkbox` e tabela `Base de Leads Qualificados`. (`passed: true`)
+8. **J08 — Oportunidade & Pipeline de Vendas**: Navegação e verificação do funil de negociações comerciais em `Comercial → Pipeline & Vendas`. (`passed: true`)
+9. **J09 — Automação Conversacional Nativa Python**: Preenchimento no `#ug-conv-auto-input`, execução de `POST /api/v1/automations/conversational-build` (`Teste de Simulação`, `Python Nativo`, `R$ 0`), zero `n8n`. (`passed: true`)
+10. **J10 — Central de Aprovações (`Meu Trabalho`)**: Validação do inbox unificado e fila `Precisa de mim`. (`passed: true`)
+11. **J11 — Copiloto ASK UNION**: Consulta estruturada em linguagem natural e geração de plano rastreável. (`passed: true`)
+12. **J12 — Indicadores & Analytics (`Analytics & Attribution Hub`)**: Funil real de 6 etapas, First-Touch e transparência `NAO_DISPONIVEL` para externos sem OAuth. (`passed: true`)
+13. **J13 — Inteligência SEO (`SEO & Artigos`)**: Acesso e inspeção do painel SEO Live HTTP e Content Factory SEO (`09_seo_intelligence.png`). (`passed: true`)
+14. **J14 — Inteligência Competitiva (`Concorrentes`)**: Acesso ao módulo ético respeitando `robots.txt` (`10_competitors_intelligence.png`). (`passed: true`)
+15. **J15 — Dashboard Executivo Completo**: Validação simultânea dos 7 componentes principais (`ask_union`, `growth_score`, `business_health`, `ceo_briefing`, `opp_radar`, `exec_center`, `mode_toggle`). (`passed: true`)
+16. **J16 — Modo Simples Funcional**: Confirmação de exibição enxuta com ocultamento das sub-abas `advancedOnly` e botão `+ N Avançado`. (`passed: true`)
+17. **J17 — Modo Avançado Funcional**: Alternância via `#ug-ui-mode-toggle` revelando controles técnicos (`Modelos & Provedores`, logs, CRON, `11_modo_avancado.png`) e restauração segura. (`passed: true`)
+18. **J18 — Responsividade em 6 Viewports**: `1920x1080`, `1366x768`, `1024x768`, `768x1024`, `390x844` e `360x800` todos com `0px` de overflow horizontal. (`passed: true`)
+19. **J19 — Multi-Tenant & Permissões**: Troca validada para `QA_AUTOMATED_TENANT` e bloqueio explícito `HTTP 403` (`invalid_tenant_403: true`) ao testar `X-Tenant-Id` inválido em token real. (`passed: true`)
+20. **J20 — Segurança & Telemetria**: HTTPS ativo (`https: true`), rejeição explícita de SSRF (`127.0.0.1`) com `HTTP 400` (`ssrf_blocked_400: true`), `0` tokens em URL e `0` erros 4xx/5xx/console não intencionais durante toda a navegação. (`passed: true`)
 
 ---
 
 ## 3. Novos Testes Automatizados Adicionados (`backend/tests/test_union_growth_os.py`)
-- **`test_47_phase23_10_user_journeys_and_agent12`**: testa ponta a ponta Onboarding (etapas 1–4), Brand Hub + Auditoria, Campanha + Content Factory personalizada, CRM Lead + `CRMDeal` (`CLOSED_WON` exercitando `d.stage`), Automation Conversacional (Dry-Run + Ativação real), ASK UNION + persistência de `ui_mode`, Command Center (`12` dimensões de saúde, Growth Score 0–100, Opportunity Radar), Analytics Attribution (`NAO_DISPONIVEL` para externos) e execução direta do `AGENT_12_DATA_ANALYST`.
-- **`test_48_explicit_rate_limit_enforcement_and_xff_isolation`**: valida explicitamente o disparo de `HTTP 429` ao exceder `RATE_LIMIT_PER_MINUTE` e garante isolamento estrito dos baldes por endereço IP via `X-Forwarded-For` atrás do proxy reverso (`10.0.1.11`).
+- **`test_47_phase23_10_user_journeys_and_agent12`**: testa ponta a ponta Onboarding, Brand Hub + Auditoria, Campanha + Content Factory personalizada, CRM Lead + `CRMDeal` (`CLOSED_WON`), Automation Conversacional, ASK UNION + `ui_mode`, Command Center (`12` dimensões), Analytics Attribution e `AGENT_12_DATA_ANALYST`.
+- **`test_48_explicit_rate_limit_enforcement_and_xff_isolation`**: valida `HTTP 429` ao exceder `RATE_LIMIT_PER_MINUTE` e isolamento estrito de baldes por IP atrás de `X-Forwarded-For`.
+- **`test_49_ssrf_protection_blocks_private_loopback_and_metadata_urls`**: valida bloqueio de IPs privados, loopback, link-local/metadata (`169.254.169.254`) e esquemas não-HTTP em `/seo/audit` e `/competitors`.
+- **`test_50_rbac_viewer_blocked_from_mutations`**: garante que papel `viewer` recebe `HTTP 403` em mutações `/growth-os/*`, `/automations/conversational-build` e `/autonomy/limits`, mantendo leitura `HTTP 200` no próprio tenant.
 
 ---
 
 ## 4. Evidências Reais Registradas em Disco
 - Relatório JSON estruturado Fase 23: `UNION_GROWTH_OS_PHASE23_EVIDENCE/phase23_cdp_e2e.json`
 - Relatório JSON regressão Fase 22: `UNION_GROWTH_OS_PHASE22_SCREENSHOTS/phase22_cdp_ux_e2e.json`
-- 9 screenshots PNG reais da Fase 23 em `UNION_GROWTH_OS_PHASE23_EVIDENCE/` (`01_command_center_inicio.png` a `08_viewport_mobile_small_360x800.png`) + 16 screenshots PNG de regressão da Fase 22 em `UNION_GROWTH_OS_PHASE22_SCREENSHOTS/`.
+- 12 screenshots PNG reais da Fase 23 em `UNION_GROWTH_OS_PHASE23_EVIDENCE/` (`01_command_center_inicio.png` a `11_modo_avancado.png`) + 16 screenshots PNG de regressão da Fase 22 em `UNION_GROWTH_OS_PHASE22_SCREENSHOTS/`.

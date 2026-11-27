@@ -1,7 +1,7 @@
 # FASE 23 — RELATÓRIO DE IMPLEMENTAÇÃO TÉCNICA (BACKEND, FRONTEND, IA & CI/CD)
 
 **Projeto**: `UNION GROWTH OS — The Autonomous Business Growth Platform`  
-**Commits Entregues**: `3db428b3eaf37664e49e0cfd2bf9c7f3a7412c53` (implementação Fase 23) e `afb2912dd2fb4e46e1f569b664d0cf5761b4ac45` (correções de produção PostgreSQL `CRMDeal.stage`, `VARCHAR(180)`, textos `12 agentes` e E2E)
+**Commits Entregues**: `3db428b3eaf37664e49e0cfd2bf9c7f3a7412c53` (base Fase 23), `afb2912dd2fb4e46e1f569b664d0cf5761b4ac45` (fix PostgreSQL `CRMDeal.stage`/`VARCHAR(180)`), `782834cdd43ed4db050346c4164549b22c23956f` (documentação v1), e **`4dacfb2fa3070f36985eef01afa30faa87fd4c9f`** (hardening SSRF/RBAC pós-auditoria, filtragem real `Modo Simples` vs. `Modo Avançado`, correção circuit breaker IA, suíte 20 jornadas CDP & `51` testes `pytest`).
 
 ---
 
@@ -40,11 +40,17 @@
 - `POST /api/v1/agents/AGENT_12_DATA_ANALYST/execute`
 - Atualização em `GET /api/v1/auth/me` e `PUT /api/v1/tenants/current` para persistir `ui_mode` e resumo de marca/onboarding.
 
-## 5. Frontend Next.js 15 (`frontend/src/`)
+## 5. Hardening de Segurança & UX Progressiva (`4dacfb2`)
+- **Proteção Anti-SSRF (`backend/app/core/security.py`, `seo_and_market_engine.py`, `routes.py`)**: Adicionados `validate_public_http_url` e `safe_public_http_get` com bloqueio de IPs privados, loopback (`127.0.0.1`), link-local/metadata (`169.254.169.254`), URLs com credenciais embutidas, esquemas não-HTTP e revalidação de redirecionamentos HTTP em `POST /seo/audit` e `POST /competitors` (`HTTP 400`).
+- **Endurecimento RBAC (`routes.py`)**: Rotas de escrita `/growth-os/*` e `/automations/conversational-build` alinhadas de papel inexistente `"operator"` para `require_roles("owner", "admin", "manager")`, bloqueando explicitamente `viewer`/`analyst` com `HTTP 403`.
+- **Circuit Breaker AI Hub (`ai_engines_hub.py`)**: Reset automático do disjuntor ao salvar credencial ou validar conexão bem-sucedida, e validações estáticas (`BLOCKED_CAPABILITY`, `BLOCKED_FREE_ONLY`, `BLOCKED_LIMIT`) executadas antes da verificação `CIRCUIT_OPEN`.
+- **Adaptação Funcional Real `Modo Simples` vs. `Modo Avançado` (`frontend/src/lib/navigation.ts`, `page.tsx`)**: Sub-abas técnicas (`copywriter`, `growth`, `ai_engines`, `operational247`, `pilot7d`, `audit`) marcadas com `advancedOnly: true`, ocultas em `Modo Simples` com atalho rápido `+ N Avançado` (`#ug-reveal-advanced-subtabs`), além de simplificação progressiva em `Automações 24/7`.
+
+## 6. Frontend Next.js 15 (`frontend/src/`)
 - `GrowthCommandCenter.tsx`: **ASK UNION**, **Growth Score Documentado** com metodologia expansível, **Business Health (12 dimensões)**, **AI CEO Briefing (Hoje & Semana)**, **Opportunity Radar** e **Executive Action Center**.
 - `BrandAndOnboardingHub.tsx`: `ProgressiveOnboardingWizard` (6 etapas salváveis/reiniciáveis) e `BrandIntelligenceCenter` (identidade visual/verbal, preview, versões e detector de inconsistências).
 - `ConversationalAutomationAndAnalytics.tsx`: `ConversationalAutomationPanel` e `AnalyticsAttributionPanel`.
-- `page.tsx`: botão persistente `#ug-ui-mode-toggle` (`Modo Simples` / `Modo Avançado` com rótulo compacto responsivo em `< sm`), textos atualizados para 12 agentes e exportação estática para `frontend/out/`.
+- `page.tsx` & `navigation.ts`: botão persistente `#ug-ui-mode-toggle` (`Modo Simples` / `Modo Avançado`), ocultamento real de controles avançados no Modo Simples, textos atualizados para 12 agentes e exportação estática para `frontend/out/` (`74.2 kB`, `First Load JS 180 kB`).
 
-## 6. CI/CD GitHub Actions (`.github/workflows/ci-cd.yml`)
-- Actions atualizadas para `actions/checkout@v7`, `actions/setup-python@v7`, `actions/setup-node@v7` com `node-version: "22"`, verificação `npx tsc --noEmit && npm run build`, auditoria de Dockerfile, `pytest` completo (`49` testes) e audit de segredos.
+## 7. CI/CD GitHub Actions (`.github/workflows/ci-cd.yml`)
+- Actions atualizadas para `actions/checkout@v7`, `actions/setup-python@v7`, `actions/setup-node@v7` com `node-version: "22"`, verificação `npx tsc --noEmit && npm run build`, auditoria de Dockerfile, `pytest` completo (`51` testes aprovados) e audit de segredos. Detalhes em `UNION_GROWTH_OS_PHASE23_CICD_REPORT.md`.
