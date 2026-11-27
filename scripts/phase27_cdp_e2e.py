@@ -332,10 +332,10 @@ async def run_phase27_e2e():
             if sh8:
                 report["screenshots"].append(sh8)
 
-            # Revelar sub-abas avançadas para abrir Motores & Chaves AI e rodar Benchmark 12 Agentes
+            # Revelar sub-abas avançadas para abrir Modelos & Provedores e rodar Benchmark 12 Agentes
             await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Avançado")
             await asyncio.sleep(1.0)
-            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Motores")
+            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Modelos")
             await cdp.wait_for_text("main", "Política & Agentes", timeout_s=10.0)
             await cdp.click_by_text("main button", "Política & Agentes")
             await asyncio.sleep(0.6)
@@ -352,7 +352,7 @@ async def run_phase27_e2e():
             if sh7:
                 report["screenshots"].append(sh7)
             # Restaurar Modo Simples para manter o estado limpo
-            await cdp.click_by_text("header button", "Modo Avançado")
+            await cdp.evaluate("document.querySelector('#ug-ui-mode-toggle')?.click()")
             await asyncio.sleep(0.6)
 
             await cdp.click_by_text("aside button", "Gestão")
@@ -439,7 +439,9 @@ async def run_phase27_e2e():
             }
             report["telemetry"] = {
                 "console_errors_count": len(cdp.console_errors),
+                "console_errors": cdp.console_errors,
                 "exceptions_count": len(cdp.exceptions),
+                "exceptions": cdp.exceptions,
                 "network_4xx_5xx_count": len(cdp.network_4xx_5xx),
                 "url_token_leaks_count": len(cdp.url_token_leaks),
                 "network_4xx_5xx": cdp.network_4xx_5xx,
