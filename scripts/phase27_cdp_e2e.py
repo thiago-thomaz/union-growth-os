@@ -97,6 +97,7 @@ class CDPClient:
         (() => {{
             const els = Array.from(document.querySelectorAll({json.dumps(selector)}));
             const target = els.find(el => {{
+                if (el.disabled) return false;
                 const rect = el.getBoundingClientRect();
                 if (rect.width === 0 || rect.height === 0) return false;
                 const txt = (el.innerText || el.getAttribute('aria-label') || '').trim().replace(/\\s+/g, ' ');
@@ -296,21 +297,27 @@ async def run_phase27_e2e():
             if sh5:
                 report["screenshots"].append(sh5)
 
-            # 6. Persistent Growth Execution Center (0/7/30/90d + Concluir + Replanejar + PostgreSQL Reload)
+            # 6. Persistent Growth Execution Center (0/7/30/90d + Concluir + Replanejar)
             await cdp.click_by_text("aside button", "Início")
             await asyncio.sleep(0.8)
             await cdp.click_by_text("main button", "Centro de Crescimento (0–90d)")
             await asyncio.sleep(1.2)
             await cdp.click_by_text("main button", "Gerar Plano 0–90d")
+            await asyncio.sleep(1.2)
+            await cdp.wait_for_text("main", "Gerar Plano 0–90d", timeout_s=15.0)
             await cdp.wait_for_text("main", "Plano de Execução Priorizado", timeout_s=15.0)
             await cdp.click_by_text("main button", "Concluir")
-            await cdp.wait_for_text("main", "Concluído", timeout_s=10.0)
+            done_ok = await cdp.wait_for_text("main", "Concluído", timeout_s=12.0)
+            await cdp.wait_idle()
+            await asyncio.sleep(0.6)
             await cdp.click_by_text("main button", "Replanejar")
-            await asyncio.sleep(1.5)
-            growth_persist_ok = await cdp.evaluate("""
+            replan_ok = await cdp.wait_for_text("main", "Replanejado", timeout_s=12.0)
+            await cdp.wait_idle()
+            await asyncio.sleep(0.5)
+            growth_persist_ok = bool(done_ok and replan_ok) and await cdp.evaluate("""
                 (() => {
                     const t = document.querySelector('main')?.innerText || '';
-                    return t.includes('Prioridade:') && t.includes('Responsável:') && t.includes('Meta de sucesso:') && t.includes('Concluído');
+                    return t.includes('Prioridade:') && t.includes('Responsável:') && t.includes('Meta de sucesso:') && t.includes('Replanejado');
                 })()
             """)
             sh6 = await cdp.screenshot("06_phase27_persistent_growth_center.png")

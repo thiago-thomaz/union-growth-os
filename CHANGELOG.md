@@ -1,5 +1,23 @@
 # Changelog — UNION GROWTH OS
 
+## [2.4.0 — FASE 27] — 2026-11-27
+
+### Versionamento SemVer Oficial, Auditoria 25 Categorias, Centro de Crescimento Persistente & Entitlement Enforcement Real
+- **Sistema Oficial de Versionamento SemVer (`release_manifest.json`, `versioning_engine.py`, Git tag `v2.4.0`)**:
+  - Remoção da versão estática `1.0.0` em `config.py`; exposição dinâmica de `version: 2.4.0`, `semver`, `git_tag: v2.4.0`, `environment: production`, `release_channel: STABLE`, `git_commit` (`SOURCE_COMMIT`), saúde PostgreSQL e jobs APScheduler em `/health`, `/ready`, `GET /api/v1/system/version` e `GET /api/v1/system/releases`, sincronizado em `release_records` no PostgreSQL.
+  - Badge discreta e clicável `#ug-version-badge-btn` (`v2.4.0 • PRODUCTION | STABLE • f4b24d4a`) no header desktop/tablet (`sm:inline-flex`) e no rodapé da barra lateral mobile, abrindo o **`ReleaseHistoryDrawer.tsx`** com timeline completa `v1.0.0` → `v2.4.0`.
+- **Central Persistente de Auditoria Completa (`phase27_routes.py`, `phase27_audit_and_growth_engine.py`, `AuditCenterWorkspace.tsx`)**:
+  - `POST /api/v1/system/audit/run` e `GET /api/v1/system/audit/history` persistindo snapshots históricos em `system_audit_snapshots`.
+  - Avaliação ponderada honesta das **25 categorias obrigatórias** (score observado em produção: **`86.9/100` — `PRODUCTION_READY`**, com **`19`** bloqueios/pendências externas listados sem inflar artificialmente para `100/100`) + **Matriz de Rastreabilidade** (`REAL`, `REAL_PARTIAL`, `SANDBOX`, `BLOCKED`).
+  - Exposição na interface do botão **"Testar Restauração Isolada"** (`POST /api/v1/system/backup/test-restore`) em `AuditCenterWorkspace.tsx` e `ManagementAndIntegrationsWorkspace.tsx` validando integridade SHA-256 + `sqlite:///:memory:` (`145` registros em `31` tabelas verificados em produção) sem tocar nos dados ativos.
+- **Growth Execution Center Persistido no PostgreSQL (`growth_plans`, `growth_plan_steps`, `GrowthExecutionCenter.tsx`)**:
+  - `GET /api/v1/growth-os/growth-plan/current` e `PATCH /api/v1/growth-os/growth-plan/steps/{step_id}` com comandos `EXECUTE`, `COMPLETE`, `CANCEL` e `REPLAN`, exibindo `priority_score`, `owner_label`, `due_date`, `dependencies`, `success_metric`, `evidence` e `next_action`.
+- **Entitlements Reais no Backend, Tier Switching, AI Benchmark & Presets Python (`plans_and_audit.py`, `routes.py`, `AIEnginesHubWorkspace.tsx`, `AIAutonomyAndOpsWorkspace.tsx`)**:
+  - `enforce_tenant_entitlement` aplicado diretamente em `POST /api/v1/tenants` e `POST /api/v1/crm/leads` (HTTP `402` quando quota excedida no plano ativo) + `POST /api/v1/plans/change-tier` (`charge_enabled: false`).
+  - `GET /api/v1/ai/benchmark` medindo latência, modo real (`4/12 HYBRID`, `8/12 DETERMINISTIC`, `0 SIMULATED`) e conformidade `FREE_ONLY` (`R$ 0,00`), mais 3 **Templates Visuais em 1 Clique** com fluxo linear na área de Automações 24/7 (`0% n8n`).
+  - `DesignSystem.tsx` DS 5.0 enriquecido com metadados `updatedAt`, `statusLabel` e tooltip `calculationMethod` no `MetricStrip`, além de `busy_timeout=30000` + WAL no SQLite de fallback/testes e filtro temporal seguro em `recover_missed_runs`.
+- **Qualidade, CI/CD & Cloud**: `54/54` pytest (`72.93s`), `npx tsc --noEmit` + `next build` (`83.7 kB` `/` | First Load `189 kB`), GitHub Actions CI `46068240519` (`success`), deploy Coolify `wvpqqwdpdftf2ar2tiwwctlw` (`finished`), ambas URLs HTTP `200`, `phase27_cdp_e2e.py` .. `phase23_cdp_e2e.py` `100%` aprovadas e `phase22_cdp_ux_e2e.py` com `12/13` cenários aprovados (`S08` timeout de captura).
+
 ## [2.3.0 — FASE 26] — 2026-11-27
 
 ### Transformação Modular, Centro de Crescimento (0–90d), Matriz de IA, Revenue Engine & DS 4.0

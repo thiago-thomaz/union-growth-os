@@ -9,11 +9,11 @@
     "seo_technical_signals_ok": true,
     "ai_hub_ds3_ok": true,
     "plg_plans_and_meters_ok": true,
-    "total_elapsed_s": 36.01
+    "total_elapsed_s": 33.96
   },
   "accessibility": {
     "lang": "pt-BR",
-    "total_buttons": 61,
+    "total_buttons": 63,
     "unlabeled_buttons": 0,
     "unlabeled_inputs": 0,
     "passed": true
@@ -65,39 +65,39 @@
   "screenshots": [
     {
       "file": "01_phase25_home_dark.png",
-      "size_bytes": 233269
+      "size_bytes": 237544
     },
     {
       "file": "02_phase25_crm_revenue_intel.png",
-      "size_bytes": 226430
+      "size_bytes": 229648
     },
     {
       "file": "08_phase25_light_mode_crm.png",
-      "size_bytes": 224280
+      "size_bytes": 227035
     },
     {
       "file": "03_phase25_pipeline_ds3.png",
-      "size_bytes": 129143
+      "size_bytes": 132357
     },
     {
       "file": "04_phase25_multibusiness_ds3.png",
-      "size_bytes": 222181
+      "size_bytes": 225499
     },
     {
       "file": "05_phase25_seo_technical_signals.png",
-      "size_bytes": 165597
+      "size_bytes": 169164
     },
     {
       "file": "06_phase25_ai_hub_honest.png",
-      "size_bytes": 118012
+      "size_bytes": 121685
     },
     {
       "file": "07_phase25_settings_plg_plans.png",
-      "size_bytes": 179916
+      "size_bytes": 187739
     },
     {
       "file": "09_phase25_viewport_mobile_360x800.png",
-      "size_bytes": 64051
+      "size_bytes": 64525
     }
   ],
   "telemetry": {

@@ -7,43 +7,43 @@
     "release_drawer_ok": true,
     "audit_25_categories_ok": true,
     "traceability_matrix_ok": true,
-    "backup_restore_sha256_ok": false,
-    "growth_center_persisted_ok": false,
-    "ai_benchmark_12_agents_ok": false,
-    "automations_presets_flow_ok": false,
-    "plans_entitlements_ok": false,
-    "light_mode_ok": false,
-    "total_elapsed_s": 133.51
+    "backup_restore_sha256_ok": true,
+    "growth_center_persisted_ok": true,
+    "ai_benchmark_12_agents_ok": true,
+    "automations_presets_flow_ok": true,
+    "plans_entitlements_ok": true,
+    "light_mode_ok": true,
+    "total_elapsed_s": 50.35
   },
   "accessibility": {
-    "lang": "",
-    "total_buttons": 0,
+    "lang": "pt-BR",
+    "total_buttons": 63,
     "unlabeled_buttons": 0,
     "unlabeled_inputs": 0,
-    "passed": false
+    "passed": true
   },
   "viewports": {
     "desktop_1920x1080": {
-      "scrollWidth": 1920,
-      "clientWidth": 1920,
+      "scrollWidth": 1914,
+      "clientWidth": 1914,
       "overflowPx": 0,
       "passed": true
     },
     "desktop_1440x900": {
-      "scrollWidth": 1440,
-      "clientWidth": 1440,
+      "scrollWidth": 1434,
+      "clientWidth": 1434,
       "overflowPx": 0,
       "passed": true
     },
     "notebook_1366x768": {
-      "scrollWidth": 1366,
-      "clientWidth": 1366,
+      "scrollWidth": 1360,
+      "clientWidth": 1360,
       "overflowPx": 0,
       "passed": true
     },
     "compact_1024x768": {
-      "scrollWidth": 1024,
-      "clientWidth": 1024,
+      "scrollWidth": 1018,
+      "clientWidth": 1018,
       "overflowPx": 0,
       "passed": true
     },
@@ -75,55 +75,57 @@
   "screenshots": [
     {
       "file": "01_phase27_header_semver_badge.png",
-      "size_bytes": 237638
+      "size_bytes": 237548
     },
     {
       "file": "02_phase27_release_history_drawer.png",
-      "size_bytes": 342180
+      "size_bytes": 342101
     },
     {
       "file": "03_phase27_audit_25_categories.png",
-      "size_bytes": 187514
+      "size_bytes": 187102
     },
     {
       "file": "04_phase27_traceability_matrix.png",
-      "size_bytes": 221633
+      "size_bytes": 230299
     },
     {
       "file": "05_phase27_backup_restore_test.png",
-      "size_bytes": 11831
+      "size_bytes": 200157
     },
     {
       "file": "06_phase27_persistent_growth_center.png",
-      "size_bytes": 11831
+      "size_bytes": 249877
     },
     {
       "file": "08_phase27_automations_presets_flow.png",
-      "size_bytes": 11831
+      "size_bytes": 206310
     },
     {
       "file": "07_phase27_ai_benchmark_12_agents.png",
-      "size_bytes": 11831
+      "size_bytes": 181026
     },
     {
       "file": "09_phase27_plans_entitlements.png",
-      "size_bytes": 11831
+      "size_bytes": 183411
     },
     {
       "file": "10_phase27_light_mode.png",
-      "size_bytes": 11831
+      "size_bytes": 181769
     },
     {
       "file": "11_phase27_mobile_360x800.png",
-      "size_bytes": 5769
+      "size_bytes": 64525
     }
   ],
   "telemetry": {
-    "console_errors_count": 1,
+    "console_errors_count": 0,
+    "console_errors": [],
     "exceptions_count": 0,
+    "exceptions": [],
     "network_4xx_5xx_count": 0,
     "url_token_leaks_count": 0,
     "network_4xx_5xx": []
   },
-  "all_phase27_e2e_passed": false
+  "all_phase27_e2e_passed": true
 }

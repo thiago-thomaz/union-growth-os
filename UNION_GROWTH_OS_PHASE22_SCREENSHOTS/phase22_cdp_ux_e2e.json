@@ -85,11 +85,9 @@
       "pdf_check": {
         "found": true,
         "count": 7,
-        "urls": [
-          "blob:https://automacao.projetosunion.cloud/9d8d1c1a-bcb8-4c04-b383-b0e7a53905d4"
-        ]
+        "urls": []
       },
-      "passed": true
+      "passed": false
     },
     "S09_marketing_subtabs_e_filtro": {
       "camp_filter_exists": true,
@@ -133,7 +131,7 @@
       "main": true,
       "nav": true
     },
-    "total_visible_buttons": 63,
+    "total_visible_buttons": 65,
     "unlabeled_buttons_count": 0,
     "unlabeled_buttons_sample": [],
     "unlabeled_inputs_count": 0,
@@ -176,63 +174,63 @@
   "screenshots": [
     {
       "file": "01_inicio_dashboard_dark.png",
-      "size_bytes": 242005
+      "size_bytes": 245947
     },
     {
       "file": "02_inicio_light_mode.png",
-      "size_bytes": 239111
+      "size_bytes": 243095
     },
     {
       "file": "03_command_center_ctrl_k.png",
-      "size_bytes": 305993
+      "size_bytes": 311660
     },
     {
       "file": "04_todos_recursos_favoritos.png",
-      "size_bytes": 87176
+      "size_bytes": 90487
     },
     {
       "file": "05_meu_trabalho_drawer.png",
-      "size_bytes": 248784
+      "size_bytes": 253004
     },
     {
       "file": "06_comercial_propostas.png",
-      "size_bytes": 222121
+      "size_bytes": 225443
     },
     {
       "file": "07_marketing_campanhas.png",
-      "size_bytes": 157447
+      "size_bytes": 161072
     },
     {
       "file": "08_ia_visao_e_agentes.png",
-      "size_bytes": 205280
+      "size_bytes": 208744
     },
     {
       "file": "09_ia_motores_provedores.png",
-      "size_bytes": 153345
+      "size_bytes": 156926
     },
     {
       "file": "10b_gestao_relatorios.png",
-      "size_bytes": 114142
+      "size_bytes": 121012
     },
     {
       "file": "10_gestao_integracoes.png",
-      "size_bytes": 176188
+      "size_bytes": 179832
     },
     {
       "file": "11_central_ajuda_drawer.png",
-      "size_bytes": 249327
+      "size_bytes": 253341
     },
     {
       "file": "12_responsive_notebook_1366.png",
-      "size_bytes": 158178
+      "size_bytes": 161019
     },
     {
       "file": "13_responsive_tablet_768.png",
-      "size_bytes": 126448
+      "size_bytes": 128781
     },
     {
       "file": "14_responsive_mobile_390.png",
-      "size_bytes": 68156
+      "size_bytes": 68635
     },
     {
       "file": "15_public_landing_page.png",
@@ -249,5 +247,5 @@
     "network_failures": [],
     "url_token_leaks_count": 0
   },
-  "all_phase22_e2e_passed": true
+  "all_phase22_e2e_passed": false
 }

@@ -1,0 +1,921 @@
+{
+  "version": {
+    "service": "UNION GROWTH OS",
+    "version": "2.4.0",
+    "semver": {
+      "major": 2,
+      "minor": 4,
+      "patch": 0
+    },
+    "git_tag": "v2.4.0",
+    "phase": "FASE 27",
+    "release_channel": "STABLE",
+    "environment": "production",
+    "environment_label": "PRODUCTION",
+    "platform_state": "STABLE",
+    "git_commit": "f4b24d4a4d193f86a0b13d0c1215db8c98321154",
+    "short_commit": "f4b24d4a",
+    "health": {
+      "healthy": true,
+      "database": {
+        "status": "healthy",
+        "engine": "postgresql",
+        "is_fallback": false
+      },
+      "scheduler_jobs": 127
+    },
+    "latest_audit_score": 86.9,
+    "latest_readiness_status": "PRODUCTION_READY",
+    "releases_count": 6,
+    "source": "release_manifest.json + Git Tag + SOURCE_COMMIT + PostgreSQL"
+  },
+  "audit_latest": {
+    "audit_id": 5,
+    "version": "2.4.0",
+    "git_commit": "f4b24d4a4d193f86a0b13d0c1215db8c98321154",
+    "environment": "production",
+    "global_score": 86.9,
+    "readiness_status": "PRODUCTION_READY",
+    "honesty_disclaimer": "Pontuação calculada por evidência verificada; não atribui 100/100 quando há integrações, cota LLM ou billing pendentes.",
+    "categories": [
+      {
+        "category": "1. UX/UI",
+        "weight_pct": 5.0,
+        "score": 94.0,
+        "status": "REAL",
+        "evidence": "Design modular DS 5.0, header SemVer, Zero cards empilhados",
+        "test": "CDP Phase 22..27",
+        "criteria": "Navegação por objetivo + clareza leiga",
+        "failure_or_gap": "Evoluir editor visual multi-condição",
+        "external_dependency": "Nenhuma",
+        "next_action": "Validar novas jornadas em tela"
+      },
+      {
+        "category": "2. Design System",
+        "weight_pct": 4.0,
+        "score": 95.0,
+        "status": "REAL",
+        "evidence": "Tokens Obsidian/Alabaster em Login, CS, Home, AI e Gestão",
+        "test": "tsc + next build + Light/Dark CDP",
+        "criteria": "Consistência Dark/Light AA",
+        "failure_or_gap": "Pequenos detalhes em módulos secundários legados",
+        "external_dependency": "Nenhuma",
+        "next_action": "Manter linter CSS"
+      },
+      {
+        "category": "3. Onboarding",
+        "weight_pct": 4.0,
+        "score": 90.0,
+        "status": "REAL",
+        "evidence": "6 etapas persistidas + Marcos TTFV + Guia contextual",
+        "test": "test_19 + J01/J03 CDP",
+        "criteria": "Fluxo progressivo sem bloquear uso",
+        "failure_or_gap": "Preenchimento automático via OAuth não conectado",
+        "external_dependency": "Credenciais site/OAuth",
+        "next_action": "Estimular domínio na etapa 1"
+      },
+      {
+        "category": "4. Core Functionality",
+        "weight_pct": 5.0,
+        "score": 92.0,
+        "status": "REAL",
+        "evidence": "150+ rotas FastAPI + Bootstrap único + Centro Crescimento persistido",
+        "test": "53+ pytest",
+        "criteria": "CRUD e workflows sem mock",
+        "failure_or_gap": "Alguns fluxos sociais em Modo Assistido",
+        "external_dependency": "OAuth redes",
+        "next_action": "Manter cobertura regressiva"
+      },
+      {
+        "category": "5. Backend",
+        "weight_pct": 5.0,
+        "score": 92.0,
+        "status": "REAL",
+        "evidence": "FastAPI + routers phase26/phase27 + SQLAlchemy PostgreSQL 16",
+        "test": "test_01..test_53",
+        "criteria": "Modularização e resiliência HTTP",
+        "failure_or_gap": "routes.py legado ainda com 4146 linhas",
+        "external_dependency": "Nenhuma",
+        "next_action": "Extrair routers legados gradualmente"
+      },
+      {
+        "category": "6. Frontend",
+        "weight_pct": 4.0,
+        "score": 93.0,
+        "status": "REAL",
+        "evidence": "Next.js 15 static export, UnionGrowthOSPortal reduzido 57%",
+        "test": "npx tsc --noEmit + next build",
+        "criteria": "Bundle leve (~183 kB) + zero console errors",
+        "failure_or_gap": "Comprimir ainda mais estados globais",
+        "external_dependency": "Nenhuma",
+        "next_action": "Code splitting adicional futuro"
+      },
+      {
+        "category": "7. Security",
+        "weight_pct": 5.0,
+        "score": 90.0,
+        "status": "REAL",
+        "evidence": "bcrypt, HS256, Fernet AES-128, RBAC 403, Anti-SSRF, Rate-Limit",
+        "test": "test_02a, test_12, test_23, test_24, test_48..50",
+        "criteria": "OWASP API Top 10 & isolamento",
+        "failure_or_gap": "JWT armazenado em localStorage (sem MFA/HttpOnly cookie ainda)",
+        "external_dependency": "Cookies/SSO Enterprise",
+        "next_action": "Planejar cookies HttpOnly + MFA TOTP"
+      },
+      {
+        "category": "8. LGPD",
+        "weight_pct": 4.0,
+        "score": 93.0,
+        "status": "REAL",
+        "evidence": "Opt-in obrigatório, opt-out lock, exportação/exclusão, finalidade explícita",
+        "test": "test_08, test_31, test_41, test_52",
+        "criteria": "Conformidade LGPD completa",
+        "failure_or_gap": "Portal público de preferências self-service futuro",
+        "external_dependency": "Nenhuma",
+        "next_action": "Manter logs imutáveis"
+      },
+      {
+        "category": "9. Integrations",
+        "weight_pct": 5.0,
+        "score": 45.2,
+        "status": "BLOCKED",
+        "evidence": "1/18 conexões ativas no banco (17 aguardando credenciais)",
+        "test": "test_16, test_17, CDP 07",
+        "criteria": "OAuth real e zero simulações",
+        "failure_or_gap": "17 integrações em Aguardando Conexão",
+        "external_dependency": "Credenciais OAuth Meta/Google/LinkedIn/WhatsApp",
+        "next_action": "Proprietário conectar OAuth oficiais"
+      },
+      {
+        "category": "10. AI",
+        "weight_pct": 5.0,
+        "score": 78.0,
+        "status": "REAL_PARTIAL",
+        "evidence": "4/12 HYBRID ativos, 8/12 DETERMINISTIC, 0 SIMULATED",
+        "test": "test_14, test_43, test_52, /ai/benchmark",
+        "criteria": "Separação LLM/HYBRID/DETERMINISTIC + FREE_ONLY",
+        "failure_or_gap": "Chave Gemini Tenant 1 em HTTP 402; 8 agentes puramente determinísticos",
+        "external_dependency": "Chave Gemini/Groq gratuita com cota ativa",
+        "next_action": "Inserir chave Gemini Free Tier ativa"
+      },
+      {
+        "category": "11. Automation",
+        "weight_pct": 4.0,
+        "score": 91.0,
+        "status": "REAL",
+        "evidence": "127 jobs APScheduler Python (31 regras, 0 falhas)",
+        "test": "test_09, test_22, test_47",
+        "criteria": "100% nativo Python (0% n8n) + backoff + presets",
+        "failure_or_gap": "Sem fila worker distribuída externa para picos extremos",
+        "external_dependency": "Redis/Worker futuro",
+        "next_action": "Acompanhar dead-letters no painel"
+      },
+      {
+        "category": "12. CRM",
+        "weight_pct": 4.0,
+        "score": 93.0,
+        "status": "REAL",
+        "evidence": "8 leads reais, 3 negócios, scoring 0-100, follow-up consultivo LGPD",
+        "test": "test_08, test_31, test_35, test_52",
+        "criteria": "Ciclo comercial completo",
+        "failure_or_gap": "Sync bidirecional IMAP/WhatsApp aguarda OAuth",
+        "external_dependency": "WhatsApp Cloud API / SMTP",
+        "next_action": "Conectar canal de disparo"
+      },
+      {
+        "category": "13. Revenue",
+        "weight_pct": 4.0,
+        "score": 92.0,
+        "status": "REAL",
+        "evidence": "Propostas PDF Blob, move-stage ESTIMATED, 3 unidades, previsão ponderada",
+        "test": "test_33..test_39, test_52",
+        "criteria": "Separação REAL/ESTIMATED/SANDBOX",
+        "failure_or_gap": "Assinatura eletrônica jurídica (Gov.br/Clicksign) fora do escopo gratuito",
+        "external_dependency": "Provedor assinatura paga",
+        "next_action": "Conectar gateway quando autorizado"
+      },
+      {
+        "category": "14. Marketing",
+        "weight_pct": 4.0,
+        "score": 88.0,
+        "status": "REAL_PARTIAL",
+        "evidence": "7 campanhas, 0 peças na Fábrica, Pillow PNG & Copy A/B",
+        "test": "test_06, test_07, test_25, test_46",
+        "criteria": "Fluxo estratégico -> conteúdo -> calendário",
+        "failure_or_gap": "Publicação direta redes sociais requer OAuth (usa Pacote 1-Clique)",
+        "external_dependency": "Meta/TikTok/LinkedIn OAuth",
+        "next_action": "Conectar contas sociais"
+      },
+      {
+        "category": "15. SEO",
+        "weight_pct": 4.0,
+        "score": 84.0,
+        "status": "REAL_PARTIAL",
+        "evidence": "7 auditorias HTML HTTP reais + H1/links/alt + recomendações priorizadas",
+        "test": "test_05, test_18, test_27, test_51, test_52",
+        "criteria": "Auditoria técnica ao vivo sem simular SERP",
+        "failure_or_gap": "Posições SERP orgânicas aguardam OAuth Search Console",
+        "external_dependency": "Google Search Console OAuth",
+        "next_action": "Conectar Search Console"
+      },
+      {
+        "category": "16. Monetization",
+        "weight_pct": 4.0,
+        "score": 78.0,
+        "status": "SANDBOX",
+        "evidence": "5 planos PLG + usage meters + enforcement backend + charge_enabled=false",
+        "test": "test_40, test_51, test_52, test_53",
+        "criteria": "Controle backend real + zero cobrança indevida",
+        "failure_or_gap": "0 transações reais pagas até habilitação pelo dono",
+        "external_dependency": "Aprovação + credenciais Mercado Pago/Stripe",
+        "next_action": "Autorizar live billing quando comercializar"
+      },
+      {
+        "category": "17. Customer Success",
+        "weight_pct": 3.0,
+        "score": 88.0,
+        "status": "REAL",
+        "evidence": "3 feedbacks NPS/CSAT + detecção risco churn e upsell + DS Light/Dark",
+        "test": "test_11, CDP",
+        "criteria": "NPS/CSAT reais sem invenção",
+        "failure_or_gap": "Coleta automática por e-mail depende SMTP",
+        "external_dependency": "SMTP conectado",
+        "next_action": "Conectar SMTP para pesquisas periódicas"
+      },
+      {
+        "category": "18. Analytics",
+        "weight_pct": 4.0,
+        "score": 86.0,
+        "status": "REAL_PARTIAL",
+        "evidence": "Atribuição First-Touch CRM/Financeiro + Growth Score 12 pilares + Attribution Hub",
+        "test": "test_47, test_51",
+        "criteria": "Transparência fonte/período/cálculo",
+        "failure_or_gap": "Tráfego web externo aguarda OAuth GA4",
+        "external_dependency": "Google Analytics 4 OAuth",
+        "next_action": "Conectar propriedade GA4"
+      },
+      {
+        "category": "19. Performance",
+        "weight_pct": 4.0,
+        "score": 93.0,
+        "status": "REAL",
+        "evidence": "Bootstrap consolidado (1 chamada), `--timeout-keep-alive 75`, Next static build",
+        "test": "CDP 40.6s ponta a ponta",
+        "criteria": "Carregamento rápido sem bloqueio Onda 2",
+        "failure_or_gap": "Consultas agregadas futuras podem requerer cache Redis",
+        "external_dependency": "Redis gerenciado em escala alta",
+        "next_action": "Monitorar p95 em produção"
+      },
+      {
+        "category": "20. CI/CD",
+        "weight_pct": 4.0,
+        "score": 84.0,
+        "status": "REAL_PARTIAL",
+        "evidence": "GitHub Actions CI + Security Audit + Coolify Deploy API + Release Manifest",
+        "test": "Run GitHub 46055984955 + test_53",
+        "criteria": "Build, testes e healthcheck pós-deploy",
+        "failure_or_gap": "Secrets COOLIFY_API_TOKEN/WEBHOOK não estão no GitHub Settings",
+        "external_dependency": "Proprietário adicionar Secrets no GitHub",
+        "next_action": "Cadastrar secrets para auto-trigger via push"
+      },
+      {
+        "category": "21. Reliability",
+        "weight_pct": 4.0,
+        "score": 94.0,
+        "status": "REAL",
+        "evidence": "PostgreSQL active (postgresql, fallback=False) + scheduler ativo",
+        "test": "/health + /ready",
+        "criteria": "Disponibilidade e auto-cura Traefik",
+        "failure_or_gap": "Single replica sem multi-AZ failover automático",
+        "external_dependency": "Multi-nó VPS/Cloud",
+        "next_action": "Manter healthchecks rigorosos"
+      },
+      {
+        "category": "22. Backup",
+        "weight_pct": 3.0,
+        "score": 92.0,
+        "status": "REAL",
+        "evidence": "2 snapshot(s) JSON SHA-256 em disco + restore isolado in-memory + retenção",
+        "test": "test_29 + /system/backup/test-restore",
+        "criteria": "Integridade verificável sem sobrescrever prod",
+        "failure_or_gap": "Backup off-site S3/Backblaze depende credenciais de storage externo",
+        "external_dependency": "Bucket S3 opcional",
+        "next_action": "Executar Testar Restauração periodicamente"
+      },
+      {
+        "category": "23. Accessibility",
+        "weight_pct": 3.0,
+        "score": 94.0,
+        "status": "REAL",
+        "evidence": "pt-BR, 0 botões sem aria-label, 0 inputs sem label, contrastes Dark/Light",
+        "test": "CDP a11y + 8 viewports",
+        "criteria": "WCAG 2.1 AA prática",
+        "failure_or_gap": "Auditoria formal leitor de tela NVDA/VoiceOver pendente",
+        "external_dependency": "Leitor de tela humano",
+        "next_action": "Manter padrão ARIA rigoroso"
+      },
+      {
+        "category": "24. Architecture",
+        "weight_pct": 3.0,
+        "score": 85.0,
+        "status": "REAL",
+        "evidence": "Routers modulares phase26/27, ReleaseManifest (True), serviços desacoplados",
+        "test": "tsc + pytest",
+        "criteria": "Manutenibilidade e modularidade",
+        "failure_or_gap": "routes.py legado (4146L) e engines grandes em refatoração gradual",
+        "external_dependency": "Nenhuma",
+        "next_action": "Dividir serviços >1500L em subpacotes"
+      },
+      {
+        "category": "25. Scalability",
+        "weight_pct": 3.0,
+        "score": 76.0,
+        "status": "REAL_PARTIAL",
+        "evidence": "Pool SQLAlchemy (10+20), índices tenant_id, stateless JWT, static CDN-ready",
+        "test": "test_48 + check_db_health",
+        "criteria": "Pronto para centenas de PMEs, ainda não para milhões sem cluster",
+        "failure_or_gap": "Requer Redis queue + read-replicas + multi-instance load balancer para escala massiva",
+        "external_dependency": "Infraestrutura horizontal multi-servidor",
+        "next_action": "Escalar horizontalmente quando demanda comercial exigir"
+      }
+    ],
+    "traceability_matrix": [
+      {
+        "functionality": "Sistema SemVer + Histórico de Releases",
+        "frontend": "Header Global + ReleaseHistoryDrawer",
+        "api": "GET /api/v1/system/version, /releases",
+        "database": "release_records (PostgreSQL)",
+        "tests": "pytest test_53 + CDP Fase 27",
+        "status": "REAL",
+        "issue": "Nenhum",
+        "fix": "Implementado na Fase 27"
+      },
+      {
+        "functionality": "Central de Auditoria 25 Categorias",
+        "frontend": "ManagementAndIntegrationsWorkspace (audit)",
+        "api": "POST /system/audit/run, GET /system/audit/history",
+        "database": "system_audit_snapshots",
+        "tests": "pytest test_53 + CDP Fase 27",
+        "status": "REAL",
+        "issue": "Nenhum",
+        "fix": "Implementado na Fase 27"
+      },
+      {
+        "functionality": "Growth Execution Center (0/7/30/90d)",
+        "frontend": "GrowthExecutionCenter.tsx",
+        "api": "POST/GET /growth-plan, PATCH /steps/{id}",
+        "database": "growth_plans, growth_plan_steps",
+        "tests": "pytest test_52 + test_53 + CDP",
+        "status": "REAL",
+        "issue": "Etapa externa OAuth depende credenciais",
+        "fix": "Persistência PostgreSQL + Concluir/Cancelar/Replanejar adicionados"
+      },
+      {
+        "functionality": "12 Agentes Especialistas & ASK UNION",
+        "frontend": "AITeamAndGovernanceView.tsx, HomeWorkspace.tsx",
+        "api": "GET /agents/matrix, /ai/benchmark, /ask-union",
+        "database": "agent_execution_logs, ask_union_logs",
+        "tests": "test_14, test_30, test_47, test_52, test_53",
+        "status": "REAL_PARTIAL",
+        "issue": "4/12 agentes HYBRID (LLM gratuito fallback); chave Gemini retorna HTTP 402",
+        "fix": "Substituir chave Gemini Free Tier por cota ativa"
+      },
+      {
+        "functionality": "CRM Leads, LGPD, Smart Follow-up & Pipeline",
+        "frontend": "CommercialRevenueWorkspace.tsx",
+        "api": "/crm/leads, /smart-followup, /crm/deals/{id}/move-stage",
+        "database": "crm_leads, crm_deals, crm_activities",
+        "tests": "test_08, test_31, test_51, test_52, CDP",
+        "status": "REAL",
+        "issue": "Envio automático WhatsApp/SMTP depende de OAuth/SMTP",
+        "fix": "Modo Cópia Consultiva Segura ativa sem bloqueio"
+      },
+      {
+        "functionality": "Marketing, Fábrica 30 Peças & Publicação Social",
+        "frontend": "MarketingAndSEOWorkspace.tsx",
+        "api": "/content-factory/*, /social/calendar/*",
+        "database": "marketing_campaigns, content_factory_items",
+        "tests": "test_06, test_07, test_25, test_32, test_46",
+        "status": "REAL_PARTIAL",
+        "issue": "0/6 contas sociais OAuth conectadas para disparo direto",
+        "fix": "Pacote 1-Clique assistido funciona; aguarda OAuth Meta/LinkedIn/TikTok"
+      },
+      {
+        "functionality": "SEO Técnico HTTP & Search Console",
+        "frontend": "MarketingAndSEOWorkspace.tsx (SEOWorkspace)",
+        "api": "POST /seo/audit, /seo/keywords, /seo/articles/generate",
+        "database": "seo_audit_reports, seo_articles",
+        "tests": "test_05, test_27, test_51, test_52",
+        "status": "REAL_PARTIAL",
+        "issue": "Crawler HTTP real ok; Search Console SERP aguarda OAuth",
+        "fix": "Conectar Google Search Console em Integrações"
+      },
+      {
+        "functionality": "18 Integrações Externas & OAuth 2.0",
+        "frontend": "IntegrationsAndSettingsWorkspace",
+        "api": "/integrations/connect, /oauth/{provider}/start",
+        "database": "integration_connections",
+        "tests": "test_16, test_17",
+        "status": "BLOCKED",
+        "issue": "1/18 integrações conectadas",
+        "fix": "Proprietário informar credenciais oficiais na aba Integrações"
+      },
+      {
+        "functionality": "Automações 100% Nativas Python (Zero n8n)",
+        "frontend": "AIAutonomyAndOpsWorkspace.tsx",
+        "api": "/automations/*, /conversational-build",
+        "database": "automation_rules, automation_executions",
+        "tests": "test_09, test_22, test_47",
+        "status": "REAL",
+        "issue": "Container único Uvicorn sem fila distribuída externa",
+        "fix": "Presets e fluxo visual adicionados na Fase 27"
+      },
+      {
+        "functionality": "Monetização PLG, Entitlements & Billing",
+        "frontend": "PlansAndUsagePanel (AIEnginesHubWorkspace.tsx)",
+        "api": "/plans/overview, /plans/entitlements, /plans/change-tier",
+        "database": "tenants.plan_tier, payment_transactions",
+        "tests": "test_40, test_51, test_52, test_53",
+        "status": "SANDBOX",
+        "issue": "charge_enabled=false; nenhuma cobrança live habilitada",
+        "fix": "Entitlement enforcement backend ativo; checkout live aguarda aprovação"
+      },
+      {
+        "functionality": "Backup Portátil JSON + Restauração Isolada SHA-256",
+        "frontend": "Relatórios & Central de Auditoria",
+        "api": "POST /system/backup, /system/backup/test-restore",
+        "database": "Arquivo JSON + sqlite:///:memory:",
+        "tests": "test_29",
+        "status": "REAL",
+        "issue": "Nenhum",
+        "fix": "Botão Testar Restauração Isolada exposto na UI na Fase 27"
+      }
+    ],
+    "external_blockers": [
+      {
+        "category": "3. Onboarding",
+        "score": 90.0,
+        "gap": "Preenchimento automático via OAuth não conectado",
+        "external_dependency": "Credenciais site/OAuth",
+        "next_action": "Estimular domínio na etapa 1"
+      },
+      {
+        "category": "4. Core Functionality",
+        "score": 92.0,
+        "gap": "Alguns fluxos sociais em Modo Assistido",
+        "external_dependency": "OAuth redes",
+        "next_action": "Manter cobertura regressiva"
+      },
+      {
+        "category": "7. Security",
+        "score": 90.0,
+        "gap": "JWT armazenado em localStorage (sem MFA/HttpOnly cookie ainda)",
+        "external_dependency": "Cookies/SSO Enterprise",
+        "next_action": "Planejar cookies HttpOnly + MFA TOTP"
+      },
+      {
+        "category": "9. Integrations",
+        "score": 45.2,
+        "gap": "17 integrações em Aguardando Conexão",
+        "external_dependency": "Credenciais OAuth Meta/Google/LinkedIn/WhatsApp",
+        "next_action": "Proprietário conectar OAuth oficiais"
+      },
+      {
+        "category": "10. AI",
+        "score": 78.0,
+        "gap": "Chave Gemini Tenant 1 em HTTP 402; 8 agentes puramente determinísticos",
+        "external_dependency": "Chave Gemini/Groq gratuita com cota ativa",
+        "next_action": "Inserir chave Gemini Free Tier ativa"
+      },
+      {
+        "category": "11. Automation",
+        "score": 91.0,
+        "gap": "Sem fila worker distribuída externa para picos extremos",
+        "external_dependency": "Redis/Worker futuro",
+        "next_action": "Acompanhar dead-letters no painel"
+      },
+      {
+        "category": "12. CRM",
+        "score": 93.0,
+        "gap": "Sync bidirecional IMAP/WhatsApp aguarda OAuth",
+        "external_dependency": "WhatsApp Cloud API / SMTP",
+        "next_action": "Conectar canal de disparo"
+      },
+      {
+        "category": "13. Revenue",
+        "score": 92.0,
+        "gap": "Assinatura eletrônica jurídica (Gov.br/Clicksign) fora do escopo gratuito",
+        "external_dependency": "Provedor assinatura paga",
+        "next_action": "Conectar gateway quando autorizado"
+      },
+      {
+        "category": "14. Marketing",
+        "score": 88.0,
+        "gap": "Publicação direta redes sociais requer OAuth (usa Pacote 1-Clique)",
+        "external_dependency": "Meta/TikTok/LinkedIn OAuth",
+        "next_action": "Conectar contas sociais"
+      },
+      {
+        "category": "15. SEO",
+        "score": 84.0,
+        "gap": "Posições SERP orgânicas aguardam OAuth Search Console",
+        "external_dependency": "Google Search Console OAuth",
+        "next_action": "Conectar Search Console"
+      },
+      {
+        "category": "16. Monetization",
+        "score": 78.0,
+        "gap": "0 transações reais pagas até habilitação pelo dono",
+        "external_dependency": "Aprovação + credenciais Mercado Pago/Stripe",
+        "next_action": "Autorizar live billing quando comercializar"
+      },
+      {
+        "category": "17. Customer Success",
+        "score": 88.0,
+        "gap": "Coleta automática por e-mail depende SMTP",
+        "external_dependency": "SMTP conectado",
+        "next_action": "Conectar SMTP para pesquisas periódicas"
+      },
+      {
+        "category": "18. Analytics",
+        "score": 86.0,
+        "gap": "Tráfego web externo aguarda OAuth GA4",
+        "external_dependency": "Google Analytics 4 OAuth",
+        "next_action": "Conectar propriedade GA4"
+      },
+      {
+        "category": "19. Performance",
+        "score": 93.0,
+        "gap": "Consultas agregadas futuras podem requerer cache Redis",
+        "external_dependency": "Redis gerenciado em escala alta",
+        "next_action": "Monitorar p95 em produção"
+      },
+      {
+        "category": "20. CI/CD",
+        "score": 84.0,
+        "gap": "Secrets COOLIFY_API_TOKEN/WEBHOOK não estão no GitHub Settings",
+        "external_dependency": "Proprietário adicionar Secrets no GitHub",
+        "next_action": "Cadastrar secrets para auto-trigger via push"
+      },
+      {
+        "category": "21. Reliability",
+        "score": 94.0,
+        "gap": "Single replica sem multi-AZ failover automático",
+        "external_dependency": "Multi-nó VPS/Cloud",
+        "next_action": "Manter healthchecks rigorosos"
+      },
+      {
+        "category": "22. Backup",
+        "score": 92.0,
+        "gap": "Backup off-site S3/Backblaze depende credenciais de storage externo",
+        "external_dependency": "Bucket S3 opcional",
+        "next_action": "Executar Testar Restauração periodicamente"
+      },
+      {
+        "category": "23. Accessibility",
+        "score": 94.0,
+        "gap": "Auditoria formal leitor de tela NVDA/VoiceOver pendente",
+        "external_dependency": "Leitor de tela humano",
+        "next_action": "Manter padrão ARIA rigoroso"
+      },
+      {
+        "category": "25. Scalability",
+        "score": 76.0,
+        "gap": "Requer Redis queue + read-replicas + multi-instance load balancer para escala massiva",
+        "external_dependency": "Infraestrutura horizontal multi-servidor",
+        "next_action": "Escalar horizontalmente quando demanda comercial exigir"
+      }
+    ],
+    "next_actions": [
+      {
+        "category": "9. Integrations",
+        "score": 45.2,
+        "action": "Proprietário conectar OAuth oficiais"
+      },
+      {
+        "category": "25. Scalability",
+        "score": 76.0,
+        "action": "Escalar horizontalmente quando demanda comercial exigir"
+      },
+      {
+        "category": "10. AI",
+        "score": 78.0,
+        "action": "Inserir chave Gemini Free Tier ativa"
+      },
+      {
+        "category": "16. Monetization",
+        "score": 78.0,
+        "action": "Autorizar live billing quando comercializar"
+      },
+      {
+        "category": "15. SEO",
+        "score": 84.0,
+        "action": "Conectar Search Console"
+      },
+      {
+        "category": "20. CI/CD",
+        "score": 84.0,
+        "action": "Cadastrar secrets para auto-trigger via push"
+      },
+      {
+        "category": "24. Architecture",
+        "score": 85.0,
+        "action": "Dividir serviços >1500L em subpacotes"
+      },
+      {
+        "category": "18. Analytics",
+        "score": 86.0,
+        "action": "Conectar propriedade GA4"
+      }
+    ],
+    "triggered_by": "admin@projetosunion.cloud",
+    "created_at": "2026-11-27T21:18:21.704569"
+  },
+  "benchmark": {
+    "benchmark_origin": "REAL",
+    "elapsed_ms": 4.61,
+    "provider_status": {
+      "active_provider": "pollinations-free-openai-adapter",
+      "llm_active": true,
+      "origin_code": "REAL_LLM_EXTERNAL:pollinations:openai",
+      "adapters": {
+        "deterministic_python_engine": {
+          "status": "ACTIVE",
+          "cost": "R$ 0,00 (Nativo)"
+        },
+        "local_ollama_adapter": {
+          "status": "STANDBY_OFFLINE",
+          "base_url": "http://localhost:11434",
+          "model": "llama3.2"
+        },
+        "external_gemini_adapter": {
+          "status": "PENDING_API_KEY",
+          "model": "gemini-2.5-flash"
+        },
+        "external_openai_compatible_adapter": {
+          "status": "PENDING_API_KEY",
+          "base_url": "https://api.groq.com/openai/v1"
+        },
+        "free_public_llm_adapter": {
+          "status": "ENABLED",
+          "endpoint": "https://text.pollinations.ai/openai"
+        }
+      }
+    },
+    "cost_policy": "FREE_ONLY",
+    "cost_incurred_brl": 0.0,
+    "agents_total": 12,
+    "hybrid_agents_count": 4,
+    "deterministic_agents_count": 8,
+    "simulated_agents_count": 0,
+    "agents": [
+      {
+        "agent_id": "AGENT_01_CEO",
+        "name": "AI CEO — Chief Executive Officer",
+        "agent_name": "AI CEO — Chief Executive Officer",
+        "mode": "HYBRID",
+        "execution_mode": "HYBRID",
+        "fallback_ready": true,
+        "executions_observed": 0,
+        "success_rate_pct": null,
+        "avg_latency_ms": 0.0,
+        "cost_policy": "FREE_ONLY",
+        "paid_calls_blocked": true,
+        "notes": "Execuções observadas: 0 • Latência média: 0.0ms • Fallback determinístico ativo • Custo: R$ 0,00"
+      },
+      {
+        "agent_id": "AGENT_02_CMO",
+        "name": "AI CMO — Chief Marketing Officer",
+        "agent_name": "AI CMO — Chief Marketing Officer",
+        "mode": "HYBRID",
+        "execution_mode": "HYBRID",
+        "fallback_ready": true,
+        "executions_observed": 0,
+        "success_rate_pct": null,
+        "avg_latency_ms": 0.0,
+        "cost_policy": "FREE_ONLY",
+        "paid_calls_blocked": true,
+        "notes": "Execuções observadas: 0 • Latência média: 0.0ms • Fallback determinístico ativo • Custo: R$ 0,00"
+      },
+      {
+        "agent_id": "AGENT_03_SEO",
+        "name": "AI SEO Director",
+        "agent_name": "AI SEO Director",
+        "mode": "DETERMINISTIC",
+        "execution_mode": "DETERMINISTIC",
+        "fallback_ready": true,
+        "executions_observed": 0,
+        "success_rate_pct": null,
+        "avg_latency_ms": 0.0,
+        "cost_policy": "FREE_ONLY",
+        "paid_calls_blocked": true,
+        "notes": "Execuções observadas: 0 • Latência média: 0.0ms • Fallback determinístico ativo • Custo: R$ 0,00"
+      },
+      {
+        "agent_id": "AGENT_04_SOCIAL",
+        "name": "AI Social Media Director",
+        "agent_name": "AI Social Media Director",
+        "mode": "HYBRID",
+        "execution_mode": "HYBRID",
+        "fallback_ready": true,
+        "executions_observed": 0,
+        "success_rate_pct": null,
+        "avg_latency_ms": 0.0,
+        "cost_policy": "FREE_ONLY",
+        "paid_calls_blocked": true,
+        "notes": "Execuções observadas: 0 • Latência média: 0.0ms • Fallback determinístico ativo • Custo: R$ 0,00"
+      },
+      {
+        "agent_id": "AGENT_05_CREATIVE",
+        "name": "AI Creative Studio",
+        "agent_name": "AI Creative Studio",
+        "mode": "DETERMINISTIC",
+        "execution_mode": "DETERMINISTIC",
+        "fallback_ready": true,
+        "executions_observed": 0,
+        "success_rate_pct": null,
+        "avg_latency_ms": 0.0,
+        "cost_policy": "FREE_ONLY",
+        "paid_calls_blocked": true,
+        "notes": "Execuções observadas: 0 • Latência média: 0.0ms • Fallback determinístico ativo • Custo: R$ 0,00"
+      },
+      {
+        "agent_id": "AGENT_06_COPYWRITER",
+        "name": "AI Copywriter",
+        "agent_name": "AI Copywriter",
+        "mode": "HYBRID",
+        "execution_mode": "HYBRID",
+        "fallback_ready": true,
+        "executions_observed": 0,
+        "success_rate_pct": null,
+        "avg_latency_ms": 0.0,
+        "cost_policy": "FREE_ONLY",
+        "paid_calls_blocked": true,
+        "notes": "Execuções observadas: 0 • Latência média: 0.0ms • Fallback determinístico ativo • Custo: R$ 0,00"
+      },
+      {
+        "agent_id": "AGENT_07_GROWTH",
+        "name": "AI Growth Hacker",
+        "agent_name": "AI Growth Hacker",
+        "mode": "DETERMINISTIC",
+        "execution_mode": "DETERMINISTIC",
+        "fallback_ready": true,
+        "executions_observed": 0,
+        "success_rate_pct": null,
+        "avg_latency_ms": 0.0,
+        "cost_policy": "FREE_ONLY",
+        "paid_calls_blocked": true,
+        "notes": "Execuções observadas: 0 • Latência média: 0.0ms • Fallback determinístico ativo • Custo: R$ 0,00"
+      },
+      {
+        "agent_id": "AGENT_08_SALES",
+        "name": "AI Sales Director",
+        "agent_name": "AI Sales Director",
+        "mode": "DETERMINISTIC",
+        "execution_mode": "DETERMINISTIC",
+        "fallback_ready": true,
+        "executions_observed": 5,
+        "success_rate_pct": 100.0,
+        "avg_latency_ms": 24.9,
+        "cost_policy": "FREE_ONLY",
+        "paid_calls_blocked": true,
+        "notes": "Execuções observadas: 5 • Latência média: 24.9ms • Fallback determinístico ativo • Custo: R$ 0,00"
+      },
+      {
+        "agent_id": "AGENT_09_COMPETITIVE",
+        "name": "AI Competitive Intelligence",
+        "agent_name": "AI Competitive Intelligence",
+        "mode": "DETERMINISTIC",
+        "execution_mode": "DETERMINISTIC",
+        "fallback_ready": true,
+        "executions_observed": 0,
+        "success_rate_pct": null,
+        "avg_latency_ms": 0.0,
+        "cost_policy": "FREE_ONLY",
+        "paid_calls_blocked": true,
+        "notes": "Execuções observadas: 0 • Latência média: 0.0ms • Fallback determinístico ativo • Custo: R$ 0,00"
+      },
+      {
+        "agent_id": "AGENT_10_FINANCE",
+        "name": "AI Finance & Performance",
+        "agent_name": "AI Finance & Performance",
+        "mode": "DETERMINISTIC",
+        "execution_mode": "DETERMINISTIC",
+        "fallback_ready": true,
+        "executions_observed": 0,
+        "success_rate_pct": null,
+        "avg_latency_ms": 0.0,
+        "cost_policy": "FREE_ONLY",
+        "paid_calls_blocked": true,
+        "notes": "Execuções observadas: 0 • Latência média: 0.0ms • Fallback determinístico ativo • Custo: R$ 0,00"
+      },
+      {
+        "agent_id": "AGENT_11_CS",
+        "name": "AI Customer Success",
+        "agent_name": "AI Customer Success",
+        "mode": "DETERMINISTIC",
+        "execution_mode": "DETERMINISTIC",
+        "fallback_ready": true,
+        "executions_observed": 0,
+        "success_rate_pct": null,
+        "avg_latency_ms": 0.0,
+        "cost_policy": "FREE_ONLY",
+        "paid_calls_blocked": true,
+        "notes": "Execuções observadas: 0 • Latência média: 0.0ms • Fallback determinístico ativo • Custo: R$ 0,00"
+      },
+      {
+        "agent_id": "AGENT_12_DATA_ANALYST",
+        "name": "AI Data Analyst",
+        "agent_name": "AI Data Analyst",
+        "mode": "DETERMINISTIC",
+        "execution_mode": "DETERMINISTIC",
+        "fallback_ready": true,
+        "executions_observed": 0,
+        "success_rate_pct": null,
+        "avg_latency_ms": 0.0,
+        "cost_policy": "FREE_ONLY",
+        "paid_calls_blocked": true,
+        "notes": "Execuções observadas: 0 • Latência média: 0.0ms • Fallback determinístico ativo • Custo: R$ 0,00"
+      }
+    ]
+  },
+  "entitlements_billing": {
+    "charge_enabled": false,
+    "authorization_required": true,
+    "recommended_br_gateway": {
+      "provider": "Mercado Pago",
+      "methods": [
+        "PIX",
+        "Cartão Recorrente"
+      ],
+      "webhook_hmac_implemented": true,
+      "live_credentials_present": false
+    },
+    "recommended_global_gateway": {
+      "provider": "Stripe Billing / Paddle MoR",
+      "currency": "USD / EUR",
+      "live_credentials_present": false
+    }
+  },
+  "usage_meters": {
+    "companies": {
+      "label": "Empresas / Workspaces",
+      "used": 5,
+      "limit": 999,
+      "usage_pct": 0.5,
+      "near_limit": false,
+      "exceeded": false
+    },
+    "users": {
+      "label": "Usuários ativos",
+      "used": 0,
+      "limit": 9999,
+      "usage_pct": 0.0,
+      "near_limit": false,
+      "exceeded": false
+    },
+    "crm_leads": {
+      "label": "Leads no CRM",
+      "used": 8,
+      "limit": 500000,
+      "usage_pct": 0.0,
+      "near_limit": false,
+      "exceeded": false
+    },
+    "automations": {
+      "label": "Automações ativas",
+      "used": 31,
+      "limit": 999,
+      "usage_pct": 3.1,
+      "near_limit": false,
+      "exceeded": false
+    },
+    "ai_actions": {
+      "label": "Execuções IA (histórico)",
+      "used": 5,
+      "limit": 50000,
+      "usage_pct": 0.0,
+      "near_limit": false,
+      "exceeded": false
+    }
+  },
+  "security": {
+    "default_signing_secrets_in_use": false,
+    "users_with_invalidated_default_password_still_valid": 0,
+    "users_requiring_password_change": 0,
+    "password_hash": "bcrypt (rounds=10)",
+    "jwt": "HS256, expira em 1440 min",
+    "credentials_encryption": "Fernet (AES-128-CBC + HMAC)",
+    "cors_allowed_origins": [
+      "https://automacao.projetosunion.cloud",
+      "https://uniongrowth.72.62.13.62.sslip.io",
+      "https://growth.projetosunion.cloud",
+      "http://localhost:3000",
+      "http://localhost:8000"
+    ],
+    "rate_limit_per_minute": 600,
+    "login_bruteforce_protection": "8 falhas / 5 min por IP+e-mail",
+    "tenant_isolation": "Todas as consultas filtram tenant_id; X-Tenant-Id só aceito para tenants do próprio owner",
+    "environment": "production"
+  }
+}
