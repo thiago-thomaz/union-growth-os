@@ -162,13 +162,12 @@ export function ProgressiveOnboardingWizard({
                 key={st.step}
                 type="button"
                 onClick={() => setStep(st.step)}
-                className={`text-[11px] whitespace-nowrap font-medium transition ${
-                  active
+                className={`text-[11px] whitespace-nowrap font-medium transition ${active
                     ? "text-indigo-400 font-semibold"
                     : completed
-                    ? "text-emerald-400"
-                    : "text-[var(--ug-text-muted)] hover:text-[var(--ug-text-secondary)]"
-                }`}
+                      ? "text-emerald-400"
+                      : "text-[var(--ug-text-muted)] hover:text-[var(--ug-text-secondary)]"
+                  }`}
               >
                 {st.title}
               </button>
@@ -238,11 +237,10 @@ export function ProgressiveOnboardingWizard({
                   key={g}
                   type="button"
                   onClick={() => setGoals((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]))}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition ${
-                    active
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition ${active
                       ? "bg-indigo-600 border-indigo-500 text-white"
                       : "bg-white/[0.03] border-[var(--ug-border)] text-[var(--ug-text-secondary)] hover:text-[var(--ug-text-primary)]"
-                  }`}
+                    }`}
                 >
                   {active ? "✓ " : ""}
                   {g}
@@ -336,8 +334,8 @@ export function ProgressiveOnboardingWizard({
           {step === 4 && !obData?.data?.generated_plan
             ? "Gerar Plano & Avançar →"
             : step === 6
-            ? "Concluir Onboarding ✓"
-            : "Salvar e Avançar →"}
+              ? "Concluir Onboarding ✓"
+              : "Salvar e Avançar →"}
         </button>
       </div>
     </section>

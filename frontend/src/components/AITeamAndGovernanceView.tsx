@@ -326,11 +326,10 @@ export function AITeamAndGovernanceView({
                     await onReload();
                     showNotice(`Autonomia atualizada para ${opt.name}!`);
                   }}
-                  className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-medium border transition ${
-                    currentAutonomy === opt.lvl
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-medium border transition ${currentAutonomy === opt.lvl
                       ? "bg-indigo-600 text-white border-indigo-500"
                       : "bg-white/[0.03] border-[var(--ug-border)] text-[var(--ug-text-secondary)]"
-                  }`}
+                    }`}
                 >
                   {opt.name}
                 </button>
@@ -484,10 +483,10 @@ export function AITeamAndGovernanceView({
                 st === "SUCCESS"
                   ? "EXECUTED"
                   : st.includes("BLOCKED") || st.includes("QUOTA")
-                  ? "BLOCKED"
-                  : st.includes("ERROR") || st.includes("FAILED")
-                  ? "FAILED"
-                  : "PENDING";
+                    ? "BLOCKED"
+                    : st.includes("ERROR") || st.includes("FAILED")
+                      ? "FAILED"
+                      : "PENDING";
               return (
                 <div key={ex.execution_uuid} className="px-4 py-3 text-xs flex flex-wrap items-center justify-between gap-3">
                   <div className="space-y-0.5 min-w-0">

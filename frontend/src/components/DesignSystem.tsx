@@ -21,7 +21,7 @@ export function OriginBadge({ origin }: { origin?: string }) {
   const item = cfg[o] || cfg.REAL;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${item.bg} ${item.text}`}
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap shrink-0 ${item.bg} ${item.text}`}
     >
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.dot}`} aria-hidden="true" />
       <span>{item.label}</span>
@@ -116,7 +116,7 @@ export function MetricStrip({ items }: { items: MetricStripItem[] }) {
   if (!items || items.length === 0) return null;
   return (
     <div
-      className="ug-card rounded-xl grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.06] overflow-hidden"
+      className="ug-card rounded-xl grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.06] overflow-hidden"
     >
       {items.map((item) => {
         const Wrapper: any = item.onClick ? "button" : "div";

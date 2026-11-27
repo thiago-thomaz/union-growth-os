@@ -936,7 +936,8 @@ export default function UnionGrowthOSPortal() {
                 </span>
                 <span className="text-[var(--ug-text-muted)] hidden sm:inline">/</span>
                 <h2 className="text-sm font-semibold tracking-tight text-[var(--ug-text-primary)] truncate">
-                  {currentResourceMeta?.name || "UNION GROWTH OS"}
+                  <span className="sm:hidden">{(currentResourceMeta?.name || "UNION GROWTH OS").split(" — ")[0]}</span>
+                  <span className="hidden sm:inline">{currentResourceMeta?.name || "UNION GROWTH OS"}</span>
                 </h2>
                 {meData?.active_tenant?.brand_name && (
                   <span className="hidden xl:inline-block text-[11px] text-[var(--ug-text-muted)] truncate">
