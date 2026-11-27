@@ -830,23 +830,25 @@ export default function UnionGrowthOSPortal() {
 
                     {isExpanded && (
                       <div className="ml-4 pl-2.5 border-l border-slate-800 space-y-0.5 py-1">
-                        {area.subtabs.map((sub) => {
-                          const isSubActive = activeMenu === sub.id || (sub.id === "social" && activeMenu === "calendar");
-                          return (
-                            <button
-                              key={sub.id}
-                              type="button"
-                              onClick={() => navigateTo(sub.id)}
-                              className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition ${
-                                isSubActive
-                                  ? "bg-indigo-500/20 text-indigo-300 font-semibold"
-                                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
-                              }`}
-                            >
-                              {sub.label}
-                            </button>
-                          );
-                        })}
+                        {area.subtabs
+                          .filter((sub) => uiMode === "ADVANCED" || !sub.advancedOnly || activeMenu === sub.id)
+                          .map((sub) => {
+                            const isSubActive = activeMenu === sub.id || (sub.id === "social" && activeMenu === "calendar");
+                            return (
+                              <button
+                                key={sub.id}
+                                type="button"
+                                onClick={() => navigateTo(sub.id)}
+                                className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition ${
+                                  isSubActive
+                                    ? "bg-indigo-500/20 text-indigo-300 font-semibold"
+                                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                                }`}
+                              >
+                                {sub.label}
+                              </button>
+                            );
+                          })}
                       </div>
                     )}
                   </div>
@@ -1035,32 +1037,60 @@ export default function UnionGrowthOSPortal() {
             </div>
           </div>
 
-          {/* Barra Horizontal Contextual de Subtabs da Área Atual */}
-          {currentAreaConfig && currentAreaConfig.subtabs.length > 0 && (
-            <nav
-              className="px-4 lg:px-6 py-2 border-t border-slate-800/60 flex items-center gap-1.5 overflow-x-auto"
-              aria-label={`Submenus de ${currentAreaConfig.label}`}
-            >
-              {currentAreaConfig.subtabs.map((sub) => {
-                const isSubActive = activeMenu === sub.id || (sub.id === "social" && activeMenu === "calendar");
-                return (
+          {/* Barra Horizontal Contextual de Subtabs da Área Atual (Modo Simples vs Avançado) */}
+          {currentAreaConfig && currentAreaConfig.subtabs.length > 0 && (() => {
+            const visibleSubtabs = currentAreaConfig.subtabs.filter(
+              (sub) => uiMode === "ADVANCED" || !sub.advancedOnly || activeMenu === sub.id
+            );
+            const hiddenAdvancedCount = currentAreaConfig.subtabs.filter((s) => s.advancedOnly).length;
+            return (
+              <nav
+                className="px-4 lg:px-6 py-2 border-t border-slate-800/60 flex items-center gap-1.5 overflow-x-auto"
+                aria-label={`Submenus de ${currentAreaConfig.label}`}
+              >
+                {visibleSubtabs.map((sub) => {
+                  const isSubActive = activeMenu === sub.id || (sub.id === "social" && activeMenu === "calendar");
+                  return (
+                    <button
+                      key={sub.id}
+                      type="button"
+                      onClick={() => navigateTo(sub.id)}
+                      title={sub.shortDesc}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
+                        isSubActive
+                          ? "bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 font-semibold"
+                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent"
+                      }`}
+                    >
+                      {sub.label}
+                    </button>
+                  );
+                })}
+                {uiMode === "SIMPLE" && hiddenAdvancedCount > 0 && (
                   <button
-                    key={sub.id}
+                    id="ug-reveal-advanced-subtabs"
                     type="button"
-                    onClick={() => navigateTo(sub.id)}
-                    title={sub.shortDesc}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
-                      isSubActive
-                        ? "bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 font-semibold"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent"
-                    }`}
+                    onClick={async () => {
+                      setUiMode("ADVANCED");
+                      if (typeof window !== "undefined") localStorage.setItem("ug_ui_mode", "ADVANCED");
+                      try {
+                        await apiFetch("/api/v1/tenants/current", {
+                          method: "PUT",
+                          body: JSON.stringify({ ui_mode: "ADVANCED" }),
+                        });
+                      } catch {
+                        // mantém preferência local
+                      }
+                      showNotice(`Modo Avançado ativado: +${hiddenAdvancedCount} opções técnicas liberadas.`);
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 transition"
                   >
-                    {sub.label}
+                    + {hiddenAdvancedCount} Avançado
                   </button>
-                );
-              })}
-            </nav>
-          )}
+                )}
+              </nav>
+            );
+          })()}
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
@@ -3549,35 +3579,58 @@ export default function UnionGrowthOSPortal() {
                 showNotice={showNotice}
               />
 
-              <div className="bg-[#0f1629] border border-emerald-500/30 rounded-xl p-4 flex items-center justify-between">
+              <div className="bg-[#0f1629] border border-emerald-500/30 rounded-xl p-4 flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h3 className="text-sm font-bold text-white">
-                    Central de Automações 100% Nativa em Python (Zero Dependência de n8n)
+                    {uiMode === "SIMPLE"
+                      ? "Rotinas Automáticas Ativas da Sua Empresa (100% Nativo • Zero n8n)"
+                      : "Central de Automações 100% Nativa em Python (Zero Dependência de n8n)"}
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Motor: {automationsData.scheduler?.engine} • Status:{" "}
-                    <strong className="text-emerald-400">
-                      {automationsData.scheduler?.running ? "ATIVO NO SERVIDOR CLOUD" : "PARADO"}
-                    </strong>
+                    {uiMode === "SIMPLE"
+                      ? `O sistema monitora ${automationsData.rules?.length || 0} rotinas diárias com segurança no servidor cloud.`
+                      : `Motor: ${automationsData.scheduler?.engine} • Status: `}
+                    {uiMode === "ADVANCED" && (
+                      <strong className="text-emerald-400">
+                        {automationsData.scheduler?.running ? "ATIVO NO SERVIDOR CLOUD" : "PARADO"}
+                      </strong>
+                    )}
                   </p>
                 </div>
+                {uiMode === "SIMPLE" && (
+                  <button
+                    type="button"
+                    onClick={() => setUiMode("ADVANCED")}
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-200 font-medium"
+                  >
+                    Ver logs e testes técnicos (Avançado)
+                  </button>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {automationsData.rules.map((r: any) => (
+                {(uiMode === "SIMPLE" ? automationsData.rules.slice(0, 6) : automationsData.rules).map((r: any) => (
                   <div key={r.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <span className="font-bold text-white">{r.name}</span>
                       <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-[10px]">
-                        {r.trigger_type} • {r.frequency_label}
+                        {uiMode === "SIMPLE" ? r.frequency_label : `${r.trigger_type} • ${r.frequency_label}`}
                       </span>
                     </div>
-                    <div className="text-slate-400">
-                      Agente Responsável: <strong className="text-slate-200">{r.action_agent}</strong> • Execuções:{" "}
-                      {r.run_count} • Último Status: <strong className="text-emerald-400">{r.last_status}</strong>
-                    </div>
+                    {uiMode === "ADVANCED" ? (
+                      <div className="text-slate-400">
+                        Agente Responsável: <strong className="text-slate-200">{r.action_agent}</strong> • Execuções:{" "}
+                        {r.run_count} • Último Status: <strong className="text-emerald-400">{r.last_status}</strong>
+                      </div>
+                    ) : (
+                      <div className="text-slate-400">
+                        Execuções concluídas: <strong className="text-slate-200">{r.run_count}</strong> • Estado:{" "}
+                        <strong className="text-emerald-400">{r.last_status === "READY" ? "Pronta" : r.last_status}</strong>
+                      </div>
+                    )}
                     <div className="pt-2 flex gap-2">
                       <button
+                        type="button"
                         onClick={async () => {
                           await apiFetch(`/api/v1/automations/${r.id}/run`, {
                             method: "POST",
@@ -3590,27 +3643,30 @@ export default function UnionGrowthOSPortal() {
                       >
                         Executar Agora
                       </button>
-                      <button
-                        onClick={async () => {
-                          const res = await apiFetch(`/api/v1/automations/${r.id}/run`, {
-                            method: "POST",
-                            body: JSON.stringify({ simulate_transient_failure: true }),
-                          });
-                          await loadAllActiveData();
-                          showNotice(
-                            `Retry com Backoff validado: status ${res.status} na tentativa #${res.attempt_number}!`
-                          );
-                        }}
-                        className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300"
-                      >
-                        Testar Retry + Backoff
-                      </button>
+                      {uiMode === "ADVANCED" && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const res = await apiFetch(`/api/v1/automations/${r.id}/run`, {
+                              method: "POST",
+                              body: JSON.stringify({ simulate_transient_failure: true }),
+                            });
+                            await loadAllActiveData();
+                            showNotice(
+                              `Retry com Backoff validado: status ${res.status} na tentativa #${res.attempt_number}!`
+                            );
+                          }}
+                          className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300"
+                        >
+                          Testar Retry + Backoff
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
 
-              {automationsData.executions?.length > 0 && (
+              {uiMode === "ADVANCED" && automationsData.executions?.length > 0 && (
                 <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-2">
                   <h4 className="text-sm font-bold text-white">Histórico Persistido de Execuções do Scheduler</h4>
                   {automationsData.executions.map((ex: any) => (

@@ -523,6 +523,12 @@ async def run_phase22_e2e():
             if sh8:
                 report["screenshots"].append(sh8)
 
+            # Garantir Modo Avançado temporariamente caso ativo em Modo Simples para validar Modelos & Provedores
+            was_simple_before_s10 = await cdp.evaluate("(document.querySelector('#ug-ui-mode-toggle')?.innerText || '').includes('Simples')")
+            if was_simple_before_s10:
+                await cdp.click_by_text("#ug-ui-mode-toggle", "")
+                await asyncio.sleep(0.5)
+
             await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Modelos & Provedores")
             await asyncio.sleep(0.6)
             prov_ok = await cdp.click_by_text("main button", "2. Provedores")
@@ -532,6 +538,9 @@ async def run_phase22_e2e():
             sh9 = await cdp.screenshot("09_ia_motores_provedores.png")
             if sh9:
                 report["screenshots"].append(sh9)
+            if was_simple_before_s10:
+                await cdp.click_by_text("#ug-ui-mode-toggle", "")
+                await asyncio.sleep(0.4)
             report["scenarios"]["S10_ia_ux_e_motores"] = {
                 "ia_overview_ok": bool(ia_overview_ok),
                 "prov_ok": bool(prov_ok and prov_has_key),

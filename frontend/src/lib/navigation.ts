@@ -43,6 +43,7 @@ export interface SubTabConfig {
   label: string;
   shortDesc: string;
   legacyNum?: string;
+  advancedOnly?: boolean;
 }
 
 export interface AreaConfig {
@@ -117,8 +118,8 @@ export const PRIMARY_AREAS: AreaConfig[] = [
       { id: "social", label: "Calendário & Redes", shortDesc: "Agenda editorial e publicação assistida", legacyNum: "05/18" },
       { id: "seo", label: "SEO & Artigos", shortDesc: "Auditoria técnica real, keywords e blog", legacyNum: "04" },
       { id: "creative", label: "Criativos", shortDesc: "Peças visuais PNG e vídeos MP4", legacyNum: "10" },
-      { id: "copywriter", label: "Copywriting A/B", shortDesc: "Textos persuasivos e testes A/B", legacyNum: "11" },
-      { id: "growth", label: "Growth & Testes", shortDesc: "Experimentos ICE e conversão", legacyNum: "12" },
+      { id: "copywriter", label: "Copywriting A/B", shortDesc: "Textos persuasivos e testes A/B", legacyNum: "11", advancedOnly: true },
+      { id: "growth", label: "Growth & Testes", shortDesc: "Experimentos ICE e conversão", legacyNum: "12", advancedOnly: true },
     ],
   },
   {
@@ -130,11 +131,11 @@ export const PRIMARY_AREAS: AreaConfig[] = [
     primaryCtaTarget: "ai_engines",
     subtabs: [
       { id: "ai_team_overview", label: "Visão & Agentes", shortDesc: "Entenda o que cada agente faz e controle a autonomia" },
-      { id: "ai_engines", label: "Modelos & Provedores", shortDesc: "Google Gemini gratuito, GPT, Claude, Groq e limites", legacyNum: "25" },
+      { id: "ai_engines", label: "Modelos & Provedores", shortDesc: "Google Gemini gratuito, GPT, Claude, Groq e limites", legacyNum: "25", advancedOnly: true },
       { id: "ceo", label: "AI CEO & Estratégia", shortDesc: "Briefings executivos e metas OKR", legacyNum: "02" },
       { id: "automations", label: "Automações 24/7", shortDesc: "Rotinas nativas em Python (sem n8n)", legacyNum: "19" },
-      { id: "operational247", label: "Monitoramento & Alertas", shortDesc: "Saúde do scheduler, heartbeats e custos", legacyNum: "08" },
-      { id: "pilot7d", label: "Piloto 7 Dias", shortDesc: "Simulação operacional assistida de 7 dias", legacyNum: "09" },
+      { id: "operational247", label: "Monitoramento & Alertas", shortDesc: "Saúde do scheduler, heartbeats e custos", legacyNum: "08", advancedOnly: true },
+      { id: "pilot7d", label: "Piloto 7 Dias", shortDesc: "Simulação operacional assistida de 7 dias", legacyNum: "09", advancedOnly: true },
     ],
   },
   {
@@ -149,7 +150,7 @@ export const PRIMARY_AREAS: AreaConfig[] = [
       { id: "reports", label: "Relatórios", shortDesc: "Relatórios executivos auditáveis", legacyNum: "21" },
       { id: "integrations", label: "Integrações", shortDesc: "Credenciais OAuth, APIs e canais externos", legacyNum: "22" },
       { id: "settings", label: "Configurações & Planos", shortDesc: "Autonomia, empresas multi-tenant e planos", legacyNum: "23" },
-      { id: "audit", label: "Auditoria & Logs", shortDesc: "Trilha imutável de ações e segurança", legacyNum: "24" },
+      { id: "audit", label: "Auditoria & Logs", shortDesc: "Trilha imutável de ações e segurança", legacyNum: "24", advancedOnly: true },
     ],
   },
 ];

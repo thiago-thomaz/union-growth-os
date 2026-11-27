@@ -262,3 +262,84 @@ def require_roles(*allowed_roles: str):
 
     return _checker
 
+
+def validate_public_http_url(raw_url: str) -> str:
+    """
+    Valida URL para prevenção estrita de SSRF:
+    - Permite somente esquemas http:// ou https:// (sem credenciais embutidas).
+    - Bloqueia localhost, .local, .internal, IPs privados (RFC1918), loopback (127.0.0.0/8, ::1),
+      link-local / metadados cloud (169.254.0.0/16), multicast e IPs reservados.
+    """
+    import ipaddress
+    import socket
+    import urllib.parse
+
+    url = (raw_url or "").strip()
+    if not url:
+        raise ValueError("URL não pode estar vazia.")
+    if "://" not in url:
+        url = f"https://{url}"
+
+    parsed = urllib.parse.urlparse(url)
+    scheme = (parsed.scheme or "").lower()
+    if scheme not in ("http", "https"):
+        raise ValueError(f"Esquema de URL não permitido pela política de segurança SSRF: '{scheme}'.")
+    if parsed.username or parsed.password:
+        raise ValueError("Credenciais embutidas na URL são proibidas por segurança.")
+
+    host = (parsed.hostname or "").strip().lower()
+    if not host:
+        raise ValueError("Hostname inválido na URL fornecida.")
+
+    blocked_hosts = {"localhost", "localhost.localdomain", "metadata", "metadata.google.internal"}
+    if host in blocked_hosts or host.endswith(".local") or host.endswith(".internal") or host.endswith(".localhost"):
+        raise ValueError(f"Destino interno ou restrito bloqueado (SSRF): '{host}'.")
+
+    def _check_ip(ip_str: str) -> None:
+        addr = ipaddress.ip_address(ip_str)
+        if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_multicast or addr.is_reserved or addr.is_unspecified:
+            raise ValueError(f"Endereço IP privado/interno/loopback/metadados bloqueado por política anti-SSRF: '{ip_str}'.")
+
+    try:
+        _check_ip(host)
+    except ValueError as ve:
+        if "bloqueado por política" in str(ve):
+            raise
+        # Host não é IP literal -> resolver DNS quando online e validar todos os registros retornados
+        try:
+            infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+            for info in infos:
+                ip_val = info[4][0].split("%")[0]
+                _check_ip(ip_val)
+        except socket.gaierror:
+            # Domínio público pode falhar DNS em ambientes isolados/offline -> tratado como fallback HTTP no caller
+            pass
+
+    return url
+
+
+def safe_public_http_get(
+    raw_url: str,
+    timeout: float = 7.0,
+    headers: dict[str, str] | None = None,
+    max_redirects: int = 3,
+):
+    """Executa HTTP GET validando URL inicial e todo destino de redirect contra SSRF."""
+    import urllib.parse
+    import httpx
+
+    current_url = validate_public_http_url(raw_url)
+    with httpx.Client(timeout=timeout, follow_redirects=False) as client:
+        for _ in range(max_redirects + 1):
+            resp = client.get(current_url, headers=headers)
+            if resp.status_code in (301, 302, 303, 307, 308):
+                loc = (resp.headers.get("location") or "").strip()
+                if not loc:
+                    return resp
+                next_url = urllib.parse.urljoin(current_url, loc)
+                current_url = validate_public_http_url(next_url)
+                continue
+            return resp
+    raise ValueError("Limite de redirecionamentos HTTP excedido.")
+
+

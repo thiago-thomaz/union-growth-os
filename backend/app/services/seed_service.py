@@ -74,7 +74,7 @@ def ensure_initial_workspace_seeded(db: Session) -> Tenant:
         target_audience="Empresas B2B, E-commerces e Operações Digitais em Escala",
         products_json=json.dumps(["Union Growth OS Enterprise", "AI Marketing Director Suite", "CRM & Sales Automation"]),
         services_json=json.dumps(["Consultoria de Growth", "Implementação Assistida", "Auditoria SEO & Performance"]),
-        strategy_summary="Reduzir trabalho manual em marketing e vendas através de 11 agentes coordenados por IA.",
+        strategy_summary="Reduzir trabalho manual em marketing e vendas através de 12 agentes coordenados por IA.",
         plan_tier="ENTERPRISE",
         autonomy_default_level=2,
         owner_email="admin@projetosunion.cloud",

@@ -2635,6 +2635,77 @@ def test_48_explicit_rate_limit_enforcement_and_xff_isolation(client: TestClient
         sec_mod.settings.RATE_LIMIT_PER_MINUTE = orig_limit
 
 
+def test_49_ssrf_protection_blocks_private_loopback_and_metadata_urls(client: TestClient):
+    """Fase 23 Segurança: Bloqueia URLs internas/loopback/privadas/metadados em SEO Audit e Competitor Intelligence (anti-SSRF)."""
+    from app.core.security import validate_public_http_url
+
+    token = admin_token(client)
+    h = _auth_headers(token)
+
+    malicious_urls = [
+        "http://127.0.0.1:8000/health",
+        "http://localhost:8000/api/v1/auth/me",
+        "http://169.254.169.254/latest/meta-data/",
+        "http://10.0.1.11:8000/",
+        "http://192.168.1.1/",
+        "file:///etc/passwd",
+        "http://user:pass@projetosunion.cloud",
+    ]
+    for bad in malicious_urls:
+        with pytest.raises(ValueError):
+            validate_public_http_url(bad)
+
+        r_seo = client.post(
+            "/api/v1/seo/audit",
+            headers=h,
+            json={"target_url": bad, "target_keyword": "teste"},
+        )
+        assert r_seo.status_code == 400, f"SEO audit aceitou SSRF {bad}: {r_seo.status_code}"
+
+        r_comp = client.post(
+            "/api/v1/competitors",
+            headers=h,
+            json={"name": "SSRF Probe", "website_url": bad, "category": "Teste"},
+        )
+        assert r_comp.status_code == 400, f"Competitor aceitou SSRF {bad}: {r_comp.status_code}"
+
+
+def test_50_rbac_viewer_blocked_from_mutations(client: TestClient):
+    """Fase 23 RBAC: Usuário com papel 'viewer' é bloqueado (HTTP 403) ao tentar mutações críticas."""
+    from app.core.database import SessionLocal
+    from app.core.security import create_access_token, hash_password
+    from app.models.entities import Tenant, User
+
+    db = SessionLocal()
+    try:
+        t = db.query(Tenant).first()
+        viewer_email = f"viewer.rbac.{RUN_SUFFIX}@uniongrowth.test"
+        v = User(
+            tenant_id=t.id,
+            email=viewer_email,
+            full_name="Auditor Leitura",
+            hashed_password=hash_password("ViewerRbac#2026!"),
+            role="viewer",
+            is_active=True,
+        )
+        db.add(v)
+        db.commit()
+        db.refresh(v)
+        viewer_token = create_access_token({"sub": str(v.id), "tenant_id": t.id, "role": "viewer"})
+    finally:
+        db.close()
+
+    vh = _auth_headers(viewer_token)
+    assert client.put("/api/v1/growth-os/brand", headers=vh, json={"brand_voice": "Hack"}).status_code == 403
+    assert client.post("/api/v1/growth-os/actions/decide", headers=vh, json={"action_id": "act-score-leads", "decision": "EXECUTE"}).status_code == 403
+    assert client.post("/api/v1/automations/conversational-build", headers=vh, json={"prompt": "Criar regra", "dry_run": True, "approve_create": True}).status_code == 403
+    assert client.post("/api/v1/growth-os/onboarding", headers=vh, json={"step": 1, "data": {"name": "X"}}).status_code == 403
+    assert client.put("/api/v1/autonomy/limits", headers=vh, json={"autonomy_default_level": 3, "agent_autonomy": {}, "limits": {}}).status_code == 403
+    # Leituras permanecem permitidas para viewer no próprio tenant
+    assert client.get("/api/v1/growth-os/command-center", headers=vh).status_code == 200
+
+
+
 
 
 

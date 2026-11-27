@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.security import safe_public_http_get, validate_public_http_url
 from app.models.entities import Competitor, SEOArticle, SEOAuditReport, SEOKeywordCluster, Tenant
 
 # Simple in-memory cache to avoid redundant external HTTP requests
@@ -35,7 +36,8 @@ def _cache_set(key: str, val: Any) -> None:
 
 def check_robots_txt_permission(base_url: str, user_agent: str = "UnionGrowthOSBot") -> tuple[bool, bool]:
     """Returns (has_robots_txt, is_allowed)."""
-    parsed = urllib.parse.urlparse(base_url)
+    safe_base = validate_public_http_url(base_url)
+    parsed = urllib.parse.urlparse(safe_base)
     if not parsed.scheme or not parsed.netloc:
         return False, True
     robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
@@ -43,22 +45,24 @@ def check_robots_txt_permission(base_url: str, user_agent: str = "UnionGrowthOSB
     if cached is not None:
         return cached
     try:
-        with httpx.Client(timeout=5.0, follow_redirects=True) as client:
-            resp = client.get(robots_url, headers={"User-Agent": user_agent})
-            if resp.status_code == 200 and resp.text:
-                rp = urllib.robotparser.RobotFileParser()
-                rp.parse(resp.text.splitlines())
-                allowed = rp.can_fetch(user_agent, base_url)
-                result = (True, allowed)
-                _cache_set(f"robots:{robots_url}", result)
-                return result
+        resp = safe_public_http_get(robots_url, timeout=5.0, headers={"User-Agent": user_agent})
+        if resp.status_code == 200 and resp.text:
+            rp = urllib.robotparser.RobotFileParser()
+            rp.parse(resp.text.splitlines())
+            allowed = rp.can_fetch(user_agent, safe_base)
+            result = (True, allowed)
+            _cache_set(f"robots:{robots_url}", result)
+            return result
+    except ValueError:
+        raise
     except Exception:
         pass
     return False, True
 
 
 def check_sitemap_exists(base_url: str) -> bool:
-    parsed = urllib.parse.urlparse(base_url)
+    safe_base = validate_public_http_url(base_url)
+    parsed = urllib.parse.urlparse(safe_base)
     if not parsed.scheme or not parsed.netloc:
         return False
     sitemap_url = f"{parsed.scheme}://{parsed.netloc}/sitemap.xml"
@@ -66,11 +70,12 @@ def check_sitemap_exists(base_url: str) -> bool:
     if cached is not None:
         return bool(cached)
     try:
-        with httpx.Client(timeout=5.0, follow_redirects=True) as client:
-            resp = client.get(sitemap_url, headers={"User-Agent": "UnionGrowthOSBot/1.0"})
-            exists = resp.status_code == 200 and ("<urlset" in resp.text or "<sitemapindex" in resp.text)
-            _cache_set(f"sitemap:{sitemap_url}", exists)
-            return exists
+        resp = safe_public_http_get(sitemap_url, timeout=5.0, headers={"User-Agent": "UnionGrowthOSBot/1.0"})
+        exists = resp.status_code == 200 and ("<urlset" in resp.text or "<sitemapindex" in resp.text)
+        _cache_set(f"sitemap:{sitemap_url}", exists)
+        return exists
+    except ValueError:
+        raise
     except Exception:
         return False
 
@@ -169,9 +174,7 @@ def perform_real_seo_audit(
     target_keyword: str = "",
 ) -> SEOAuditReport:
     """Performs a real technical SEO HTTP inspection of target_url (or deterministic local HTML inspection if offline)."""
-    url = target_url.strip()
-    if not url.startswith(("http://", "https://")):
-        url = f"https://{url}"
+    url = validate_public_http_url(target_url)
 
     parsed = urllib.parse.urlparse(url)
     domain_host = parsed.netloc or url
@@ -187,14 +190,16 @@ def perform_real_seo_audit(
     if robots_allowed:
         t0 = time.perf_counter()
         try:
-            with httpx.Client(timeout=8.0, follow_redirects=True) as client:
-                resp = client.get(
-                    url,
-                    headers={"User-Agent": "UnionGrowthOS-SEOAuditor/1.0 (+https://projetosunion.cloud)"},
-                )
-                status_code = resp.status_code
-                elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
-                html_body = resp.text or ""
+            resp = safe_public_http_get(
+                url,
+                timeout=8.0,
+                headers={"User-Agent": "UnionGrowthOS-SEOAuditor/1.0 (+https://projetosunion.cloud)"},
+            )
+            status_code = resp.status_code
+            elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+            html_body = resp.text or ""
+        except ValueError:
+            raise
         except Exception as exc:
             elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
             fetch_error = str(exc)
@@ -563,9 +568,7 @@ def analyze_competitor_public(
     competitor: Competitor,
 ) -> Competitor:
     """Ethical public website inspection respecting robots.txt and caching."""
-    url = competitor.website_url.strip()
-    if not url.startswith(("http://", "https://")):
-        url = f"https://{url}"
+    url = validate_public_http_url(competitor.website_url)
 
     _, allowed = check_robots_txt_permission(url)
     competitor.robots_txt_respected = True
@@ -577,19 +580,20 @@ def analyze_competitor_public(
 
     if allowed:
         try:
-            with httpx.Client(timeout=6.0, follow_redirects=True) as client:
-                resp = client.get(url, headers={"User-Agent": "UnionGrowthOS-MarketResearch/1.0"})
-                if resp.status_code == 200 and resp.text:
-                    soup = BeautifulSoup(resp.text, "html.parser")
-                    if soup.title and soup.title.string:
-                        title = soup.title.string.strip()
-                    m = soup.find("meta", attrs={"name": re.compile(r"^description$", re.I)})
-                    if m and m.get("content"):
-                        desc = str(m.get("content")).strip()
-                    headings = [h.get_text(strip=True) for h in soup.find_all(["h1", "h2"]) if h.get_text(strip=True)][:8]
-                    text_content = soup.get_text(" ", strip=True)
-                    price_matches = re.findall(r"R\$\s?\d+[\d\.,]*|\$\s?\d+[\d\.,]*|planos|preços|grátis|enterprise", text_content, flags=re.I)
-                    pricing_signals = list(dict.fromkeys([p.strip() for p in price_matches]))[:6]
+            resp = safe_public_http_get(url, timeout=6.0, headers={"User-Agent": "UnionGrowthOS-MarketResearch/1.0"})
+            if resp.status_code == 200 and resp.text:
+                soup = BeautifulSoup(resp.text, "html.parser")
+                if soup.title and soup.title.string:
+                    title = soup.title.string.strip()
+                m = soup.find("meta", attrs={"name": re.compile(r"^description$", re.I)})
+                if m and m.get("content"):
+                    desc = str(m.get("content")).strip()
+                headings = [h.get_text(strip=True) for h in soup.find_all(["h1", "h2"]) if h.get_text(strip=True)][:8]
+                text_content = soup.get_text(" ", strip=True)
+                price_matches = re.findall(r"R\$\s?\d+[\d\.,]*|\$\s?\d+[\d\.,]*|planos|preços|grátis|enterprise", text_content, flags=re.I)
+                pricing_signals = list(dict.fromkeys([p.strip() for p in price_matches]))[:6]
+        except ValueError:
+            raise
         except Exception:
             pass
 

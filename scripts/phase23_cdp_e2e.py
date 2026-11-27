@@ -206,7 +206,7 @@ async def run_phase23_e2e():
             await asyncio.sleep(3.5)
             await cdp.wait_idle()
 
-            # J1 & J2 & J9 & J10: Command Center, Ask Union, Modo Simples vs Avançado, Onboarding 6 etapas
+            # J15 & J11 & J16: Dashboard Executivo (Command Center), ASK UNION & Modo Simples
             cc_dom = await cdp.evaluate("""
                 (() => {
                     const txt = document.body.innerText || '';
@@ -225,14 +225,12 @@ async def run_phase23_e2e():
             if sh1:
                 report["screenshots"].append(sh1)
 
-            # Testar Modo Avançado toggle + retorno a Modo Simples
-            mode_toggled = await cdp.click_by_text("#ug-ui-mode-toggle", "")
-            await asyncio.sleep(0.8)
-            adv_text = await cdp.evaluate("document.querySelector('#ug-ui-mode-toggle')?.innerText || ''")
-            await cdp.click_by_text("#ug-ui-mode-toggle", "")
-            await asyncio.sleep(0.5)
+            # Garantir estado inicial Modo Simples antes de testar Modo Simples vs Avançado
+            if "Avançado" in str(await cdp.evaluate("document.querySelector('#ug-ui-mode-toggle')?.innerText || ''")):
+                await cdp.click_by_text("#ug-ui-mode-toggle", "")
+                await asyncio.sleep(0.5)
 
-            # Testar ASK UNION
+            # J11: ASK UNION copilot estruturado
             await cdp.set_input("#ug-ask-union-input", "Quero vender mais")
             await cdp.click_by_text("button", "Perguntar ao Ask Union")
             await asyncio.sleep(1.5)
@@ -240,24 +238,26 @@ async def run_phase23_e2e():
             sh2 = await cdp.screenshot("02_ask_union_copilot.png")
             if sh2:
                 report["screenshots"].append(sh2)
-            report["journeys"]["J01_CommandCenter_AskUnion_Modes"] = {
-                "switched_qa": bool(switched_qa),
+            report["journeys"]["J11_Ask_Union"] = {"passed": bool(ask_ok)}
+            report["journeys"]["J15_Dashboard_Executivo"] = {
                 **(cc_dom or {}),
-                "mode_switched_to_advanced": "Avançado" in str(adv_text),
-                "ask_union_structured_ok": bool(ask_ok),
-                "passed": bool(switched_qa and (cc_dom or {}).get("has_ask_union") and (cc_dom or {}).get("has_growth_score") and ask_ok and "Avançado" in str(adv_text)),
+                "passed": bool(switched_qa and (cc_dom or {}).get("has_ask_union") and (cc_dom or {}).get("has_growth_score") and (cc_dom or {}).get("has_business_health") and (cc_dom or {}).get("has_ceo_briefing") and (cc_dom or {}).get("has_opp_radar") and (cc_dom or {}).get("has_exec_center")),
             }
 
-            # J02: Onboarding 6 Etapas
+            # J01 & J03: Onboarding 6 Etapas (Empresa + Objetivos/Plano)
             await cdp.click_by_text("main button", "Onboarding 6 Etapas")
             await asyncio.sleep(0.6)
-            ob_visible = await cdp.evaluate("(document.body.innerText || '').includes('Onboarding Inteligente em 6 Etapas')")
+            ob_visible = await cdp.evaluate("(document.body.innerText || '').includes('Onboarding Inteligente em 6 Etapas') && (document.body.innerText || '').includes('1. Sua Empresa')")
+            await cdp.click_by_text("main button", "3. Seus Objetivos")
+            await asyncio.sleep(0.4)
+            ob_goals = await cdp.evaluate("(document.body.innerText || '').includes('Gerar leads qualificados') && (document.body.innerText || '').includes('Aumentar vendas')")
             sh3 = await cdp.screenshot("03_onboarding_6_steps.png")
             if sh3:
                 report["screenshots"].append(sh3)
-            report["journeys"]["J02_Progressive_Onboarding_6Steps"] = {"visible": bool(ob_visible), "passed": bool(ob_visible)}
+            report["journeys"]["J01_Empresa_Onboarding"] = {"passed": bool(ob_visible)}
+            report["journeys"]["J03_Objetivos_Plano"] = {"passed": bool(ob_goals)}
 
-            # J03: Brand Intelligence Center + Detector de Inconsistências (Gestão -> Configurações & Planos)
+            # J02: Brand Intelligence Center + Detector de Inconsistências
             await cdp.click_by_text("aside button", "Gestão")
             await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Configurações")
             await cdp.wait_idle()
@@ -267,29 +267,60 @@ async def run_phase23_e2e():
             sh4 = await cdp.screenshot("04_brand_intelligence_center.png")
             if sh4:
                 report["screenshots"].append(sh4)
-            report["journeys"]["J03_Brand_Intelligence_And_Audit"] = {"passed": bool(brand_ok)}
+            report["journeys"]["J02_Marca_Brand_Hub"] = {"passed": bool(brand_ok)}
 
-            # J04 & J05: Marketing Campanhas + Fábrica de Conteúdo Contextual
+            # J12: Indicadores Analytics & Attribution
+            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Relatórios")
+            await cdp.wait_idle()
+            attr_ok = await cdp.evaluate("(document.body.innerText || '').includes('Analytics, Funil & Atribuição de Marketing')")
+            sh7 = await cdp.screenshot("07_analytics_and_attribution.png")
+            if sh7:
+                report["screenshots"].append(sh7)
+            report["journeys"]["J12_Indicadores_Analytics"] = {"passed": bool(attr_ok)}
+
+            # J05, J06 & J13: Campanhas, Fábrica de Conteúdo & SEO Intelligence
             await cdp.click_by_text("aside button", "Marketing")
+            await cdp.wait_idle()
+            camp_ok = await cdp.evaluate("(document.body.innerText || '').includes('Campanhas Ativas') || (document.body.innerText || '').includes('Personas')")
             await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Fábrica de Conteúdo")
             await cdp.wait_idle()
             cf_ctx = await cdp.evaluate("(document.body.innerText || '').includes('Contexto usado na criação dos conteúdos')")
             sh5 = await cdp.screenshot("05_content_factory_contextual.png")
             if sh5:
                 report["screenshots"].append(sh5)
-            report["journeys"]["J04_J05_Marketing_And_Content_Factory"] = {"has_context_panel": bool(cf_ctx), "passed": bool(cf_ctx)}
+            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "SEO & Artigos")
+            await cdp.wait_idle()
+            seo_ok = await cdp.evaluate("(document.body.innerText || '').includes('Auditoria Técnica') || (document.body.innerText || '').includes('SEO')")
+            sh_seo = await cdp.screenshot("09_seo_intelligence.png")
+            if sh_seo:
+                report["screenshots"].append(sh_seo)
+            report["journeys"]["J05_Campanha"] = {"passed": bool(camp_ok)}
+            report["journeys"]["J06_Conteudo"] = {"passed": bool(cf_ctx)}
+            report["journeys"]["J13_SEO_Intelligence"] = {"passed": bool(seo_ok)}
 
-            # J06: Comercial CRM & LGPD
+            # J07, J08 & J14: Leads CRM/LGPD, Oportunidades Pipeline & Inteligência Competitiva
             await cdp.click_by_text("aside button", "Comercial")
-            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "CRM")
+            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Leads & CRM")
             await cdp.wait_idle()
             crm_ok = await cdp.evaluate("Boolean(document.querySelector('#ug-lead-lgpd-checkbox')) && (document.body.innerText || '').includes('LGPD') && (document.body.innerText || '').includes('Base de Leads Qualificados')")
-            report["journeys"]["J06_CRM_And_LGPD"] = {"passed": bool(crm_ok)}
+            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Pipeline & Vendas")
+            await cdp.wait_idle()
+            deal_ok = await cdp.evaluate("(document.body.innerText || '').includes('Pipeline') || (document.body.innerText || '').includes('Negociações')")
+            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Concorrentes")
+            await cdp.wait_idle()
+            comp_ok = await cdp.evaluate("(document.body.innerText || '').includes('Concorrentes') || (document.body.innerText || '').includes('Inteligência Competitiva')")
+            sh_comp = await cdp.screenshot("10_competitors_intelligence.png")
+            if sh_comp:
+                report["screenshots"].append(sh_comp)
+            report["journeys"]["J07_Lead_CRM"] = {"passed": bool(crm_ok)}
+            report["journeys"]["J08_Oportunidade_Pipeline"] = {"passed": bool(deal_ok)}
+            report["journeys"]["J14_Inteligencia_Competitiva"] = {"passed": bool(comp_ok)}
 
-            # J07 & J08: AI Team (12 Agentes) + Conversational Automation Builder
+            # J04, J09, J16 & J17: Agentes (12), Automação Conversacional, Modo Simples vs Avançado
             await cdp.click_by_text("aside button", "Inteligência Artificial")
             await cdp.wait_idle()
-            ag12_ok = await cdp.evaluate("(document.body.innerText || '').includes('AI Data Analyst') || (document.body.innerText || '').includes('Equipe Digital de Agentes Especializados (12)')")
+            ag12_ok = await cdp.evaluate("(document.body.innerText || '').includes('AI Data Analyst') && (document.body.innerText || '').includes('Equipe Digital de Agentes Especializados (12)')")
+            simple_check = await cdp.evaluate("Boolean(document.querySelector('#ug-reveal-advanced-subtabs')) && !(document.querySelector('nav[aria-label*=\"Submenus\"]')?.innerText || '').includes('Modelos & Provedores')")
             await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Automações")
             await cdp.wait_idle()
             await cdp.set_input("#ug-conv-auto-input", "Leads que não responderam em 3 dias recebam tarefa de follow-up")
@@ -299,25 +330,33 @@ async def run_phase23_e2e():
             sh6 = await cdp.screenshot("06_conversational_automation_builder.png")
             if sh6:
                 report["screenshots"].append(sh6)
-            report["journeys"]["J07_J08_Agents12_And_Conversational_Automation"] = {"agents_12_ok": bool(ag12_ok), "conv_builder_ok": bool(conv_ok), "passed": bool(ag12_ok and conv_ok)}
 
-            # J09: Meu Trabalho + Aprovações
+            # Alternar para Modo Avançado e validar revelação completa das abas técnicas
+            await cdp.click_by_text("#ug-ui-mode-toggle", "")
+            await asyncio.sleep(0.8)
+            adv_revealed = await cdp.evaluate("(document.querySelector('nav[aria-label*=\"Submenus\"]')?.innerText || '').includes('Modelos & Provedores') && (document.querySelector('#ug-ui-mode-toggle')?.innerText || '').includes('Avançado')")
+            sh_adv = await cdp.screenshot("11_modo_avancado.png")
+            if sh_adv:
+                report["screenshots"].append(sh_adv)
+            # Restaurar Modo Simples para o estado final limpo
+            await cdp.click_by_text("#ug-ui-mode-toggle", "")
+            await asyncio.sleep(0.6)
+
+            report["journeys"]["J04_Agentes_12"] = {"passed": bool(ag12_ok)}
+            report["journeys"]["J09_Automacao_Conversacional"] = {"passed": bool(conv_ok)}
+            report["journeys"]["J16_Modo_Simples"] = {"passed": bool(simple_check)}
+            report["journeys"]["J17_Modo_Avancado"] = {"passed": bool(adv_revealed)}
+
+            # J10: Meu Trabalho & Central de Aprovações
             await cdp.click_by_text("aside button", "Meu Trabalho")
             await cdp.wait_idle()
             mw_ok = await cdp.evaluate("(document.body.innerText || '').includes('Precisa de mim')")
-            report["journeys"]["J09_MyWork_And_Approvals"] = {"passed": bool(mw_ok)}
-
-            # J10: Gestão -> Relatórios & Analytics Attribution
-            await cdp.click_by_text("aside button", "Gestão")
-            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Relatórios")
+            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "Central de Aprovações")
             await cdp.wait_idle()
-            attr_ok = await cdp.evaluate("(document.body.innerText || '').includes('Analytics, Funil & Atribuição de Marketing')")
-            sh7 = await cdp.screenshot("07_analytics_and_attribution.png")
-            if sh7:
-                report["screenshots"].append(sh7)
-            report["journeys"]["J10_Analytics_And_Attribution"] = {"passed": bool(attr_ok)}
+            appr_ok = await cdp.evaluate("(document.body.innerText || '').includes('Aprovações')")
+            report["journeys"]["J10_Aprovacao"] = {"passed": bool(mw_ok and appr_ok)}
 
-            # Voltar ao Início para Acessibilidade & 6 Viewports
+            # Voltar ao Início para Acessibilidade e J18 (6 Viewports) antes das sondas negativas de segurança
             await cdp.click_by_text("aside button", "Início")
             await cdp.wait_idle()
             a11y = await cdp.evaluate("""
@@ -355,20 +394,61 @@ async def run_phase23_e2e():
                     if sh_vp:
                         report["screenshots"].append(sh_vp)
 
+            report["journeys"]["J18_Responsividade_6_Viewports"] = {
+                "passed": bool(report["viewports"] and all(v.get("passed") for v in report["viewports"].values())),
+            }
+
+            # Congelar telemetria normal de navegação (esperado 0 erros HTTP não-intencionais)
+            normal_4xx_5xx = list(cdp.network_4xx_5xx)
+
+            # J19 & J20: Sondas explícitas negativas Multi-Tenant (403) + anti-SSRF (400) + HTTPS + Zero Token Leaks
+            sec_checks = await cdp.evaluate("""
+                (async () => {
+                    const tok = localStorage.getItem('ug_token');
+                    if (!tok) return { ok: false };
+                    const rBadTenant = await fetch('/api/v1/growth-os/command-center', {
+                        headers: { 'Authorization': 'Bearer ' + tok, 'X-Tenant-Id': 'invalid-tenant' }
+                    });
+                    const rSsrf = await fetch('/api/v1/seo/audit', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
+                        body: JSON.stringify({ target_url: 'http://127.0.0.1:8000/health', target_keyword: 'ssrf' })
+                    });
+                    return {
+                        https: window.location.protocol === 'https:',
+                        invalid_tenant_403: rBadTenant.status === 403,
+                        ssrf_blocked_400: rSsrf.status === 400
+                    };
+                })()
+            """)
+            report["journeys"]["J19_MultiTenant_E_Permissoes"] = {
+                "switched_qa": bool(switched_qa),
+                "invalid_tenant_403": bool((sec_checks or {}).get("invalid_tenant_403")),
+                "passed": bool(switched_qa and (sec_checks or {}).get("invalid_tenant_403")),
+            }
+            report["journeys"]["J20_Seguranca_E_Telemetria"] = {
+                "https": bool((sec_checks or {}).get("https")),
+                "ssrf_blocked_400": bool((sec_checks or {}).get("ssrf_blocked_400")),
+                "url_token_leaks_count": len(cdp.url_token_leaks),
+                "unexpected_4xx_5xx_count": len(normal_4xx_5xx),
+                "passed": bool((sec_checks or {}).get("https") and (sec_checks or {}).get("ssrf_blocked_400") and len(cdp.url_token_leaks) == 0 and len(normal_4xx_5xx) == 0),
+            }
+
             report["telemetry"] = {
                 "console_errors_count": len(cdp.console_errors),
                 "exceptions_count": len(cdp.exceptions),
-                "network_4xx_5xx_count": len(cdp.network_4xx_5xx),
+                "network_4xx_5xx_count": len(normal_4xx_5xx),
                 "url_token_leaks_count": len(cdp.url_token_leaks),
-                "network_4xx_5xx": cdp.network_4xx_5xx,
+                "network_4xx_5xx": normal_4xx_5xx,
             }
             report["all_phase23_e2e_passed"] = (
-                all(v.get("passed") for v in report["journeys"].values())
+                len(report["journeys"]) == 20
+                and all(v.get("passed") for v in report["journeys"].values())
                 and bool(report["accessibility"].get("passed"))
                 and all(v.get("passed") for v in report["viewports"].values())
                 and len(cdp.console_errors) == 0
                 and len(cdp.exceptions) == 0
-                and len(cdp.network_4xx_5xx) == 0
+                and len(normal_4xx_5xx) == 0
                 and len(cdp.url_token_leaks) == 0
             )
             await cdp.close()

@@ -1356,10 +1356,9 @@ def save_ai_provider_credential(
         prov.updated_at = datetime.now(timezone.utc)
 
     db.commit()
-    # Ao cadastrar ou atualizar credencial do provedor, limpa circuit breaker e cache prévio deste provedor
-    breakers = getattr(AIRouter, "_CIRCUIT_BREAKERS", None)
-    if isinstance(breakers, dict):
-        breakers.pop(f"{tenant_id}:{pkey}", None)
+    breaker_store = getattr(AIRouter, "_CIRCUIT_BREAKERS", None)
+    if isinstance(breaker_store, dict):
+        breaker_store.pop(f"{tenant_id}:{pkey}", None)
     return {
         "provider_key": pkey,
         "is_active": cred.is_active,
@@ -1439,9 +1438,9 @@ def test_ai_provider_connection_service(
 
     db.commit()
     if res.get("ok"):
-        breakers = getattr(AIRouter, "_CIRCUIT_BREAKERS", None)
-        if isinstance(breakers, dict):
-            breakers.pop(f"{tenant_id}:{pkey}", None)
+        breaker_store = getattr(AIRouter, "_CIRCUIT_BREAKERS", None)
+        if isinstance(breaker_store, dict):
+            breaker_store.pop(f"{tenant_id}:{pkey}", None)
     return {
         "provider_key": pkey,
         "model_tested": model_id,
@@ -1643,6 +1642,7 @@ class AIRouter:
             return res_copy
 
         for cand_prov_key, cand_model_id, is_fb in candidates:
+            cb_key = f"{tenant_id}:{cand_prov_key}"
             prov_rec = (
                 db.query(AIProviderRecord)
                 .filter(AIProviderRecord.tenant_id == tenant_id, AIProviderRecord.provider_key == cand_prov_key)
@@ -1703,8 +1703,7 @@ class AIRouter:
                     last_status_code = "BLOCKED_LIMIT"
                 continue
 
-            # Circuit Breaker por (tenant_id, provedor): abre por 90s após >=3 falhas transitórias reais
-            cb_key = f"{tenant_id}:{cand_prov_key}"
+            # Circuit Breaker por (tenant_id, provedor): abre por 90s após >=3 falhas seguidas reais de execução
             cb = breaker_store.get(cb_key)
             if cb and cb.get("open_until", 0) > time.time():
                 if not is_fb:
@@ -1811,26 +1810,7 @@ class AIRouter:
                 return ok_payload
             except Exception as exc:
                 err_str = str(exc)
-                err_low = err_str.lower()
-                is_non_transient = any(
-                    tok in err_low
-                    for tok in (
-                        "não configurada",
-                        "inexistente",
-                        "não encontrado",
-                        "api key",
-                        "api_key",
-                        "inválid",
-                        "invalid",
-                        "400",
-                        "401",
-                        "402",
-                        "403",
-                        "billing",
-                        "faturamento",
-                    )
-                )
-                if not is_non_transient:
+                if "não configurada" not in err_str.lower():
                     st = breaker_store.get(cb_key, {"fails": 0, "open_until": 0.0})
                     st["fails"] = int(st.get("fails", 0)) + 1
                     if st["fails"] >= 3:
@@ -1838,9 +1818,9 @@ class AIRouter:
                     breaker_store[cb_key] = st
                 if not is_fb:
                     primary_failure_reason = err_str
-                    if "não configurada" in err_low:
+                    if "não configurada" in err_str.lower():
                         last_status_code = "PENDING_API_KEY"
-                    elif "inexistente" in err_low or "não encontrado" in err_low:
+                    elif "inexistente" in err_str.lower() or "não encontrado" in err_str.lower():
                         last_status_code = "MODEL_NOT_FOUND"
                     elif "402" in err_str:
                         last_status_code = "QUOTA_OR_BILLING_REQUIRED"

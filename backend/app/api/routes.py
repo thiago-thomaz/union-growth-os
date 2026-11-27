@@ -1159,9 +1159,15 @@ def get_seo_overview(user: User = Depends(get_current_user), db: Session = Depen
 
 @router.post("/seo/audit", status_code=status.HTTP_201_CREATED)
 def run_seo_audit(payload: SEOAuditRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.core.security import validate_public_http_url
+
+    try:
+        safe_url = validate_public_http_url(payload.target_url)
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
     tid = get_active_tenant_id(user)
     tenant = _get_tenant_or_404(db, tid)
-    report = perform_real_seo_audit(db, tenant, payload.target_url, payload.target_keyword)
+    report = perform_real_seo_audit(db, tenant, safe_url, payload.target_keyword)
     return {
         "id": report.id,
         "target_url": report.target_url,
@@ -1739,12 +1745,18 @@ def list_competitors(user: User = Depends(get_current_user), db: Session = Depen
 
 @router.post("/competitors", status_code=status.HTTP_201_CREATED)
 def add_and_analyze_competitor(payload: CompetitorCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.core.security import validate_public_http_url
+
+    try:
+        safe_site = validate_public_http_url(payload.website_url)
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
     tid = get_active_tenant_id(user)
     tenant = _get_tenant_or_404(db, tid)
     comp = Competitor(
         tenant_id=tid,
         name=sanitize_text(payload.name),
-        website_url=payload.website_url.strip(),
+        website_url=safe_site,
         category=sanitize_text(payload.category),
     )
     db.add(comp)
@@ -3904,7 +3916,7 @@ def growth_os_command_center(
 @router.post("/growth-os/actions/decide")
 def growth_os_decide_executive_action(
     payload: ExecutiveActionDecisionRequest,
-    user: User = Depends(require_roles("owner", "admin", "operator")),
+    user: User = Depends(require_roles("owner", "admin", "manager")),
     db: Session = Depends(get_db),
 ):
     from app.services.phase23_growth_platform import execute_or_decide_executive_action_service
@@ -3933,7 +3945,7 @@ def growth_os_get_brand_intelligence(
 @router.put("/growth-os/brand")
 def growth_os_save_brand_intelligence(
     payload: BrandIntelligenceUpdateRequest,
-    user: User = Depends(require_roles("owner", "admin", "operator")),
+    user: User = Depends(require_roles("owner", "admin", "manager")),
     db: Session = Depends(get_db),
 ):
     from app.services.phase23_growth_platform import save_brand_intelligence_service
@@ -3972,7 +3984,7 @@ def growth_os_get_onboarding(
 @router.post("/growth-os/onboarding")
 def growth_os_save_onboarding_step(
     payload: ProgressiveOnboardingStepRequest,
-    user: User = Depends(require_roles("owner", "admin", "operator")),
+    user: User = Depends(require_roles("owner", "admin", "manager")),
     db: Session = Depends(get_db),
 ):
     from app.services.phase23_growth_platform import save_progressive_onboarding_step_service
@@ -4010,7 +4022,7 @@ def growth_os_ask_union(
 @router.post("/growth-os/ask-union/execute")
 def growth_os_ask_union_execute(
     payload: AskUnionExecuteActionRequest,
-    user: User = Depends(require_roles("owner", "admin", "operator")),
+    user: User = Depends(require_roles("owner", "admin", "manager")),
     db: Session = Depends(get_db),
 ):
     from app.services.phase23_growth_platform import execute_or_decide_executive_action_service
@@ -4039,7 +4051,7 @@ def growth_os_analytics_attribution(
 @router.post("/automations/conversational-build")
 def automations_conversational_build(
     payload: ConversationalAutomationRequest,
-    user: User = Depends(require_roles("owner", "admin", "operator")),
+    user: User = Depends(require_roles("owner", "admin", "manager")),
     db: Session = Depends(get_db),
 ):
     from app.services.phase23_growth_platform import build_conversational_automation_service
