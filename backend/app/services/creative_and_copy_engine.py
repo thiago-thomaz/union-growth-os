@@ -256,46 +256,47 @@ def generate_persuasive_copy(
     fw = framework.upper()
     aud = target_audience.strip() or tenant.target_audience
     offer = product_or_offer.strip() or tenant.brand_name
-    benefit = key_benefit.strip() or "escalar vendas e eficiência operacional"
+    benefit = key_benefit.strip() or "gerar resultados e conquistar novos clientes"
+    site_cta = f" em {tenant.domain.strip()}" if getattr(tenant, "domain", "").strip() else ""
 
     if fw == "PAS":
         var_a = (
-            f"[PROBLEMA] Empresas de {aud} frequentemente perdem oportunidades valiosas por falta de processos previsíveis.\n"
-            f"[AGITAÇÃO] Cada semana sem estrutura significa orçamento desperdiçado e leads que fecham com a concorrência.\n"
-            f"[SOLUÇÃO] Conheça {offer} da {tenant.brand_name}: estruturado para {benefit} com transparência e métricas reais.\n"
-            f"[CTA] Solicite uma análise estratégica da sua operação."
+            f"[PROBLEMA] {aud} frequentemente perdem oportunidades valiosas por falta de divulgação estruturada.\n"
+            f"[AGITAÇÃO] Cada semana sem visibilidade clara significa clientes buscando opções em outro lugar.\n"
+            f"[SOLUÇÃO] Conheça {offer} da {tenant.brand_name}: feito para {benefit} com clareza e confiança.\n"
+            f"[CTA] Acesse{site_cta} e comece hoje mesmo."
         )
         var_b = (
-            f"[PROBLEMA] Quanto custa para sua operação depender apenas de esforço manual todos os meses?\n"
-            f"[AGITAÇÃO] Sem automação e dados claros, o custo de aquisição sobe e a margem cai.\n"
-            f"[SOLUÇÃO] Com {offer} ({tenant.brand_name}), sua equipe passa a {benefit} com previsibilidade.\n"
-            f"[CTA] Agende sua demonstração executiva hoje."
+            f"[PROBLEMA] Quanto tempo e clientes você perde dependendo apenas de indicações aleatórias?\n"
+            f"[AGITAÇÃO] Sem um canal direto funcionando todos os dias, seu crescimento fica imprevisível.\n"
+            f"[SOLUÇÃO] Com {offer} ({tenant.brand_name}), {aud} conseguem {benefit} de forma prática.\n"
+            f"[CTA] Clique e acesse{site_cta} agora mesmo."
         )
     elif fw == "BAB":
         var_a = (
-            f"[ANTES] Processos fragmentados, baixa conversão de leads e pouca clareza sobre o ROI.\n"
-            f"[DEPOIS] Uma operação integrada capaz de {benefit} todas as semanas.\n"
-            f"[PONTE] {offer} da {tenant.brand_name} conecta estratégia, conteúdo e CRM em um único fluxo.\n"
-            f"[CTA] Comece a transformação da sua empresa agora."
+            f"[ANTES] Pouca visibilidade, divulgação cansativa e perda de boas oportunidades.\n"
+            f"[DEPOIS] Fluxo constante para {aud} conseguirem {benefit} todas as semanas.\n"
+            f"[PONTE] {offer} da {tenant.brand_name} simplifica tudo em um só lugar.\n"
+            f"[CTA] Visite{site_cta} e dê o próximo passo agora."
         )
         var_b = (
-            f"[ANTES] Equipe sobrecarregada tentando gerenciar marketing e vendas em planilhas.\n"
-            f"[DEPOIS] Controle executivo em tempo real com foco em {benefit}.\n"
-            f"[PONTE] Implemente {offer} com o suporte especializado da {tenant.brand_name}.\n"
-            f"[CTA] Fale com nosso time comercial."
+            f"[ANTES] Esforço manual tentando atrair interessados sem retorno garantido.\n"
+            f"[DEPOIS] Presença clara e direta com foco em {benefit}.\n"
+            f"[PONTE] Conte com {offer} da {tenant.brand_name}.\n"
+            f"[CTA] Acesse{site_cta} para saber como funciona."
         )
     else:  # AIDA / FAB / 4PS / STORYBRAND
         var_a = (
-            f"[ATENÇÃO] Como empresas de {aud} estão conseguindo {benefit} com previsibilidade?\n"
-            f"[INTERESSE] A {tenant.brand_name} desenvolveu {offer} combinando inteligência comercial, SEO e automação.\n"
-            f"[DESEJO] Reduza retrabalho operacional, qualifique cada lead automaticamente e acompanhe indicadores reais.\n"
-            f"[AÇÃO] Clique aqui para solicitar seu diagnóstico estratégico com a {tenant.brand_name}."
+            f"[ATENÇÃO] Atenção {aud}: veja como {benefit} com a {tenant.brand_name}!\n"
+            f"[INTERESSE] Com {offer}, você conecta seu trabalho diretamente a quem já está procurando.\n"
+            f"[DESEJO] Sem burocracia, com divulgação contínua e foco real em resultados para o seu dia a dia.\n"
+            f"[AÇÃO] Acesse{site_cta} e faça parte da {tenant.brand_name} hoje mesmo."
         )
         var_b = (
-            f"[ATENÇÃO] {benefit.capitalize()}: o próximo nível de eficiência para {aud}.\n"
-            f"[INTERESSE] Com {offer}, você substitui suposições por dados auditáveis e execução contínua.\n"
-            f"[DESEJO] Mais autoridade orgânica, funil comercial ativo e governança completa.\n"
-            f"[AÇÃO] Entre em contato e conheça as condições do plano ideal para sua empresa."
+            f"[ATENÇÃO] {benefit.capitalize()}: a oportunidade prática para {aud}.\n"
+            f"[INTERESSE] Conheça {offer} ({tenant.brand_name}) e ganhe destaque onde seus clientes buscam.\n"
+            f"[DESEJO] Mais alcance, mais contatos interessados e processo simples do começo ao fim.\n"
+            f"[AÇÃO] Entre{site_cta} e aproveite agora."
         )
 
     var_a, ok_a = _sanitize_ethical_copy(var_a)

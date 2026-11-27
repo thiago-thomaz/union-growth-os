@@ -828,14 +828,18 @@ class CentralOrchestrator:
         elif aid == "AGENT_02_CMO":
             month_label = datetime.now(timezone.utc).strftime("%Y-%m")
             kpis = calculate_tenant_financial_kpis(db, tenant.id)
+            latest_persona = db.query(MarketingPersona).filter(MarketingPersona.tenant_id == tenant.id).order_by(MarketingPersona.id.desc()).first()
+            aud_focus = latest_persona.name if latest_persona else tenant.target_audience
+            vp_focus = latest_persona.value_proposition if latest_persona and latest_persona.value_proposition else f"soluções em {tenant.niche}"
+            site_note = f" ({tenant.domain})" if getattr(tenant, "domain", "").strip() else ""
             plan = {
                 "month": month_label,
-                "brand_positioning": f"{tenant.brand_name}: referência em {tenant.niche} para {tenant.target_audience}.",
-                "value_proposition": f"Crescimento previsível, automação inteligente e governança de dados para {tenant.target_audience}.",
+                "brand_positioning": f"{tenant.brand_name}{site_note}: referência em {tenant.niche} para {aud_focus}.",
+                "value_proposition": f"{vp_focus} — foco direto em {aud_focus}.",
                 "funnel_strategy": {
-                    "TOFU": "Artigos SEO de cauda longa + Reels/Shorts educativos (60% do volume orgânico)",
-                    "MOFU": "Carrosséis de estudo de caso + E-books técnicos + Sequência de e-mail",
-                    "BOFU": "Diagnóstico comercial consultivo + Proposta personalizada no CRM",
+                    "TOFU": f"Conteúdos educativos e busca orgânica voltados para {aud_focus} ({tenant.niche})",
+                    "MOFU": f"Guias práticos e apresentação da oferta: {vp_focus}",
+                    "BOFU": f"Direcionamento para cadastro/contato em {tenant.domain or tenant.brand_name}",
                 },
                 "budget_allocation_suggestion": {
                     "SEO_and_Content_Organic": "40% do esforço (Custo de mídia R$ 0)",
@@ -849,7 +853,7 @@ class CentralOrchestrator:
                 name=params.get("campaign_name", f"Plano Estratégico Mensal {month_label} — {tenant.brand_name}"),
                 campaign_type="ACQUISITION",
                 channel="Omni-Channel (SEO + Social + CRM)",
-                objective=f"Gerar leads qualificados e elevar conversão em {tenant.niche}",
+                objective=f"Atrair {aud_focus} para {vp_focus} em {tenant.niche}",
                 funnel_stage="TOFU/MOFU/BOFU",
                 budget_planned=float(params.get("budget_planned", 0.0)),
                 data_origin="GOAL" if float(params.get("budget_planned", 0.0)) > 0 else "REAL",
@@ -862,8 +866,8 @@ class CentralOrchestrator:
             db.refresh(camp)
             output_data = {"campaign_id": camp.id, "monthly_plan": plan}
             recs = [
-                "Concentrar aquisição orgânica em palavras-chave comerciais de fundo de funil.",
-                "Ativar campanha de retenção e indicação junto à base atual de clientes.",
+                f"Direcionar chamadas para {tenant.domain or tenant.brand_name} com foco em '{vp_focus}'.",
+                f"Manter cadência semanal para {aud_focus} no CRM e nas redes sociais.",
             ]
             summary = f"Planejamento mensal de marketing ({month_label}) gerado e registrado (Campanha #{camp.id})."
 
@@ -878,7 +882,7 @@ class CentralOrchestrator:
                 article = generate_seo_factory_article(
                     db,
                     tenant,
-                    topic=params.get("topic", f"Guia Completo de {seed_kw.title()} para Empresas"),
+                    topic=params.get("topic", f"Guia Completo de {seed_kw} — {tenant.brand_name}"),
                     target_keyword=seed_kw,
                 )
             output_data = {
@@ -898,6 +902,10 @@ class CentralOrchestrator:
             if params.get("mode") == "automated_run" and "platforms" not in params:
                 rotation = ["instagram", "linkedin", "youtube", "tiktok", "facebook", "pinterest"]
                 platforms = [rotation[datetime.now(timezone.utc).timetuple().tm_yday % len(rotation)]]
+            latest_persona = db.query(MarketingPersona).filter(MarketingPersona.tenant_id == tenant.id).order_by(MarketingPersona.id.desc()).first()
+            aud_focus = latest_persona.name if latest_persona else tenant.target_audience
+            vp_focus = latest_persona.value_proposition if latest_persona and latest_persona.value_proposition else tenant.niche
+            site_ref = tenant.domain.strip() if getattr(tenant, "domain", "").strip() else tenant.brand_name
             created_items = []
             base_date = datetime.now(timezone.utc)
             for idx, plat in enumerate(platforms):
@@ -905,18 +913,18 @@ class CentralOrchestrator:
                 best_time = PLATFORM_CONSTRAINTS.get(plat, {}).get("recommended_best_times", ["12:00"])[0]
                 item = EditorialCalendarItem(
                     tenant_id=tenant.id,
-                    title=f"[{plat.upper()}] Como escalar resultados em {tenant.niche} (#{idx + 1})",
+                    title=f"[{plat.upper()}] {tenant.brand_name} para {aud_focus} (#{idx + 1})",
                     platform=plat,
                     content_format="CAROUSEL" if plat in ("instagram", "linkedin") else "REELS_SHORT",
                     caption=(
-                        f"Como a {tenant.brand_name} estrutura o crescimento previsível em {tenant.niche}.\n\n"
-                        f"1. Diagnóstico baseado em dados reais\n"
-                        f"2. Automação de processos repetitivos\n"
-                        f"3. Acompanhamento diário de conversão no CRM\n\n"
-                        f"Comente 'DIAGNOSTICO' ou acesse nosso link para conhecer a metodologia."
+                        f"Atenção {aud_focus}! Conheça como a {tenant.brand_name} atua em {tenant.niche}.\n\n"
+                        f"1. Proposta direta: {vp_focus}\n"
+                        f"2. Acesso simples em {site_ref}\n"
+                        f"3. Mais visibilidade para conquistar novas oportunidades\n\n"
+                        f"Acesse {site_ref} e participe hoje mesmo."
                     ),
-                    hashtags_json=json.dumps(["#crescimento", "#estrategia", "#marketingdigital", "#gestao", f"#{tenant.slug.replace('-', '')}"]),
-                    video_script="00-05s: Hook | 05-25s: 3 Pilares práticos | 25-35s: CTA para diagnóstico",
+                    hashtags_json=json.dumps([f"#{tenant.slug.replace('-', '')}", "#oportunidades", "#divulgacao"]),
+                    video_script=f"00-05s: Hook para {aud_focus} | 05-25s: {vp_focus} | 25-35s: Acesse {site_ref}",
                     scheduled_for=f"{sched_date} {best_time}",
                     best_time_rationale=f"Horário de pico histórico de engajamento orgânico em {plat} ({best_time}).",
                     approval_status="PENDING_REVIEW" if autonomy < 3 else "AUTO_APPROVED",
@@ -934,15 +942,18 @@ class CentralOrchestrator:
             summary = f"{len(created_items)} publicações multicanal planejadas e inseridas no Calendário Editorial."
 
         elif aid == "AGENT_05_CREATIVE":
+            latest_persona = db.query(MarketingPersona).filter(MarketingPersona.tenant_id == tenant.id).order_by(MarketingPersona.id.desc()).first()
+            aud_focus = latest_persona.name if latest_persona else tenant.target_audience
+            vp_focus = latest_persona.value_proposition if latest_persona and latest_persona.value_proposition else tenant.niche
             asset = generate_creative_asset(
                 db=db,
                 tenant=tenant,
                 title=params.get("title", f"Criativo Oficial — {tenant.brand_name}"),
                 asset_type=params.get("asset_type", "SOCIAL_POST"),
                 platform=params.get("platform", "instagram"),
-                headline_text=params.get("headline", f"Crescimento Previsível com {tenant.brand_name}"),
-                subheadline_text=params.get("subheadline", f"Especialistas em {tenant.niche}"),
-                cta_text=params.get("cta", "Solicitar Diagnóstico"),
+                headline_text=params.get("headline", f"{tenant.brand_name} para {aud_focus}"),
+                subheadline_text=params.get("subheadline", vp_focus),
+                cta_text=params.get("cta", f"Acesse {tenant.domain or tenant.brand_name}"),
             )
             output_data = {
                 "asset_id": asset.id,
@@ -955,6 +966,9 @@ class CentralOrchestrator:
             summary = f"Ativo visual '{asset.title}' ({asset.dimensions}) renderizado e salvo na Biblioteca de Ativos."
 
         elif aid == "AGENT_06_COPYWRITER":
+            latest_persona = db.query(MarketingPersona).filter(MarketingPersona.tenant_id == tenant.id).order_by(MarketingPersona.id.desc()).first()
+            aud_focus = latest_persona.name if latest_persona else tenant.target_audience
+            vp_focus = latest_persona.value_proposition if latest_persona and latest_persona.value_proposition else f"conquistar mais oportunidades em {tenant.niche}"
             copy_obj = generate_persuasive_copy(
                 db=db,
                 tenant=tenant,
@@ -962,8 +976,8 @@ class CentralOrchestrator:
                 copy_type=params.get("copy_type", "LANDING_PAGE"),
                 framework=params.get("framework", "AIDA"),
                 product_or_offer=params.get("offer", tenant.brand_name),
-                target_audience=params.get("target_audience", tenant.target_audience),
-                key_benefit=params.get("key_benefit", f"aumentar vendas e eficiência em {tenant.niche}"),
+                target_audience=params.get("target_audience", aud_focus),
+                key_benefit=params.get("key_benefit", vp_focus),
             )
             output_data = {
                 "copy_id": copy_obj.id,

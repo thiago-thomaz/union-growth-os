@@ -2417,6 +2417,99 @@ def test_45_phase20_1_security_zero_url_tokens_free_only_and_qa_isolation(client
     assert _is_qa_isolated_tenant(_DummyTenant("Union Growth Holding Ltda")) is False
 
 
+def test_46_custom_tenant_content_factory_uses_site_niche_and_persona(client: TestClient):
+    """Regressão: Content Factory, Calendário e Copywriter devem respeitar marca, site, nicho, persona e campanha do tenant."""
+    reg_email = f"meu.autonomo.{RUN_SUFFIX}@teste.com.br"
+    r_reg = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": reg_email,
+            "password": "StrongPassword#2026!",
+            "full_name": "Fundador Prestadores",
+            "company_name": "Meu Autonomo",
+            "lgpd_consent": True,
+        },
+    )
+    assert r_reg.status_code in (200, 201)
+    h = _auth_headers(r_reg.json()["access_token"])
+
+    # Configurar site, nicho e público-alvo específicos
+    r_upd = client.put(
+        "/api/v1/tenants/current",
+        headers=h,
+        json={
+            "name": "Meu Autonomo",
+            "brand_name": "Meu Autonomo",
+            "domain": "https://meuautonomo.com.br",
+            "niche": "Cadastro de Prestadores de Serviço",
+            "target_audience": "Eletricistas e técnicos autônomos",
+        },
+    )
+    assert r_upd.status_code == 200
+
+    # Cadastrar Persona e Campanha específicas
+    r_per = client.post(
+        "/api/v1/marketing/personas",
+        headers=h,
+        json={
+            "name": "Prestadores de Serviço Autônomos",
+            "role_segment": "Profissional Autônomo",
+            "value_proposition": "Cadastro gratuito para receber novos pedidos de clientes",
+        },
+    )
+    assert r_per.status_code in (200, 201)
+
+    r_camp = client.post(
+        "/api/v1/marketing/campaigns",
+        headers=h,
+        json={
+            "name": "Captação de Prestadores - Meu Autonomo",
+            "campaign_type": "LAUNCH",
+            "channel": "Instagram + Facebook",
+            "objective": "Aquisição de profissionais cadastrados",
+            "budget_planned": 0,
+        },
+    )
+    assert r_camp.status_code in (200, 201)
+
+    # 1. Chamando generate-batch SEM passar niche explícito (como o botão original do frontend)
+    r_batch = client.post("/api/v1/content-factory/generate-batch", headers=h, json={"count": 30})
+    assert r_batch.status_code == 201
+    batch = r_batch.json()
+    assert batch["total_generated"] == 30
+    first_item = batch["items"][0]
+    joined_sample = " ".join(it["title"] + " " + it["body_text"] + " " + it["cta"] for it in batch["items"][:5])
+    assert "IA, Automação & Engenharia de Software" not in joined_sample
+    assert "Meu Autonomo" in joined_sample
+    assert "https://meuautonomo.com.br" in joined_sample
+    assert "Prestadores de Serviço Autônomos" in joined_sample
+    assert "Cadastro gratuito para receber novos pedidos" in joined_sample
+
+    # 2. Publicar 1 item, gerar de novo com replace_drafts=True e garantir preservação do publicado + substituição dos rascunhos
+    pub_id = first_item["id"]
+    assert client.post(f"/api/v1/content-factory/items/{pub_id}/publish", headers=h).status_code == 200
+
+    r_batch2 = client.post(
+        "/api/v1/content-factory/generate-batch",
+        headers=h,
+        json={"count": 5, "replace_drafts": True, "focus_theme": "Divulgue seu serviço grátis em 2 minutos"},
+    )
+    assert r_batch2.status_code == 201
+    assert "Divulgue seu serviço grátis em 2 minutos" in r_batch2.json()["items"][0]["body_text"]
+
+    all_items = client.get("/api/v1/content-factory/items?limit=100", headers=h).json()
+    assert len(all_items) == 6  # 1 PUBLISHED preservado + 5 novos
+    assert any(it["id"] == pub_id and it["status"] == "PUBLISHED" for it in all_items)
+
+    # 3. Limpeza manual de rascunhos preserva item PUBLISHED
+    r_del = client.delete("/api/v1/content-factory/drafts", headers=h)
+    assert r_del.status_code == 200
+    assert r_del.json()["deleted_count"] == 5
+    remaining = client.get("/api/v1/content-factory/items?limit=50", headers=h).json()
+    assert len(remaining) == 1 and remaining[0]["id"] == pub_id
+
+
+
 
 
 

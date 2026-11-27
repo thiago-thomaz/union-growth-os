@@ -17,6 +17,8 @@ import json
 import logging
 import os
 import platform
+import re
+import unicodedata
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -36,6 +38,8 @@ from app.models.entities import (
     CRMLead,
     EditorialCalendarItem,
     FinancialRecord,
+    MarketingCampaign,
+    MarketingPersona,
     OperationalAlert,
     PilotOperationalRun,
     SchedulerHeartbeat,
@@ -57,15 +61,16 @@ CONTENT_FACTORY_BLUEPRINT: list[dict[str, Any]] = [
         "channel": "instagram",
         "content_type": "POST",
         "objective": "brand_awareness",
-        "title_template": "3 Erros Críticos que Impedem o Crescimento de Empresas em {niche}",
+        "title_template": "3 Erros que Fazem {publico} Perderem Oportunidades em {niche}",
         "body_template": (
-            "No mercado atual de {niche}, muitas empresas perdem clientes sem perceber. "
-            "Os 3 erros mais comuns são: 1) Falta de posicionamento claro no digital; "
-            "2) Processos manuais lentos no comercial; 3) Ausência de métricas e previsibilidade. "
-            "Para virar esse jogo, estruture processos autônomos e dados em tempo real."
+            "Se você atua no mercado de {niche} e busca mais visibilidade para {publico}, atenção a estes 3 pontos:\n"
+            "1) Depender apenas de indicação esporádica;\n"
+            "2) Não aparecer onde quem precisa de {niche} está pesquisando hoje;\n"
+            "3) Deixar de comunicar um diferencial claro e acessível.\n\n"
+            "Na {empresa} ({site}), estruturamos uma solução prática ligada à campanha {campanha}: {oferta}."
         ),
-        "cta": "Salve este post para consultar depois e comente CRESCER para receber o diagnóstico.",
-        "hashtags": ["#marketingdigital", "#crescimento", "#gestao", "#estrategia", "#inovacao"],
+        "cta": "Acesse {site} e aproveite pela {empresa}: {oferta}.",
+        "hashtags": ["#oportunidades", "#crescimento", "#estrategiadigital"],
         "media_specs": {"dimensions": "1080x1080", "format": "PNG", "layout": "Dark modern infographic with 3 numbered pillars"},
         "scheduled_time": "12:15",
     },
@@ -73,17 +78,17 @@ CONTENT_FACTORY_BLUEPRINT: list[dict[str, Any]] = [
         "channel": "instagram",
         "content_type": "CAROUSEL",
         "objective": "education",
-        "title_template": "Guia Prático: Como Multiplicar sua Geração de Leads em {niche}",
+        "title_template": "Guia Prático para {publico}: Como Aproveitar {empresa}",
         "body_template": (
-            "Deslize para ver o passo a passo definitivo para gerar oportunidades qualificadas todos os dias:\n"
-            "Slide 1: Diagnóstico do ICP e persona ideal\n"
-            "Slide 2: Oferta irresistível com proposta única de valor\n"
-            "Slide 3: Captação ativa multicanal com automação\n"
-            "Slide 4: Qualificação automática antes de enviar ao time de vendas\n"
-            "Slide 5: Régua de nutrição em múltiplos pontos de contato."
+            "Deslize para conferir o passo a passo de {campanha} na {empresa}:\n"
+            "Slide 1: Para quem é — {publico}\n"
+            "Slide 2: O principal benefício — {oferta}\n"
+            "Slide 3: Como acessar {site} em poucos minutos\n"
+            "Slide 4: Como apresentar seu trabalho ou serviço com clareza para gerar confiança\n"
+            "Slide 5: Próximo passo para transformar alcance em resultados reais em {niche}."
         ),
-        "cta": "Compartilhe este carrossel com um colega empresário que precisa escalar.",
-        "hashtags": ["#leadgeneration", "#vendasb2b", "#negocios", "#produtividade", "#escala"],
+        "cta": "Entre agora em {site} e faça seu cadastro na {empresa}.",
+        "hashtags": ["#passopasso", "#guiapratico", "#visibilidade"],
         "media_specs": {"dimensions": "1080x1350", "slides_count": 5, "format": "PNG", "layout": "Clean gradient cards with bold typography"},
         "scheduled_time": "18:30",
     },
@@ -91,49 +96,49 @@ CONTENT_FACTORY_BLUEPRINT: list[dict[str, Any]] = [
         "channel": "instagram",
         "content_type": "REELS_SHORT",
         "objective": "sales_conversion",
-        "title_template": "O Segredo da Eficiência em {niche} que Ninguém Te Conta",
+        "title_template": "Recado Direto para {publico}: Conheça {empresa}",
         "body_template": (
             "[ROTEIRO DE VÍDEO CURTO — 45s]\n"
-            "00:00-00:03 [GANCHO VISUAL]: Você ainda perde horas do seu dia com tarefas repetitivas de marketing e vendas?\n"
-            "00:03-00:15 [PROBLEMA]: Enquanto você apaga incêndios manuais, seus concorrentes usam inteligência e automação 24/7.\n"
-            "00:15-00:30 [SOLUÇÃO]: Automatize a qualificação, crie conteúdo consistente e monitore indicadores em tempo real.\n"
-            "00:30-00:45 [CHAMADA]: Toque no link da bio e solicite um plano estratégico para a sua operação."
+            "00:00-00:05 [GANCHO VISUAL]: Você trabalha como {publico} ou atua com {niche} e quer alcançar mais pessoas?\n"
+            "00:05-00:18 [PROBLEMA]: Muita gente já procura exatamente o que você faz todos os dias, mas não te encontra facilmente.\n"
+            "00:18-00:33 [SOLUÇÃO]: A {empresa} reuniu tudo em {site} com foco direto: {oferta}.\n"
+            "00:33-00:45 [CHAMADA]: Acesse {site} agora e participe da {campanha}."
         ),
-        "cta": "Toque no link da bio e comece a operar no piloto automático.",
-        "hashtags": ["#reelsbrasil", "#automacao", "#produtividadeempresarial", "#negociosonline"],
-        "media_specs": {"dimensions": "1080x1920", "duration_sec": 45, "fps": 30, "audio_suggestion": "Inspiring lo-fi business beat"},
+        "cta": "Toque no link ({site}) e aproveite: {oferta}.",
+        "hashtags": ["#reelsbrasil", "#dicasrapidas", "#divulgacao"],
+        "media_specs": {"dimensions": "1080x1920", "duration_sec": 45, "fps": 30, "audio_suggestion": "Inspiring lo-fi modern beat"},
         "scheduled_time": "20:00",
     },
     {
         "channel": "instagram",
         "content_type": "POST",
         "objective": "engagement",
-        "title_template": "Opinião Impopular sobre {niche} em 2026",
+        "title_template": "O Que Faz {publico} Terem Mais Resultado em {niche}",
         "body_template": (
-            "Você não precisa de 10 ferramentas caras para ter resultados consistentes. "
-            "Você precisa de alinhamento cirúrgico entre posicionamento, conteúdo relevante e resposta ágil aos clientes. "
-            "Menos ruído, mais execução estruturada."
+            "Você não precisa de fórmulas complicadas para se destacar em {niche}.\n"
+            "Quem conquista mais contatos e clientes mantém 3 coisas simples: presença clara em {site}, oferta objetiva ({oferta}) "
+            "e agilidade na resposta para {publico}."
         ),
-        "cta": "Você concorda ou discorda? Deixe sua visão nos comentários.",
-        "hashtags": ["#opiniao", "#mindset", "#lideranca", "#negocios"],
-        "media_specs": {"dimensions": "1080x1080", "format": "PNG", "layout": "Bold tweet-style text card with minimal background"},
+        "cta": "Você já conhecia a {empresa}? Acesse {site} ou comente sua dúvida abaixo.",
+        "hashtags": ["#posicionamento", "#autoridade", "#resultados"],
+        "media_specs": {"dimensions": "1080x1080", "format": "PNG", "layout": "Bold quote card with minimal background"},
         "scheduled_time": "11:45",
     },
     {
         "channel": "instagram",
         "content_type": "CAROUSEL",
         "objective": "education",
-        "title_template": "Checklist de Auditoria Operacional para {niche}",
+        "title_template": "Checklist Rápido para {publico} na {empresa}",
         "body_template": (
-            "Auditoria rápida de 5 minutos para a sua empresa:\n"
-            "1. Seu site carrega em menos de 2 segundos?\n"
-            "2. Sua proposta de valor fica clara em até 5 segundos de leitura?\n"
-            "3. Seus leads recebem contato em até 15 minutos após o cadastro?\n"
-            "4. Você mede seu CAC e LTV mensalmente?\n"
-            "Se respondeu NÃO para 2 ou mais, sua operação tem vazamentos."
+            "Auditoria rápida de 5 minutos para melhorar sua divulgação em {niche}:\n"
+            "1. Quem encontra você entende logo o serviço oferecido?\n"
+            "2. O seu link ou perfil em {site} está atualizado e fácil de achar?\n"
+            "3. A oferta principal está visível ({oferta})?\n"
+            "4. Você responde novos interessados com rapidez?\n"
+            "Se faltou algum item, comece ajustando hoje mesmo com a {empresa}."
         ),
-        "cta": "Comente AUDITORIA para saber como corrigir esses pontos.",
-        "hashtags": ["#checklist", "#auditoria", "#crescimentoempresarial", "#gestaoeficiente"],
+        "cta": "Salve este checklist e acesse {site} para aplicar na prática.",
+        "hashtags": ["#checklist", "#organizacao", "#melhoriacontinua"],
         "media_specs": {"dimensions": "1080x1350", "slides_count": 5, "format": "PNG", "layout": "Structured checklist with interactive-style checkboxes"},
         "scheduled_time": "17:15",
     },
@@ -141,50 +146,51 @@ CONTENT_FACTORY_BLUEPRINT: list[dict[str, Any]] = [
         "channel": "instagram",
         "content_type": "POST",
         "objective": "sales_conversion",
-        "title_template": "Estudo de Caso: Transformação de Resultados em {niche}",
+        "title_template": "Por Que {publico} Estão Escolhendo {empresa}",
         "body_template": (
-            "Veja o que acontece quando uma operação substitui intuição por processos e inteligência:\n"
-            "• Redução drástica no tempo de resposta a novos contatos\n"
-            "• Presença de marca consistente sem depender de esforço manual diário\n"
-            "• Previsibilidade financeira mês a mês.\n"
-            "Resultados consistentes são construídos com sistemas eficientes."
+            "Veja o que muda quando {publico} param de depender só da sorte e passam a divulgar de forma organizada em {niche}:\n"
+            "• Mais facilidade para serem encontrados por quem realmente precisa\n"
+            "• Proposta clara: {oferta}\n"
+            "• Canal direto em {site} dentro da campanha {campanha}.\n"
+            "Resultados consistentes começam pelo cadastro e presença certa."
         ),
-        "cta": "Quer estruturar isso na sua empresa? Mande mensagem direta para saber mais.",
-        "hashtags": ["#casodesucesso", "#roi", "#transformacaodigital", "#resultadosreais"],
-        "media_specs": {"dimensions": "1080x1080", "format": "PNG", "layout": "Metric highlight badge with clean dark UI aesthetic"},
+        "cta": "Acesse {site} e faça parte da {empresa} hoje mesmo.",
+        "hashtags": ["#oportunidade", "#beneficios", "#presencadigital"],
+        "media_specs": {"dimensions": "1080x1080", "format": "PNG", "layout": "Benefit highlight card with clean dark UI aesthetic"},
         "scheduled_time": "14:00",
     },
 
-    # 4 Facebook (Comunidade, Artigos e Discussões)
+    # 4 Facebook (Comunidade, Divulgação e Discussões)
     {
         "channel": "facebook",
         "content_type": "POST",
         "objective": "brand_awareness",
-        "title_template": "A Evolução do Mercado de {niche}: O que Mudou?",
+        "title_template": "Como Funciona {empresa} para {publico} ({niche})",
         "body_template": (
-            "Os clientes em {niche} estão mais exigentes e bem informados do que nunca. "
-            "Eles pesquisam antes de tomar qualquer decisão, comparam soluções e esperam um atendimento rápido e consultivo. "
-            "Se o seu negócio ainda depende apenas de indicações ou ações pontuais, é hora de estruturar um motor previsível de autoridade e captação."
+            "Quem busca crescer atuando em {niche} sabe que visibilidade e confiança fazem toda a diferença.\n"
+            "Por isso, a {empresa} criou um espaço direto em {site} pensado para {publico}: {oferta}.\n"
+            "Em vez de depender só de boca a boca eventual, você conecta seu trabalho a um fluxo contínuo de novos interessados."
         ),
-        "cta": "Leia a análise completa e compartilhe sua experiência no setor.",
-        "hashtags": ["#mercadobrasil", "#empreendedorismo", "#negocios"],
-        "media_specs": {"dimensions": "1200x630", "format": "PNG", "layout": "Landscape editorial banner with corporate tone"},
+        "cta": "Conheça {site} e veja como participar da campanha {campanha}.",
+        "hashtags": ["#comunidade", "#servicos", "#divulgacao"],
+        "media_specs": {"dimensions": "1200x630", "format": "PNG", "layout": "Landscape editorial banner explaining the platform"},
         "scheduled_time": "09:30",
     },
     {
         "channel": "facebook",
         "content_type": "POST",
         "objective": "education",
-        "title_template": "5 Perguntas que Todo Gestor em {niche} Deve Fazer Hoje",
+        "title_template": "5 Perguntas para {publico} Avaliarem Sua Divulgação Hoje",
         "body_template": (
-            "1. Quanto custa para a sua empresa adquirir um novo cliente?\n"
-            "2. Qual canal traz os clientes mais lucrativos?\n"
-            "3. Onde está o maior gargalo entre a atração e o fechamento?\n"
-            "4. Sua equipe comercial gasta mais tempo prospectando ou fechando negócios?\n"
-            "5. Seus processos funcionam sem a sua presença diária?"
+            "Se você trabalha com {niche}, responda rápido:\n"
+            "1. Novos clientes conseguem encontrar você facilmente pela internet?\n"
+            "2. Você tem um link claro como {site} para mostrar seus serviços?\n"
+            "3. Sua proposta de valor ({oferta}) está evidente?\n"
+            "4. Você divulga sua atuação toda semana?\n"
+            "5. Você acompanha quantas pessoas entraram em contato este mês?"
         ),
-        "cta": "Deixe nos comentários qual dessas perguntas é o seu maior desafio hoje.",
-        "hashtags": ["#gestaoestrategica", "#lideranca", "#planejamento"],
+        "cta": "Comente qual desses pontos você quer destravar primeiro ou visite {site}.",
+        "hashtags": ["#autonomos", "#planejamento", "#crescimento"],
         "media_specs": {"dimensions": "1200x630", "format": "PNG", "layout": "Numbered question cards with high readability"},
         "scheduled_time": "15:30",
     },
@@ -192,17 +198,17 @@ CONTENT_FACTORY_BLUEPRINT: list[dict[str, Any]] = [
         "channel": "facebook",
         "content_type": "POST",
         "objective": "engagement",
-        "title_template": "Pesquisa Rápida com Profissionais de {niche}",
+        "title_template": "Enquete Rápida com {publico} — {empresa}",
         "body_template": (
-            "Queremos ouvir quem está no dia a dia da operação de {niche}:\n"
-            "Qual é o maior desafio na sua rotina atual?\n"
-            "A) Encontrar clientes qualificados\n"
-            "B) Manter a equipe produtiva e focada\n"
-            "C) Precificação e margem de lucro\n"
-            "D) Implementar tecnologia e automações"
+            "Queremos ouvir quem vive o dia a dia de {niche}:\n"
+            "Qual é a maior dificuldade na sua rotina atual como {publico}?\n"
+            "A) Conseguir mais pedidos de novos clientes\n"
+            "B) Ser encontrado na região certa\n"
+            "C) Divulgar o serviço sem gastar muito tempo\n"
+            "D) Organizar contatos e orçamentos em um só lugar"
         ),
-        "cta": "Vote com a letra da sua resposta abaixo e participe da conversa.",
-        "hashtags": ["#pesquisa", "#comunidade", "#networking"],
+        "cta": "Vote com a letra A, B, C ou D nos comentários e conheça {site}.",
+        "hashtags": ["#enquete", "#comunidade", "#trabalhadores"],
         "media_specs": {"dimensions": "1200x630", "format": "PNG", "layout": "Clean poll graphic with A, B, C, D choices"},
         "scheduled_time": "11:00",
     },
@@ -210,15 +216,15 @@ CONTENT_FACTORY_BLUEPRINT: list[dict[str, Any]] = [
         "channel": "facebook",
         "content_type": "POST",
         "objective": "sales_conversion",
-        "title_template": "Conheça o Programa de Aceleração para {niche}",
+        "title_template": "Convite Aberto ({campanha}): {oferta}",
         "body_template": (
-            "Desenvolvemos uma metodologia estruturada para apoiar empresas de {niche} a consolidar presença digital, "
-            "otimizar posicionamento nos mecanismos de busca e qualificar oportunidades comerciais sem desperdício de tempo. "
-            "Atendimento consultivo e suporte dedicado."
+            "A {empresa} está com a campanha {campanha} aberta para {publico}.\n"
+            "Se você trabalha no segmento de {niche}, aproveite para garantir sua presença: {oferta}.\n"
+            "Tudo centralizado no site {site}, pensado para conectar quem presta o serviço a quem precisa contratar."
         ),
-        "cta": "Clique no botão abaixo para conversar com a nossa equipe de especialistas.",
-        "hashtags": ["#aceleracao", "#consultoria", "#crescimento"],
-        "media_specs": {"dimensions": "1200x630", "format": "PNG", "layout": "Professional promo card with verified badge"},
+        "cta": "Acesse {site} agora e conclua seu cadastro com a {empresa}.",
+        "hashtags": ["#cadastrese", "#oportunidade", "#clientes"],
+        "media_specs": {"dimensions": "1200x630", "format": "PNG", "layout": "Promo invitation card with direct CTA"},
         "scheduled_time": "16:45",
     },
 
@@ -227,70 +233,70 @@ CONTENT_FACTORY_BLUEPRINT: list[dict[str, Any]] = [
         "channel": "tiktok",
         "content_type": "REELS_SHORT",
         "objective": "brand_awareness",
-        "title_template": "Pare de Cometer Este Erro em {niche}!",
+        "title_template": "Atenção {publico}: Não Fique Invisível em {niche}!",
         "body_template": (
             "[ROTEIRO TIKTOK — 30s]\n"
-            "CENA 1 (0-3s): [Olhando direto para a câmera, expressão de alerta] Se você trabalha em {niche}, pare de fazer isso agora!\n"
-            "CENA 2 (3-12s): O maior erro é tentar falar com todo mundo. Quem fala com todos não convence ninguém.\n"
-            "CENA 3 (12-22s): Nichar a sua comunicação e resolver uma dor específica aumenta a sua conversão instantaneamente.\n"
-            "CENA 4 (22-30s): Siga o perfil para mais estratégias práticas de crescimento."
+            "CENA 1 (0-3s): [Olhando direto para a câmera] Se você atua como {publico}, presta atenção nessa dica!\n"
+            "CENA 2 (3-12s): Não basta fazer um serviço bem feito se ninguém sabe onde encontrar você.\n"
+            "CENA 3 (12-22s): Na {empresa}, conectamos {niche} direto com quem procura: {oferta}.\n"
+            "CENA 4 (22-30s): Entre em {site} e coloque seu trabalho no mapa hoje."
         ),
-        "cta": "Siga o perfil e ative o sininho para não perder os próximos conteúdos.",
-        "hashtags": ["#tiktokbrasil", "#dicasdenegocios", "#empreendedorismo", "#sucesso"],
-        "media_specs": {"dimensions": "1080x1920", "duration_sec": 30, "audio_suggestion": "Upbeat trending audio", "text_overlay": "O maior erro em {niche}"},
+        "cta": "Acesse {site} pelo link do perfil e confira a {empresa}.",
+        "hashtags": ["#tiktokbrasil", "#dicasdecarreira", "#servicos"],
+        "media_specs": {"dimensions": "1080x1920", "duration_sec": 30, "audio_suggestion": "Upbeat trending audio", "text_overlay": "{empresa} para {publico}"},
         "scheduled_time": "19:15",
     },
     {
         "channel": "tiktok",
         "content_type": "REELS_SHORT",
         "objective": "education",
-        "title_template": "3 Ferramentas Essenciais para Quem Atua em {niche}",
+        "title_template": "3 Passos para {publico} Conseguirem Mais Contatos em {niche}",
         "body_template": (
             "[ROTEIRO TIKTOK — 40s]\n"
-            "CENA 1 (0-4s): 3 ferramentas que vão economizar 10 horas da sua semana em {niche}.\n"
-            "CENA 2 (4-14s): Ferramenta 1: Automação de agendamentos e follow-ups comerciais.\n"
-            "CENA 3 (14-26s): Ferramenta 2: Plataforma de monitoramento de concorrentes e SEO.\n"
-            "CENA 4 (26-36s): Ferramenta 3: Painel consolidado de métricas e ROI financeiro.\n"
-            "CENA 5 (36-40s): Salve esse vídeo para não esquecer os nomes."
+            "CENA 1 (0-4s): 3 passos simples para {publico} ganharem destaque em {niche}.\n"
+            "CENA 2 (4-14s): Passo 1: Cadastre seus dados e especialidades em {site}.\n"
+            "CENA 3 (14-26s): Passo 2: Descreva bem o que você resolve e mostre confiança.\n"
+            "CENA 4 (26-36s): Passo 3: Aproveite a campanha {campanha} ({oferta}).\n"
+            "CENA 5 (36-40s): Salve esse vídeo e acesse {site}."
         ),
-        "cta": "Salve este vídeo e compartilhe com seu time.",
-        "hashtags": ["#produtividade", "#ferramentas", "#tecnologia", "#dicasuteis"],
-        "media_specs": {"dimensions": "1080x1920", "duration_sec": 40, "audio_suggestion": "Tech showcase background beat"},
+        "cta": "Salve este vídeo e acesse {site} para começar.",
+        "hashtags": ["#dicasuteis", "#servicos", "#autonomo"],
+        "media_specs": {"dimensions": "1080x1920", "duration_sec": 40, "audio_suggestion": "Clean showcase beat"},
         "scheduled_time": "13:30",
     },
     {
         "channel": "tiktok",
         "content_type": "REELS_SHORT",
         "objective": "engagement",
-        "title_template": "Expectativa vs Realidade ao Empreender em {niche}",
+        "title_template": "Expectativa vs Realidade para {publico} na Internet",
         "body_template": (
-            "[ROTEIRO TIKTOK — 35s — HUMOR & IDENTIFICAÇÃO]\n"
-            "CENA 1: Expectativa: 'Vou montar minha operação e tudo vai rodar no automático em 2 dias.'\n"
-            "CENA 2: Realidade: [Rosto confuso olhando planilhas] 'Por que tem 15 notificações não respondidas e 3 propostas atrasadas?'\n"
-            "CENA 3: A virada: Estruturar processos antes de tentar escalar volume.\n"
-            "CENA 4: Quem mais se identifica com essa rotina?"
+            "[ROTEIRO TIKTOK — 35s — IDENTIFICAÇÃO]\n"
+            "CENA 1: Expectativa: 'Vou postar uma foto solta uma vez por mês e o telefone não vai parar.'\n"
+            "CENA 2: Realidade: O cliente procura no Google ou redes sociais por {niche} e acha o concorrente primeiro.\n"
+            "CENA 3: A virada: Marcar presença onde há busca real — como na {empresa} ({site}): {oferta}.\n"
+            "CENA 4: Marca nos comentários um amigo de {publico} que precisa ver isso!"
         ),
-        "cta": "Comente 'EU' se você já passou por isso.",
-        "hashtags": ["#humorcorporativo", "#expectativavsrealidade", "#vidadeempresario"],
-        "media_specs": {"dimensions": "1080x1920", "duration_sec": 35, "audio_suggestion": "Viral comedy audio track"},
+        "cta": "Comente sua área de atuação abaixo e visite {site}.",
+        "hashtags": ["#vidadeautonomo", "#expectativavsrealidade", "#trabalho"],
+        "media_specs": {"dimensions": "1080x1920", "duration_sec": 35, "audio_suggestion": "Light trend audio"},
         "scheduled_time": "21:00",
     },
     {
         "channel": "tiktok",
         "content_type": "REELS_SHORT",
         "objective": "sales_conversion",
-        "title_template": "Como Conseguir Mais Clientes em {niche} Sem Gastar uma Fortuna",
+        "title_template": "Como Ser Encontrado por Novos Clientes com a {empresa}",
         "body_template": (
             "[ROTEIRO TIKTOK — 45s]\n"
-            "CENA 1: Como gerar clientes qualificados em {niche} sem torrar verba em anúncios descalibrados.\n"
-            "CENA 2: Primeiro: Otimize seu SEO para capturar quem já está pesquisando ativamente pelo seu serviço.\n"
-            "CENA 3: Segundo: Tenha uma resposta comercial imediata — os primeiros 10 minutos definem a conversão.\n"
-            "CENA 4: Terceiro: Faça follow-up estruturado com quem não fechou de primeira.\n"
-            "CENA 5: Link na bio para saber como implantar essa estrutura."
+            "CENA 1: Quer atrair mais clientes sem precisar depender só de indicação?\n"
+            "CENA 2: A {empresa} foi criada pensando em {niche} e em {publico}.\n"
+            "CENA 3: Nosso foco é simples: {oferta}.\n"
+            "CENA 4: Tudo pelo endereço oficial: {site}.\n"
+            "CENA 5: Corre no link do perfil para participar da {campanha}."
         ),
-        "cta": "Clique no link do perfil para conhecer nossa metodologia.",
-        "hashtags": ["#vendas", "#crescimentoacelerado", "#marketingestrategico"],
-        "media_specs": {"dimensions": "1080x1920", "duration_sec": 45, "audio_suggestion": "Motivational corporate synth"},
+        "cta": "Acesse {site} agora mesmo e conheça a {empresa}.",
+        "hashtags": ["#novosclientes", "#oportunidade", "#divulgue"],
+        "media_specs": {"dimensions": "1080x1920", "duration_sec": 45, "audio_suggestion": "Motivational synth"},
         "scheduled_time": "18:00",
     },
 
@@ -299,117 +305,114 @@ CONTENT_FACTORY_BLUEPRINT: list[dict[str, Any]] = [
         "channel": "youtube",
         "content_type": "YOUTUBE_SCRIPT",
         "objective": "education",
-        "title_template": "Como Escalar seu Negócio em {niche}: O Guia Definitivo Passo a Passo",
+        "title_template": "Como {publico} Podem Atrair Mais Clientes em {niche} com a {empresa}",
         "body_template": (
-            "[ROTEIRO COMPLETO DE VÍDEO PARA YOUTUBE — 12 MINUTOS]\n"
-            "THUMBNAIL: Foto expressiva + Texto grande em alto contraste: 'DO ZERO À ESCALA EM {niche}'\n\n"
+            "[ROTEIRO COMPLETO DE VÍDEO PARA YOUTUBE — 10 MINUTOS]\n"
+            "THUMBNAIL: Texto grande em alto contraste: 'MAIS CLIENTES PARA {publico}'\n\n"
             "00:00-01:30 [INTRODUÇÃO & GANCHO]:\n"
-            "Se você quer construir uma empresa sólida em {niche}, precisa parar de depender da sorte ou de indicações esporádicas. "
-            "Neste vídeo, eu vou te mostrar a arquitetura exata que separa empresas estagnadas daquelas que dobram de tamanho todo ano.\n\n"
-            "01:30-04:00 [BLOCO 1: O PILAR DO POSICIONAMENTO & AUTORIDADE]:\n"
-            "Por que SEO técnico e conteúdo perene são o ativo mais valioso para construir autoridade orgânica sem custo por clique.\n\n"
-            "04:00-07:00 [BLOCO 2: O MOTOR DE CAPTAÇÃO & QUALIFICAÇÃO]:\n"
-            "Como montar funis inteligentes que filtram curiosos e entregam apenas leads com real poder de compra ao comercial.\n\n"
-            "07:00-09:30 [BLOCO 3: AUTOMAÇÃO OPERACIONAL E ROTINAS 24/7]:\n"
-            "A rotina diária de um negócio moderno: agendamento de publicações, follow-ups pontuais e auditorias automáticas.\n\n"
-            "09:30-11:00 [BLOCO 4: MÉTRICAS QUE IMPORTAM (CAC, LTV, ROI)]:\n"
-            "Como ler seus indicadores financeiros para tomar decisões sem adivinhação.\n\n"
-            "11:00-12:00 [CONCLUSÃO & CTA]:\n"
-            "Inscreva-se no canal, deixe seu like e acesse o link na descrição para baixar os templates gratuitos deste guia."
+            "Se você faz parte de {publico} e atua em {niche}, precisa parar de depender apenas do boca a boca esporádico. "
+            "Hoje vou mostrar como a {empresa} ({site}) ajuda através da campanha {campanha}.\n\n"
+            "01:30-04:00 [BLOCO 1: COMO OS CLIENTES PROCURAM HOJE]:\n"
+            "Como as pessoas buscam soluções na internet e por que um cadastro bem apresentado aumenta suas chances de contato.\n\n"
+            "04:00-07:00 [BLOCO 2: NA PRÁTICA COM A {empresa}]:\n"
+            "Passo a passo acessando {site} para aproveitar: {oferta}.\n\n"
+            "07:00-09:00 [BLOCO 3: BOAS PRÁTICAS DE ATENDIMENTO]:\n"
+            "Como responder interessados com rapidez e transformar contatos em serviços fechados.\n\n"
+            "09:00-10:00 [CONCLUSÃO & CTA]:\n"
+            "Acesse o link oficial na descrição ({site}) e confira todos os detalhes."
         ),
-        "cta": "Inscreva-se no canal e confira os links gratuitos na descrição do vídeo.",
-        "hashtags": ["#youtubebrasil", "#cursogratuito", "#escalaempresarial", "#gestaodenegocios"],
-        "media_specs": {"dimensions": "1920x1080", "aspect_ratio": "16:9", "thumbnail_specs": "High contrast 1280x720 PNG with bold yellow text"},
+        "cta": "Inscreva-se no canal e acesse {site} no primeiro link da descrição.",
+        "hashtags": ["#youtubebrasil", "#guiapratico", "#oportunidades"],
+        "media_specs": {"dimensions": "1920x1080", "aspect_ratio": "16:9", "thumbnail_specs": "High contrast 1280x720 PNG"},
         "scheduled_time": "19:00",
     },
     {
         "channel": "youtube",
         "content_type": "YOUTUBE_SCRIPT",
         "objective": "sales_conversion",
-        "title_template": "Análise Real de Mercado: Tendências e Oportunidades em {niche} para 2026",
+        "title_template": "Por Dentro da {empresa}: Tudo Sobre {campanha} em {niche}",
         "body_template": (
-            "[ROTEIRO COMPLETO DE VÍDEO PARA YOUTUBE — 10 MINUTOS]\n"
-            "THUMBNAIL: Gráfico com seta verde ascendente + Texto: 'TENDÊNCIAS 2026: {niche}'\n\n"
-            "00:00-01:15 [GANCHO INICIAL]:\n"
-            "O que vai acontecer no mercado de {niche} nos próximos meses? Analisamos dados reais de mercado e separamos as 4 grandes tendências que vão ditar quem cresce e quem fica para trás.\n\n"
-            "01:15-03:30 [TENDÊNCIA 1: HIPERPERSONALIZAÇÃO E RESPOSTA IMEDIATA]\n"
-            "03:30-05:45 [TENDÊNCIA 2: CONSOLIDAÇÃO DE DADOS E CRM UNIFICADO]\n"
-            "05:45-08:00 [TENDÊNCIA 3: SEO SEMÂNTICO E BUSCA POR INTENÇÃO]\n"
-            "08:00-09:15 [TENDÊNCIA 4: AUTONOMIA COM SUPERVISÃO HUMANA SEGURA]\n\n"
-            "09:15-10:00 [ENCERRAMENTO]:\n"
-            "Quer preparar sua empresa para esse cenário? Agende uma sessão de diagnóstico no primeiro link da descrição."
+            "[ROTEIRO COMPLETO DE VÍDEO EXPLICATIVO — 8 MINUTOS]\n"
+            "THUMBNAIL: Identidade da {empresa} + 'CONHEÇA: {site}'\n\n"
+            "00:00-01:15 [ABERTURA]:\n"
+            "Apresentamos hoje a {empresa}, focada em {niche}, e como {publico} podem aproveitar {oferta}.\n\n"
+            "01:15-03:30 [PASSO 1: ACESSANDO O PORTAL ({site})]\n"
+            "03:30-05:45 [PASSO 2: PREENCHENDO SEU PERFIL E DIFERENCIAIS]\n"
+            "05:45-07:15 [PASSO 3: RECEBENDO CONTATOS E ACOMPANHANDO RESULTADOS]\n\n"
+            "07:15-08:00 [ENCERRAMENTO]:\n"
+            "Entre em {site} agora mesmo e aproveite a campanha {campanha}."
         ),
-        "cta": "Agende seu diagnóstico estratégico pelo link fixado no primeiro comentário.",
-        "hashtags": ["#tendencias2026", "#estrategiaempresarial", "#mercadodigital"],
-        "media_specs": {"dimensions": "1920x1080", "aspect_ratio": "16:9", "thumbnail_specs": "Clean editorial thumbnail with green trend indicator"},
+        "cta": "Acesse {site} pelo link fixado no primeiro comentário.",
+        "hashtags": ["#tutorial", "#apresentacao", "#servicos"],
+        "media_specs": {"dimensions": "1920x1080", "aspect_ratio": "16:9", "thumbnail_specs": "Clean tutorial thumbnail"},
         "scheduled_time": "19:00",
     },
 
-    # 4 LinkedIn (B2B, Liderança, Frameworks e Estudos de Caso)
+    # 4 LinkedIn (Credibilidade, Conexões Profissionais e Parcerias)
     {
         "channel": "linkedin",
         "content_type": "POST",
         "objective": "brand_awareness",
-        "title_template": "Lições de Governança e Eficiência em {niche}",
+        "title_template": "Como a {empresa} Está Organizando o Mercado de {niche}",
         "body_template": (
-            "No ecossistema corporativo de {niche}, existe uma linha tênue entre crescer com saúde financeira ou inflar custos operacionais sem retorno real.\n\n"
-            "Ao longo dos últimos anos observando empresas do setor, 3 princípios se mostram indispensáveis:\n\n"
-            "1. Processos claros antes de tecnologia: ferramenta sem método apenas automatiza a confusão.\n"
-            "2. Transparência de dados entre marketing e vendas: quando esses dois setores olham para as mesmas métricas (CAC e receita real), o atrito desaparece.\n"
-            "3. Disciplina de execução: consistência vence brilhantismo esporádico em qualquer vertical B2B.\n\n"
-            "Como a sua liderança encara esses 3 pilares?"
+            "No segmento de {niche}, conectar com agilidade quem precisa do serviço e {publico} preparados faz toda a diferença.\n\n"
+            "A proposta da {empresa} em {site} apoia diretamente esse ecossistema com 3 pilares:\n"
+            "1. Clareza na oferta: {oferta}.\n"
+            "2. Visibilidade estruturada para profissionais comprometidos com qualidade.\n"
+            "3. Facilidade de acesso em um portal único: {site}.\n\n"
+            "Como você enxerga a evolução digital desse setor?"
         ),
-        "cta": "Compartilhe suas reflexões nos comentários e vamos enriquecer o debate profissional.",
-        "hashtags": ["#lideranca", "#gestaoempresarial", "#inovacao"],
-        "media_specs": {"dimensions": "1200x628", "format": "PNG", "layout": "Corporate executive quote visual with minimalist aesthetic"},
+        "cta": "Conheça {site} ou compartilhe sua opinião nos comentários.",
+        "hashtags": ["#mercado", "#inovacao", "#conexoes"],
+        "media_specs": {"dimensions": "1200x628", "format": "PNG", "layout": "Minimalist brand insight card"},
         "scheduled_time": "08:30",
     },
     {
         "channel": "linkedin",
         "content_type": "POST",
         "objective": "education",
-        "title_template": "O Framework de 4 Etapas para Otimizar o Funil B2B em {niche}",
+        "title_template": "4 Pontos que Valorizam o Perfil de {publico}",
         "body_template": (
-            "Compartilho o framework operacional que utilizamos para estruturar operações de aquisição previsível:\n\n"
-            "Etapa 1: Atração Qualificada (SEO focado em intenção transacional e conteúdo proprietário)\n"
-            "Etapa 2: Captura com Consentimento LGPD (materiais técnicos de alto valor)\n"
-            "Etapa 3: Pontuação & Qualificação de Leads (filtragem por faturamento e urgência)\n"
-            "Etapa 4: Transição Comercial Fluida (SLA de contato em minutos, não dias).\n\n"
-            "Quando as 4 etapas funcionam integradas, o custo de aquisição cai sensivelmente."
+            "Ao estruturar a divulgação para {publico} na campanha {campanha}, 4 cuidados multiplicam a confiança de quem contrata:\n\n"
+            "1. Descrição objetiva do que você faz em {niche}\n"
+            "2. Presença oficial em um endereço confiável ({site})\n"
+            "3. Clareza de benefícios: {oferta}\n"
+            "4. Retorno rápido ao primeiro contato.\n\n"
+            "Simples, direto e eficiente."
         ),
-        "cta": "Se este framework fez sentido para a sua realidade, salve o post para consultar na reunião de planejamento.",
-        "hashtags": ["#b2bmarketing", "#salespipeline", "#governanca"],
-        "media_specs": {"dimensions": "1200x628", "format": "PNG", "layout": "Architecture diagram illustrating the 4-step pipeline"},
+        "cta": "Salve esta lista e conheça o trabalho da {empresa} em {site}.",
+        "hashtags": ["#profissionalismo", "#credibilidade", "#servicos"],
+        "media_specs": {"dimensions": "1200x628", "format": "PNG", "layout": "4-point checklist graphic"},
         "scheduled_time": "08:45",
     },
     {
         "channel": "linkedin",
         "content_type": "POST",
         "objective": "engagement",
-        "title_template": "O Maior Dilema dos CEOs em {niche} Hoje",
+        "title_template": "O Papel do Digital para {publico} em 2026",
         "body_template": (
-            "Conversando com líderes de {niche}, percebo que a principal dúvida não é mais 'se' devem adotar inteligência e automação, mas sim 'como' fazer isso com segurança e governança.\n\n"
-            "A grande virada de chave acontece quando você estabelece níveis claros de autonomia: tarefas operacionais repetitivas rodam sozinhas, enquanto decisões financeiras e estratégicas permanecem sob firme validação humana.\n\n"
-            "Autonomia com responsabilidade é o futuro da gestão corporativa."
+            "Cada vez mais, {publico} percebem que depender somente de indicações limita o alcance do próprio trabalho.\n\n"
+            "Com iniciativas como a {empresa} ({site}), fica mais simples ampliar a presença no setor de {niche} aproveitando: {oferta}.\n\n"
+            "Qual canal digital mais traz contatos para você ou sua rede hoje?"
         ),
-        "cta": "Qual é a sua postura em relação ao equilíbrio entre automação e controle humano?",
-        "hashtags": ["#ceo", "#inteligenciaartificial", "#futurodotrabalho"],
-        "media_specs": {"dimensions": "1200x628", "format": "PNG", "layout": "Clean LinkedIn carousel banner or editorial card"},
+        "cta": "Deixe seu comentário abaixo e visite {site}.",
+        "hashtags": ["#futurodotrabalho", "#presencadigital", "#oportunidades"],
+        "media_specs": {"dimensions": "1200x628", "format": "PNG", "layout": "Clean editorial card"},
         "scheduled_time": "09:15",
     },
     {
         "channel": "linkedin",
         "content_type": "POST",
         "objective": "sales_conversion",
-        "title_template": "Como Estruturamos Operações Escaláveis para Empresas de {niche}",
+        "title_template": "Campanha {campanha} Aberta na {empresa}",
         "body_template": (
-            "Para organizações em {niche} que buscam previsibilidade comercial sem expandir custos fixos desproporcionalmente, desenvolvemos soluções completas de inteligência operacional.\n\n"
-            "Nossa abordagem unifica marketing estratégico, automação de processos, auditoria contínua de presença online e alinhamento de receitas em uma única plataforma integrada.\n\n"
-            "Resultados sólidos, métricas auditáveis e governança em primeiro lugar."
+            "Estamos ampliando nossa rede em {niche} por meio da campanha {campanha}.\n\n"
+            "Se você faz parte de {publico} ou conhece profissionais qualificados buscando mais visibilidade, conheça: {oferta}.\n\n"
+            "Mais detalhes disponíveis diretamente em {site}."
         ),
-        "cta": "Envie uma mensagem privada para iniciarmos uma conversa confidencial sobre a sua empresa.",
-        "hashtags": ["#consultoriaestrategica", "#eficienciaoperacional", "#escala"],
-        "media_specs": {"dimensions": "1200x628", "format": "PNG", "layout": "Executive corporate overview card with brand insignia"},
+        "cta": "Acesse {site} ou envie mensagem para saber como participar.",
+        "hashtags": ["#divulgacao", "#parcerias", "#redeprofissional"],
+        "media_specs": {"dimensions": "1200x628", "format": "PNG", "layout": "Announcement card with brand name"},
         "scheduled_time": "10:00",
     },
 
@@ -418,159 +421,150 @@ CONTENT_FACTORY_BLUEPRINT: list[dict[str, Any]] = [
         "channel": "blog_seo",
         "content_type": "SEO_ARTICLE",
         "objective": "education",
-        "title_template": "Guia Completo de Otimização e Crescimento para Empresas de {niche}",
+        "title_template": "Guia Completo: {niche} para {publico} — {empresa}",
         "body_template": (
-            "# Guia Completo de Otimização e Crescimento para Empresas de {niche}\n\n"
-            "## Introdução ao Cenário Competitivo\n"
-            "No mercado corporativo moderno de {niche}, o sucesso não depende mais de estratégias isoladas. "
-            "Empresas que se destacam implementam uma presença digital estruturada, com foco em autoridade temática e experiência do usuário.\n\n"
-            "## 1. Por que o SEO Técnico é a Base do seu Posicionamento Orgânico\n"
-            "Ter um site veloz, com arquitetura semântica limpa, marcação Schema.org e sitemap atualizado garante que os mecanismos de busca encontrem e indexem seu conteúdo com máxima prioridade.\n\n"
-            "## 2. Produção de Conteúdo Orientada à Intenção de Busca\n"
-            "Mais do que palavras-chave soltas, responda às dores reais do seu público. Artigos aprofundados, dados claros e exemplos práticos constroem credibilidade duradoura.\n\n"
-            "## 3. Conversão de Visitantes em Oportunidades Reais\n"
-            "Cada artigo técnico deve oferecer um próximo passo lógico: um checklist, um diagnóstico ou um canal direto de contato com especialistas.\n\n"
-            "## Conclusão\n"
-            "Crescimento orgânico consistente exige método, paciência e acompanhamento regular de métricas de indexação e velocidade."
+            "# Guia Completo: {niche} para {publico} — {empresa}\n\n"
+            "## Como se destacar no mercado atual\n"
+            "No setor de {niche}, estar bem posicionado quando alguém procura por uma solução faz toda a diferença para {publico}.\n\n"
+            "## 1. Tenha um canal oficial acessível\n"
+            "Centralizar sua presença em portais dedicados como a {empresa} ({site}) aumenta a confiança de novos interessados.\n\n"
+            "## 2. Comunique seu diferencial em segundos\n"
+            "Deixe claro logo no primeiro contato qual serviço você entrega e qual é a vantagem prática: {oferta}.\n\n"
+            "## 3. Participe da campanha {campanha}\n"
+            "Visite {site} para conferir como aproveitar os recursos da {empresa} na prática."
         ),
-        "cta": "Baixe nosso checklist gratuito de SEO técnico para aplicar no seu site.",
-        "hashtags": ["#seo", "#marketingdeconteudo", "#posicionamento"],
-        "media_specs": {"dimensions": "1200x800", "featured_image": True, "layout": "Editorial blog header image with clean typography"},
+        "cta": "Acesse {site} agora mesmo e conheça a {empresa}: {oferta}.",
+        "hashtags": ["#seo", "#guiacompleto", "#artigo"],
+        "media_specs": {"dimensions": "1200x800", "featured_image": True, "layout": "Editorial blog header"},
         "scheduled_time": "07:30",
     },
     {
         "channel": "blog_seo",
         "content_type": "SEO_ARTICLE",
         "objective": "brand_awareness",
-        "title_template": "As Melhores Práticas de Gestão Empresarial e Produtividade em {niche}",
+        "title_template": "Por Que {publico} Estão Buscando Visibilidade em {niche} com a {empresa}",
         "body_template": (
-            "# As Melhores Práticas de Gestão Empresarial e Produtividade em {niche}\n\n"
-            "## O Desafio da Produtividade nas PMEs\n"
-            "Gerir uma empresa em {niche} envolve equilibrar atendimento a clientes, entrega de serviços, finanças e marketing. Sem processos claros, a sobrecarga operacional é inevitável.\n\n"
-            "## Pilares de uma Operação Eficiente\n"
-            "1. **Padronização de Processos (SOPs)**: Documente as etapas críticas da sua operação para garantir qualidade uniforme.\n"
-            "2. **Integração de Canais de Comunicação**: Centralize contatos em um CRM para evitar perda de histórico.\n"
-            "3. **Auditorias Periódicas de Desempenho**: Reserve momentos semanais para analisar resultados e corrigir desvios com agilidade.\n\n"
-            "## Conclusão e Próximos Passos\n"
-            "A transformação operacional começa com pequenas melhorias contínuas. Identifique o maior gargalo atual e automatize sua resolução."
+            "# Por Que {publico} Estão Buscando Visibilidade em {niche} com a {empresa}\n\n"
+            "## O desafio de conseguir novos contatos todos os meses\n"
+            "Depender exclusivamente de recomendações presenciais torna o fluxo de trabalho imprevisível.\n\n"
+            "## Como a {empresa} simplifica essa ponte\n"
+            "Em {site}, reunimos ferramentas e divulgação voltadas para {niche}, oferecendo a {publico}: {oferta}.\n\n"
+            "## Primeiros passos\n"
+            "Entre em {site}, preencha suas informações principais e comece a participar da {campanha}."
         ),
-        "cta": "Conheça nossas soluções completas para otimizar a rotina da sua empresa.",
-        "hashtags": ["#gestao", "#produtividade", "#processos"],
-        "media_specs": {"dimensions": "1200x800", "featured_image": True, "layout": "Modern management dashboard mockup"},
+        "cta": "Visite {site} e faça seu cadastro na {empresa}.",
+        "hashtags": ["#visibilidade", "#clientes", "#dicas"],
+        "media_specs": {"dimensions": "1200x800", "featured_image": True, "layout": "Modern portal showcase graphic"},
         "scheduled_time": "07:30",
     },
     {
         "channel": "blog_seo",
         "content_type": "SEO_ARTICLE",
         "objective": "sales_conversion",
-        "title_template": "Como Escolher a Solução Ideal para Escalar a sua Empresa em {niche}",
+        "title_template": "Como Aproveitar a Campanha {campanha} na {empresa}",
         "body_template": (
-            "# Como Escolher a Solução Ideal para Escalar a sua Empresa em {niche}\n\n"
-            "## Introdução: O Dilema da Escolha de Parceiros e Plataformas\n"
-            "Quando chega a hora de dar o próximo passo em {niche}, muitos empresários se deparam com um mercado saturado de promessas mágicas e ferramentas complexas.\n\n"
-            "## Critérios Essenciais para uma Escolha Inteligente\n"
-            "- **Custo Total de Propriedade (TCO)**: Avalie mensalidades, taxas de implantação e custos de manutenção futuros.\n"
-            "- **Facilidade de Uso e Adoção pela Equipe**: Soluções intuitivas geram retorno muito mais rápido.\n"
-            "- **Segurança e Privacidade dos Dados**: Verifique conformidade com a LGPD e criptografia de informações sensíveis.\n"
-            "- **Suporte Técnico Dedicado**: Ter com quem contar na hora das dúvidas é indispensável para a continuidade do negócio.\n\n"
-            "## Considerações Finais\n"
-            "Priorize parceiros transparentes, que apresentem diagnósticos claros e métricas reais de resultado."
+            "# Como Aproveitar a Campanha {campanha} na {empresa}\n\n"
+            "## O que muda para {publico}\n"
+            "Ao integrar o catálogo e a divulgação da {empresa} em {site}, você apresenta seu serviço a quem está buscando ativamente por {niche}.\n\n"
+            "## O que você encontra lá\n"
+            "- Proposta clara: {oferta}\n"
+            "- Foco direto em {publico}\n"
+            "- Acesso simples pelo site {site}\n\n"
+            "## Como começar hoje\n"
+            "Acesse {site} e finalize seu registro em poucos minutos."
         ),
-        "cta": "Fale com um consultor especialista para entender a melhor alternativa para sua empresa.",
-        "hashtags": ["#consultoriab2b", "#tomadadedecisao", "#crescimento"],
-        "media_specs": {"dimensions": "1200x800", "featured_image": True, "layout": "Decision tree / comparison matrix illustration"},
+        "cta": "Clique para acessar {site} e participar da {campanha}.",
+        "hashtags": ["#oportunidade", "#cadastro", "#crescimento"],
+        "media_specs": {"dimensions": "1200x800", "featured_image": True, "layout": "Comparison and benefits banner"},
         "scheduled_time": "07:30",
     },
     {
         "channel": "blog_seo",
         "content_type": "SEO_ARTICLE",
         "objective": "education",
-        "title_template": "O Impacto da Inteligência Artificial nos Processos Comerciais de {niche}",
+        "title_template": "Perguntas Frequentes de {publico} Sobre {empresa} ({niche})",
         "body_template": (
-            "# O Impacto da Inteligência Artificial nos Processos Comerciais de {niche}\n\n"
-            "## A Revolução da Agilidade no Atendimento\n"
-            "A velocidade de resposta se tornou o principal diferencial competitivo em {niche}. Clientes que recebem atendimento imediato têm até 7 vezes mais chances de fechar negócio.\n\n"
-            "## Como a IA Potencializa a Força Humana\n"
-            "A inteligência artificial não substitui o consultor humano — ela assume a triagem inicial, qualifica o perfil do lead e fornece dados estratégicos para que o vendedor feche mais vendas em menos tempo.\n\n"
-            "## Implementação Segura e Ética\n"
-            "Trabalhe sempre com limites bem definidos: modelos inteligentes para análise de dados e suporte assistido, com aprovação humana obrigatória para ações sensíveis."
+            "# Perguntas Frequentes de {publico} Sobre {empresa}\n\n"
+            "## Quem pode participar?\n"
+            "Todo profissional ou interessado ligado a {publico} no segmento de {niche}.\n\n"
+            "## Qual é o principal benefício oferecido?\n"
+            "{oferta} diretamente pelo portal {site}.\n\n"
+            "## Como acompanhar novidades e campanhas?\n"
+            "Através do nosso canal principal ({canal}) e pelo endereço oficial {site}."
         ),
-        "cta": "Experimente nossa demonstração e veja a tecnologia funcionando na prática.",
-        "hashtags": ["#ia", "#vendasinteligentes", "#futurodotrabalho"],
-        "media_specs": {"dimensions": "1200x800", "featured_image": True, "layout": "Futuristic AI workflow and human collaboration banner"},
+        "cta": "Acesse {site} e tire suas dúvidas diretamente com a {empresa}.",
+        "hashtags": ["#faq", "#duvidas", "#suporte"],
+        "media_specs": {"dimensions": "1200x800", "featured_image": True, "layout": "FAQ clean banner"},
         "scheduled_time": "07:30",
     },
 
-    # 4 E-mails Comerciais de Nutrição e Vendas
+    # 4 E-mails / Mensagens Diretas de Convite e Nutrição
     {
         "channel": "email_marketing",
         "content_type": "SALES_EMAIL",
         "objective": "education",
-        "title_template": "Diagnóstico Rápido: Como está a presença digital da sua empresa em {niche}?",
+        "title_template": "Convite {empresa}: Novidade para {publico} em {niche}",
         "body_template": (
             "Olá, {nome_cliente}!\n\n"
-            "Ao analisar empresas do segmento de {niche}, notamos um padrão muito claro: as que mais crescem possuem um canal direto e previsível de atração de oportunidades.\n\n"
-            "Preparamos um diagnóstico gratuito em 3 pontos para você avaliar a sua operação hoje:\n"
-            "1. Sua empresa aparece nas primeiras posições quando alguém busca pelos seus serviços na sua região?\n"
-            "2. Seus potenciais clientes encontram respostas claras e um canal de contato ágil no seu site?\n"
-            "3. Sua equipe possui um processo automático para não deixar nenhum contato sem retorno?\n\n"
-            "Responda a este e-mail para recebermos seu diagnóstico personalizado."
+            "Estamos entrando em contato porque você atua como {publico} no setor de {niche}.\n\n"
+            "Na {empresa} ({site}), estamos com uma frente especial chamada {campanha} oferecendo: {oferta}.\n\n"
+            "Você pode conferir todos os detalhes diretamente no site: {site}.\n\n"
+            "Se tiver qualquer dúvida sobre como funciona, é só responder por aqui!"
         ),
-        "cta": "Responda este e-mail diretamente ou clique aqui para agendar uma conversa rápida.",
+        "cta": "Acesse {site} para conhecer a {empresa} e garantir sua vaga.",
         "hashtags": [],
-        "media_specs": {"template_type": "Plain text executive email with clean typography", "preview_text": "3 perguntas rápidas para auditar sua presença em {niche}"},
+        "media_specs": {"template_type": "Plain text invite email", "preview_text": "{oferta} na {empresa} ({site})"},
         "scheduled_time": "08:15",
     },
     {
         "channel": "email_marketing",
         "content_type": "SALES_EMAIL",
         "objective": "sales_conversion",
-        "title_template": "Oportunidade Exclusiva: Condições Especiais para {niche}",
+        "title_template": "{publico}: Aproveite {oferta} em {site}",
         "body_template": (
             "Olá, {nome_cliente}!\n\n"
-            "Nesta semana, estamos abrindo 5 vagas prioritárias para o nosso programa de aceleração e modernização para empresas de {niche}.\n\n"
-            "O que está incluso:\n"
-            "• Auditoria técnica completa de SEO e presença online\n"
-            "• Implantação de funil automatizado de qualificação de leads\n"
-            "• Planejamento editorial multicanal de 30 dias\n"
-            "• Acompanhamento semanal de métricas e ROI financeiro.\n\n"
-            "As condições especiais são válidas exclusivamente até a próxima sexta-feira."
+            "Quer receber mais atenção de pessoas procurando por {niche}?\n\n"
+            "Veja o que preparamos na campanha {campanha} da {empresa}:\n"
+            "• Foco exclusivo em {publico}\n"
+            "• Benefício direto: {oferta}\n"
+            "• Acesso fácil pelo endereço {site}.\n\n"
+            "Leva apenas alguns minutos para participar."
         ),
-        "cta": "Clique aqui e garanta uma das 5 vagas prioritárias.",
+        "cta": "Entre em {site} agora mesmo e conclua seu cadastro.",
         "hashtags": [],
-        "media_specs": {"template_type": "Special invitation card email with urgency deadline", "preview_text": "Vagas prioritárias abertas para aceleração em {niche}"},
+        "media_specs": {"template_type": "Invitation card email", "preview_text": "Campanha {campanha} aberta para {publico}"},
         "scheduled_time": "14:30",
     },
     {
         "channel": "email_marketing",
         "content_type": "SALES_EMAIL",
         "objective": "engagement",
-        "title_template": "Estudo de Caso: Como Superar a Concorrência em {niche}",
+        "title_template": "Dica rápida da {empresa} para quem trabalha com {niche}",
         "body_template": (
             "Olá, {nome_cliente}!\n\n"
-            "Muitas vezes, a diferença entre liderar o mercado de {niche} ou disputar clientes por preço é apenas a forma como sua autoridade é comunicada.\n\n"
-            "Neste breve estudo de caso, compartilhamos os bastidores de uma operação que estruturou seu posicionamento em 4 semanas e aumentou em 40% o volume de contatos qualificados.\n\n"
-            "Quer entender os detalhes dessa estratégia para aplicar no seu negócio?"
+            "Quem faz parte de {publico} muitas vezes entrega um ótimo trabalho, mas perde oportunidades por não estar visível onde os clientes pesquisam.\n\n"
+            "Por isso centralizamos tudo em {site}: para divulgar sua área de atuação com foco em {oferta}.\n\n"
+            "Já deu uma olhada na página da {empresa} hoje?"
         ),
-        "cta": "Acesse o estudo de caso completo em nosso portal.",
+        "cta": "Clique para visitar {site} e conferir.",
         "hashtags": [],
-        "media_specs": {"template_type": "Case study overview email", "preview_text": "Veja os números reais deste estudo de caso em {niche}"},
+        "media_specs": {"template_type": "Follow-up email", "preview_text": "Mais visibilidade em {niche} com a {empresa}"},
         "scheduled_time": "10:15",
     },
     {
         "channel": "email_marketing",
         "content_type": "SALES_EMAIL",
         "objective": "sales_conversion",
-        "title_template": "Última Chamada: Vamos Estruturar o seu Motor de Vendas em {niche}?",
+        "title_template": "Lembrete ({campanha}): Garanta sua presença na {empresa}",
         "body_template": (
             "Olá, {nome_cliente}!\n\n"
-            "Passando para um rápido lembrete: o encerramento do nosso ciclo de consultoria estratégica para {niche} acontece hoje às 18h.\n\n"
-            "Se você quer entrar no próximo mês com uma operação mais produtiva, sem depender de tarefas manuais e com processos claros de vendas, este é o momento ideal.\n\n"
-            "Podemos conversar por 15 minutos ainda hoje?"
+            "Passando só para lembrar da nossa campanha {campanha} voltada a {publico}.\n\n"
+            "Se você quer aproveitar {oferta} no segmento de {niche}, o caminho oficial é o portal {site}.\n\n"
+            "Estamos à disposição se precisar de ajuda no cadastro."
         ),
-        "cta": "Clique aqui para agendar sua chamada de alinhamento.",
+        "cta": "Acesse {site} e faça parte da {empresa}.",
         "hashtags": [],
-        "media_specs": {"template_type": "Urgent reminder plain text email", "preview_text": "Última oportunidade do ciclo atual para {niche}"},
+        "media_specs": {"template_type": "Reminder email", "preview_text": "Lembrete rápido: {oferta} em {site}"},
         "scheduled_time": "16:00",
     },
 
@@ -579,34 +573,177 @@ CONTENT_FACTORY_BLUEPRINT: list[dict[str, Any]] = [
         "channel": "instagram",
         "content_type": "SEASONAL_CAMPAIGN",
         "objective": "sales_conversion",
-        "title_template": "Campanha Especial de Crescimento em {niche}: Inscrições Abertas",
+        "title_template": "Lançamento {campanha}: {empresa} Agora no Ar!",
         "body_template": (
-            "Chegou o momento de dar o salto definitivo na sua empresa de {niche}!\n\n"
-            "Lançamos hoje a nossa Campanha de Aceleração 2026: um pacote completo de consultoria estratégica, "
-            "automação de marketing e presença digital com condições exclusivas de lançamento.\n\n"
-            "Vagas limitadas para garantir o acompanhamento próximo de cada cliente."
+            "Chegou a hora de ampliar seu alcance em {niche}!\n\n"
+            "Está oficialmente no ar a campanha {campanha} da {empresa} para {publico}.\n"
+            "O que preparamos: {oferta} — direto pelo site {site}.\n\n"
+            "Compartilhe com colegas da área!"
         ),
-        "cta": "Acesse o link da nossa bio e preencha a aplicação agora mesmo.",
-        "hashtags": ["#campanha2026", "#lancamento", "#crescimentorapido", "#oportunidade"],
-        "media_specs": {"dimensions": "1080x1080", "format": "PNG", "layout": "Vibrant launch announcement card with gold accents"},
+        "cta": "Acesse {site} e participe hoje mesmo da {campanha}.",
+        "hashtags": ["#lancamento", "#novidade", "#oportunidade"],
+        "media_specs": {"dimensions": "1080x1080", "format": "PNG", "layout": "Vibrant launch announcement card"},
         "scheduled_time": "10:00",
     },
     {
         "channel": "linkedin",
         "content_type": "SEASONAL_CAMPAIGN",
         "objective": "sales_conversion",
-        "title_template": "Abertura Oficial: Iniciativa de Modernização Digital para {niche}",
+        "title_template": "Abertura Oficial: {campanha} — {empresa}",
         "body_template": (
-            "É com grande satisfação que anunciamos a abertura oficial da nossa Iniciativa de Modernização Digital voltada exclusivamente para o setor de {niche}.\n\n"
-            "O objetivo da iniciativa é fornecer metodologia, governança de dados e ferramentas autônomas para que empresas de médio porte alcancem excelência operacional e previsibilidade de receitas.\n\n"
-            "Condições especiais para as primeiras organizações que aderirem ao programa."
+            "Anunciamos oficialmente a campanha {campanha} da {empresa}, voltada para {publico} no segmento de {niche}.\n\n"
+            "Nosso compromisso: {oferta}, com acesso simples e direto através do portal {site}.\n\n"
+            "Convide profissionais interessados para conhecer e fazer parte."
         ),
-        "cta": "Solicite o dossiê executivo da iniciativa enviando mensagem para nossa diretoria.",
-        "hashtags": ["#iniciativadigital", "#transformacao", "#eficiencia"],
-        "media_specs": {"dimensions": "1200x628", "format": "PNG", "layout": "Official institutional launch announcement badge"},
+        "cta": "Visite {site} e conheça todos os detalhes da {campanha}.",
+        "hashtags": ["#lancamentooficial", "#novidade", "#networking"],
+        "media_specs": {"dimensions": "1200x628", "format": "PNG", "layout": "Official launch announcement badge"},
         "scheduled_time": "11:30",
     },
 ]
+
+
+def _slugify_hashtag(raw: str) -> str:
+    norm = unicodedata.normalize("NFKD", raw).encode("ascii", "ignore").decode("ascii")
+    cleaned = re.sub(r"[^a-zA-Z0-9]+", "", norm.lower())
+    return f"#{cleaned[:24]}" if len(cleaned) >= 3 else ""
+
+
+def _build_contextual_hashtags(brand: str, niche: str, audience: str, base_tags: list[str]) -> list[str]:
+    if not base_tags:
+        return []
+    dynamic: list[str] = []
+    for candidate in (brand,):
+        t = _slugify_hashtag(candidate)
+        if t and t not in dynamic:
+            dynamic.append(t)
+    stop = {"para", "com", "sem", "como", "que", "dos", "das", "sobre", "em", "de", "do", "da", "e", "o", "a", "os", "as"}
+    for source in (niche, audience):
+        words = [w for w in re.split(r"[^a-zA-Z0-9À-ÿ]+", source) if len(w) >= 4 and w.lower() not in stop]
+        if words:
+            tag = _slugify_hashtag("_".join(words[:2]))
+            if tag and tag not in dynamic:
+                dynamic.append(tag)
+    for t in base_tags:
+        if t not in dynamic:
+            dynamic.append(t)
+    return dynamic[:5]
+
+
+def _safe_format(template_str: str, mapping: dict[str, str]) -> str:
+    try:
+        return template_str.format(**mapping)
+    except Exception:
+        return template_str
+
+
+def _resolve_tenant_marketing_context(
+    db: Session,
+    tenant_id: int,
+    company_name: str = "",
+    niche: str = "",
+    target_audience: str = "",
+    business_unit_code: str = "",
+    focus_theme: str = "",
+    persona_id: int | None = None,
+    campaign_id: int | None = None,
+) -> dict[str, Any]:
+    """Consolida empresa, site, nicho real, persona e campanha ativa do tenant para personalizar toda geração."""
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    persona = None
+    if persona_id:
+        persona = db.query(MarketingPersona).filter(MarketingPersona.id == persona_id, MarketingPersona.tenant_id == tenant_id).first()
+    if not persona:
+        persona = db.query(MarketingPersona).filter(MarketingPersona.tenant_id == tenant_id).order_by(MarketingPersona.id.desc()).first()
+
+    campaign = None
+    if campaign_id:
+        campaign = db.query(MarketingCampaign).filter(MarketingCampaign.id == campaign_id, MarketingCampaign.tenant_id == tenant_id).first()
+    if not campaign:
+        campaign = db.query(MarketingCampaign).filter(MarketingCampaign.tenant_id == tenant_id).order_by(MarketingCampaign.id.desc()).first()
+
+    unit_prefixes = {
+        "UNION_TECH": "IA, Automação & Engenharia de Software",
+        "UNION_AGENCY": "Marketing Digital, SEO, Funil & Growth",
+        "UNION_PARTNERS": "Curadoria Técnica, Comparativos & Ofertas Verificadas",
+    }
+
+    brand_name = (
+        company_name.strip()
+        or (tenant.brand_name.strip() if tenant and tenant.brand_name else "")
+        or (tenant.name.strip() if tenant and tenant.name else "")
+        or "Sua Empresa"
+    )
+    site_url = (tenant.domain.strip() if tenant and tenant.domain else "")
+    site_display = site_url or f"o portal {brand_name}"
+
+    raw_tenant_niche = (tenant.niche.strip() if tenant and tenant.niche else "")
+    is_default_niche = raw_tenant_niche in ("", "Tecnologia & B2B SaaS")
+    unit_req = business_unit_code.strip().upper()
+
+    if niche.strip():
+        niche_label = niche.strip()
+    elif unit_req in unit_prefixes and (unit_req != "UNION_TECH" or is_default_niche):
+        niche_label = unit_prefixes[unit_req]
+    elif raw_tenant_niche:
+        niche_label = raw_tenant_niche
+    else:
+        niche_label = "Serviços & Soluções Digitais"
+
+    persona_name = (persona.name.strip() if persona and persona.name else "")
+    audience_label = (
+        target_audience.strip()
+        or persona_name
+        or (tenant.target_audience.strip() if tenant and tenant.target_audience else "")
+        or "Público-Alvo"
+    )
+    offer_label = (
+        focus_theme.strip()
+        or (persona.value_proposition.strip() if persona and persona.value_proposition else "")
+        or (campaign.objective.strip() if campaign and campaign.objective and campaign.objective != "Aquisição e conversão de leads" else "")
+        or f"soluções práticas em {niche_label}"
+    )
+    campaign_name = (campaign.name.strip() if campaign and campaign.name else f"Divulgação {brand_name}")
+    campaign_channel = (campaign.channel.strip() if campaign and campaign.channel else "Canais Digitais")
+
+    return {
+        "tenant": tenant,
+        "brand_name": brand_name,
+        "site_url": site_url,
+        "site_display": site_display,
+        "niche_label": niche_label,
+        "persona_name": persona_name,
+        "audience_label": audience_label,
+        "offer_label": offer_label,
+        "campaign_name": campaign_name,
+        "campaign_channel": campaign_channel,
+        "effective_unit_code": unit_req or "UNION_TECH",
+    }
+
+
+def delete_content_factory_drafts_service(db: Session, tenant_id: int) -> dict[str, int]:
+    """Remove apenas rascunhos não publicados da Content Factory do tenant ativo, preservando itens já publicados."""
+    drafts = (
+        db.query(ContentFactoryItem)
+        .filter(ContentFactoryItem.tenant_id == tenant_id, ContentFactoryItem.status != "PUBLISHED")
+        .all()
+    )
+    count = len(drafts)
+    for item in drafts:
+        db.delete(item)
+    if count > 0:
+        db.add(
+            AuditLog(
+                tenant_id=tenant_id,
+                actor="UNION_CONTENT_FACTORY",
+                action="CONTENT_DRAFTS_CLEARED",
+                resource_type="content_factory_batch",
+                resource_id=f"tenant_{tenant_id}",
+                details_json=json.dumps({"deleted_drafts": count}, ensure_ascii=False),
+            )
+        )
+    db.commit()
+    return {"deleted_count": count}
 
 
 def _compute_similarity_hash(text: str) -> str:
@@ -622,20 +759,44 @@ def generate_30_day_content_batch_service(
     niche: str = "",
     target_audience: str = "",
     count: int = 30,
-    business_unit_code: str = "UNION_TECH",
+    business_unit_code: str = "",
     utm_campaign: str = "",
+    focus_theme: str = "",
+    replace_drafts: bool = False,
+    persona_id: int | None = None,
+    campaign_id: int | None = None,
 ) -> dict[str, Any]:
-    """Gera automaticamente o lote de 30 publicações mensais multicanal para a Content Factory."""
-    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
-    unit_prefixes = {
-        "UNION_TECH": "IA, Automação & Engenharia de Software",
-        "UNION_AGENCY": "Marketing Digital, SEO, Funil & Growth",
-        "UNION_PARTNERS": "Curadoria Técnica, Comparativos & Ofertas Verificadas",
+    """Gera automaticamente o lote de 30 publicações mensais multicanal alinhadas à marca, site, nicho, persona e campanha do tenant."""
+    if replace_drafts:
+        delete_content_factory_drafts_service(db, tenant_id=tenant_id)
+
+    ctx = _resolve_tenant_marketing_context(
+        db=db,
+        tenant_id=tenant_id,
+        company_name=company_name,
+        niche=niche,
+        target_audience=target_audience,
+        business_unit_code=business_unit_code,
+        focus_theme=focus_theme,
+        persona_id=persona_id,
+        campaign_id=campaign_id,
+    )
+    comp_name = ctx["brand_name"]
+    niche_label = ctx["niche_label"]
+    audience_label = ctx["audience_label"]
+    effective_unit_code = ctx["effective_unit_code"]
+    effective_utm = utm_campaign or f"utm_source=content_factory&utm_medium=social&utm_campaign={effective_unit_code.lower()}"
+
+    fmt_vars = {
+        "niche": niche_label,
+        "empresa": comp_name,
+        "publico": audience_label,
+        "oferta": ctx["offer_label"],
+        "site": ctx["site_display"],
+        "campanha": ctx["campaign_name"],
+        "canal": ctx["campaign_channel"],
+        "nome_cliente": "{Nome}",
     }
-    comp_name = company_name or (tenant.name if tenant else "Empresa Parceira")
-    niche_label = niche or unit_prefixes.get(business_unit_code, tenant.niche if tenant and tenant.niche else "Mercado Corporativo")
-    audience_label = target_audience or (tenant.target_audience if tenant and tenant.target_audience else "Empresários, Gestores e Decisores")
-    effective_utm = utm_campaign or f"utm_source=content_factory&utm_medium=social&utm_campaign={business_unit_code.lower()}"
 
     batch_id = f"batch_{tenant_id}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
 
@@ -656,14 +817,14 @@ def generate_30_day_content_batch_service(
         scheduled_date = (now + timedelta(days=day_offset)).strftime("%Y-%m-%d")
         scheduled_for = f"{scheduled_date}T{template['scheduled_time']}:00"
 
-        title = template["title_template"].format(niche=niche_label, empresa=comp_name)
-        body = template["body_template"].format(
-            niche=niche_label,
-            empresa=comp_name,
-            publico=audience_label,
-            nome_cliente="{Nome}",
-        )
-        cta = template["cta"]
+        title = _safe_format(template["title_template"], fmt_vars)
+        body = _safe_format(template["body_template"], fmt_vars)
+        cta = _safe_format(template["cta"], fmt_vars)
+        tags = _build_contextual_hashtags(comp_name, niche_label, audience_label, template["hashtags"])
+        media_specs = {
+            k: (_safe_format(v, fmt_vars) if isinstance(v, str) else v)
+            for k, v in template["media_specs"].items()
+        }
 
         # Controle de duplicidade por token hash
         sim_hash = _compute_similarity_hash(title + " " + body[:200])
@@ -686,7 +847,7 @@ def generate_30_day_content_batch_service(
             quality += 5
         if len(cta) >= 10:
             quality += 5
-        if template["hashtags"]:
+        if tags:
             quality += 5
         quality = min(quality, 100)
 
@@ -699,7 +860,7 @@ def generate_30_day_content_batch_service(
                 "timestamp": now.isoformat(),
                 "action": "GENERATED_BY_CONTENT_FACTORY",
                 "agent": resp_agent,
-                "notes": f"Lote inicial {batch_id} gerado com score editorial {quality}/100",
+                "notes": f"Lote {batch_id} gerado para '{comp_name}' ({niche_label}) com score {quality}/100",
             }
         ]
 
@@ -713,8 +874,8 @@ def generate_30_day_content_batch_service(
             title=title,
             body_text=body,
             cta=cta,
-            hashtags_json=json.dumps(template["hashtags"], ensure_ascii=False),
-            media_specs_json=json.dumps(template["media_specs"], ensure_ascii=False),
+            hashtags_json=json.dumps(tags, ensure_ascii=False),
+            media_specs_json=json.dumps(media_specs, ensure_ascii=False),
             image_url=f"/media/content_factory/{batch_id}_{idx+1}.png",
             scheduled_for=scheduled_for,
             quality_score=quality,
@@ -723,7 +884,7 @@ def generate_30_day_content_batch_service(
             status="PLANNED",
             responsible_agent=resp_agent,
             change_history_json=json.dumps(initial_history, ensure_ascii=False),
-            business_unit_code=business_unit_code,
+            business_unit_code=effective_unit_code,
             utm_campaign=effective_utm,
             approval_status="PENDING_REVIEW",
             data_origin="GOAL",

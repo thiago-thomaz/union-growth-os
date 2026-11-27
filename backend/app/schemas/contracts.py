@@ -378,8 +378,12 @@ class ContentFactoryBatchGenerateRequest(BaseModel):
     company_name: str = ""
     niche: str = ""
     target_audience: str = ""
-    business_unit_code: str = "UNION_TECH"
+    business_unit_code: str = ""
     utm_campaign: str = ""
+    focus_theme: str = ""
+    replace_drafts: bool = False
+    persona_id: int | None = None
+    campaign_id: int | None = None
     count: int = 30
     platforms: list[str] = [
         "instagram",

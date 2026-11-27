@@ -164,6 +164,7 @@ from app.services.phase17_commercial_engine import (
     update_service_delivery_project_service,
 )
 from app.services.phase14_automation_factory import (
+    delete_content_factory_drafts_service,
     generate_30_day_content_batch_service,
     get_content_factory_items_service,
     update_content_factory_item_service,
@@ -1206,9 +1207,14 @@ def create_editorial_item(payload: EditorialItemCreate, user: User = Depends(get
 
     caption = payload.caption.strip()
     if not caption and payload.auto_generate_copy:
+        latest_persona = db.query(MarketingPersona).filter(MarketingPersona.tenant_id == tid).order_by(MarketingPersona.id.desc()).first()
+        aud_str = latest_persona.name if latest_persona else tenant.target_audience
+        offer_str = latest_persona.value_proposition if latest_persona and latest_persona.value_proposition else tenant.niche
+        site_str = f" em {tenant.domain.strip()}" if getattr(tenant, "domain", "").strip() else ""
         caption = (
-            f"{payload.title} — Estratégia {tenant.brand_name} para {tenant.niche}.\n\n"
-            f"Acompanhe nossos indicadores e soluções para {tenant.target_audience}."
+            f"{payload.title} — {tenant.brand_name} ({tenant.niche}).\n\n"
+            f"Pensado para {aud_str}: {offer_str}.\n"
+            f"Acesse{site_str} para saber mais e participar."
         )
     hashtags = payload.hashtags or ["#marketing", "#negocios", "#crescimento", f"#{tenant.slug.replace('-', '')}"]
 
@@ -2545,7 +2551,21 @@ def content_factory_generate_batch(
         count=payload.count,
         business_unit_code=payload.business_unit_code,
         utm_campaign=payload.utm_campaign,
+        focus_theme=payload.focus_theme,
+        replace_drafts=payload.replace_drafts,
+        persona_id=payload.persona_id,
+        campaign_id=payload.campaign_id,
     )
+
+
+@router.delete("/content-factory/drafts")
+def content_factory_clear_drafts(
+    user: User = Depends(require_roles("owner", "admin", "operator")),
+    db: Session = Depends(get_db),
+):
+    """Remove rascunhos não publicados da Content Factory do tenant ativo, mantendo publicações concluídas."""
+    tid = get_active_tenant_id(user)
+    return delete_content_factory_drafts_service(db, tenant_id=tid)
 
 
 @router.get("/content-factory/items", response_model=list[ContentFactoryItemResponse])

@@ -131,6 +131,9 @@ export default function UnionGrowthOSPortal() {
   // FASE 14 State Stores
   const [contentFactoryItems, setContentFactoryItems] = useState<any[]>([]);
   const [cfFilter, setCfFilter] = useState<string>("ALL");
+  const [cfFocusTheme, setCfFocusTheme] = useState<string>("");
+  const [cfReplaceDrafts, setCfReplaceDrafts] = useState<boolean>(true);
+  const [lastSyncedTenantId, setLastSyncedTenantId] = useState<number | null>(null);
   const [assistedPackage, setAssistedPackage] = useState<any>(null);
   const [ceoDailyPlan, setCeoDailyPlan] = useState<any>(null);
   const [opDashboard, setOpDashboard] = useState<any>(null);
@@ -417,6 +420,37 @@ export default function UnionGrowthOSPortal() {
       loadAllActiveData();
     }
   }, [token, activeTenantId, loadAllActiveData]);
+
+  // Sincroniza automaticamente campos de Marketing (SEO, Criativos, Copy A/B e Fábrica) ao trocar de empresa ou cadastrar Persona
+  useEffect(() => {
+    const activeT = meData?.active_tenant;
+    if (!activeT?.id) return;
+    const brand = activeT.brand_name || activeT.name || "Sua Marca";
+    const domain = activeT.domain || "";
+    const niche = activeT.niche || "";
+    const personas = marketingData?.personas || [];
+    const latestPersona = personas.length > 0 ? personas[personas.length - 1] : null;
+    const aud = latestPersona?.name || activeT.target_audience || "Público-Alvo";
+    const offer = latestPersona?.value_proposition || niche || brand;
+
+    if (lastSyncedTenantId !== activeT.id) {
+      setLastSyncedTenantId(activeT.id);
+      if (domain) setSeoUrlInput(domain);
+      if (niche) {
+        setSeoKwInput(niche);
+        setSeoTopicInput(`Guia Completo: ${niche} — ${brand}`);
+      }
+      setCreativeTitle(`Divulgação ${brand}`);
+      setCreativeHeadline(`${brand} para ${aud}`);
+      setCreativeCta(domain ? `Acesse ${domain}` : `Conhecer ${brand}`);
+      setCopyTitle(`Convite Principal — ${brand}`);
+      setCopyOffer(brand);
+      setCopyBenefit(offer);
+      setCfFocusTheme(latestPersona?.value_proposition || "");
+    } else if (latestPersona?.value_proposition && !cfFocusTheme) {
+      setCfFocusTheme(latestPersona.value_proposition);
+    }
+  }, [meData?.active_tenant, marketingData?.personas, lastSyncedTenantId, cfFocusTheme]);
 
   const navigateTo = useCallback((viewId: LegacyMenuId) => {
     const normalized: LegacyMenuId = viewId === "calendar" ? "social" : viewId;
@@ -1816,46 +1850,143 @@ export default function UnionGrowthOSPortal() {
           )}
 
           {/* FASE 14 — CONTENT FACTORY */}
-          {activeMenu === "content_factory" && (
+          {activeMenu === "content_factory" && (() => {
+            const cfPersonas = marketingData?.personas || [];
+            const cfLatestPersona = cfPersonas.length > 0 ? cfPersonas[cfPersonas.length - 1] : null;
+            const cfLatestCampaign = (marketingData?.campaigns || [])[0] || null;
+            const cfTenant = meData?.active_tenant;
+            const cfDraftCount = contentFactoryItems.filter((it: any) => it.status !== "PUBLISHED").length;
+
+            return (
             <div className="space-y-6">
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-[#0f1629] border border-indigo-500/30 p-5 rounded-xl">
-                <div>
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <span>🏭</span> Fábrica de Conteúdo — Produção Mensal (30 Publicações Prontas)
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Gera 30 peças multicanal prontas com CTA e legenda. Sem conta social OAuth conectada, use <strong>Pacote 1-Clique</strong> para copiar e postar manualmente sem atrito.
-                  </p>
+              <div className="bg-[#0f1629] border border-indigo-500/30 p-5 rounded-xl space-y-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                      <span>🏭</span> Fábrica de Conteúdo — Produção Mensal (30 Publicações Prontas)
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Gera 30 peças multicanal alinhadas à sua empresa, site, nicho, persona e campanha. Sem conta social conectada, use <strong>📋 Pacote 1-Clique</strong> para copiar e publicar manualmente.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigateTo("calendar")}
+                      className="px-3.5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold"
+                    >
+                      Criar 1 Post Manual →
+                    </button>
+                    {cfDraftCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setLoading(true);
+                          try {
+                            const res = await apiFetch("/api/v1/content-factory/drafts", { method: "DELETE" });
+                            await loadAllActiveData();
+                            showNotice(`${res.deleted_count} rascunho(s) não publicado(s) removido(s)!`);
+                          } catch (e: any) {
+                            showNotice(e.message || "Erro ao limpar rascunhos");
+                          } finally {
+                            setLoading(false);
+                          }
+                        }}
+                        className="px-3.5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold"
+                      >
+                        Limpar Rascunhos ({cfDraftCount})
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setLoading(true);
+                        try {
+                          const res = await apiFetch("/api/v1/content-factory/generate-batch", {
+                            method: "POST",
+                            body: JSON.stringify({
+                              count: 30,
+                              company_name: cfTenant?.brand_name || cfTenant?.name || "",
+                              niche: cfTenant?.niche || "",
+                              target_audience: cfLatestPersona?.name || cfTenant?.target_audience || "",
+                              focus_theme: cfFocusTheme.trim(),
+                              replace_drafts: cfReplaceDrafts,
+                              persona_id: cfLatestPersona?.id || null,
+                              campaign_id: cfLatestCampaign?.id || null,
+                            }),
+                          });
+                          await loadAllActiveData();
+                          showNotice(`Fábrica de Conteúdo: ${res.total_generated} conteúdos criados para ${cfTenant?.brand_name || "sua marca"} (nota média ${res.average_quality_score}/100)!`);
+                        } catch (e: any) {
+                          showNotice(e.message || "Erro ao gerar lote");
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs shadow-lg flex items-center gap-2 whitespace-nowrap"
+                    >
+                      <span>⚡</span> Gerar Lote de 30 Publicações
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => navigateTo("calendar")}
-                    className="px-3.5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold"
-                  >
-                    Criar 1 Post Manual →
-                  </button>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      setLoading(true);
-                      try {
-                        const res = await apiFetch("/api/v1/content-factory/generate-batch", {
-                          method: "POST",
-                          body: JSON.stringify({ count: 30 }),
-                        });
-                        await loadAllActiveData();
-                        showNotice(`Fábrica de Conteúdo: ${res.total_generated} conteúdos gerados (nota média ${res.average_quality_score}/100)!`);
-                      } catch (e: any) {
-                        showNotice(e.message || "Erro ao gerar lote");
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
-                    className="px-4 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs shadow-lg flex items-center gap-2 whitespace-nowrap"
-                  >
-                    <span>⚡</span> Gerar Lote de 30 Publicações
-                  </button>
+
+                {/* Contexto Real Lido pela Fábrica */}
+                <div className="p-3.5 rounded-lg bg-slate-900/90 border border-slate-800 text-xs space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-bold text-indigo-300">Contexto usado na criação dos conteúdos:</span>
+                    <button
+                      type="button"
+                      onClick={() => navigateTo("settings")}
+                      className="text-[11px] text-indigo-300 hover:underline"
+                    >
+                      Ajustar site/nicho em Configurações →
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 text-[11px]">
+                    <div className="p-2 rounded bg-slate-950/70 border border-slate-800">
+                      <span className="text-slate-400 block">Marca</span>
+                      <strong className="text-white">{cfTenant?.brand_name || "-"}</strong>
+                    </div>
+                    <div className="p-2 rounded bg-slate-950/70 border border-slate-800">
+                      <span className="text-slate-400 block">Site / Link</span>
+                      <strong className="text-emerald-300 break-all">{cfTenant?.domain || "Não informado"}</strong>
+                    </div>
+                    <div className="p-2 rounded bg-slate-950/70 border border-slate-800">
+                      <span className="text-slate-400 block">Nicho</span>
+                      <strong className="text-white">{cfTenant?.niche || "-"}</strong>
+                    </div>
+                    <div className="p-2 rounded bg-slate-950/70 border border-slate-800">
+                      <span className="text-slate-400 block">Persona Ativa</span>
+                      <strong className="text-white">{cfLatestPersona?.name || cfTenant?.target_audience || "-"}</strong>
+                    </div>
+                    <div className="p-2 rounded bg-slate-950/70 border border-slate-800">
+                      <span className="text-slate-400 block">Campanha Ativa</span>
+                      <strong className="text-white">{cfLatestCampaign?.name || "Padrão da marca"}</strong>
+                    </div>
+                  </div>
+                  <div className="flex flex-col md:flex-row md:items-center gap-3 pt-1">
+                    <div className="flex-1">
+                      <label htmlFor="ug-cf-focus-input" className="block text-[11px] text-slate-300 mb-1">
+                        Oferta / Chamada Principal que aparecerá nos posts (opcional):
+                      </label>
+                      <input
+                        id="ug-cf-focus-input"
+                        value={cfFocusTheme}
+                        onChange={(e) => setCfFocusTheme(e.target.value)}
+                        placeholder={cfLatestPersona?.value_proposition || "Ex.: Cadastro gratuito no site para receber pedidos de novos clientes"}
+                        className="w-full px-3 py-1.5 rounded bg-slate-950 border border-slate-700 text-xs text-white"
+                      />
+                    </div>
+                    <label className="inline-flex items-center gap-2 text-[11px] text-slate-300 cursor-pointer pt-4">
+                      <input
+                        type="checkbox"
+                        checked={cfReplaceDrafts}
+                        onChange={(e) => setCfReplaceDrafts(e.target.checked)}
+                        className="rounded border-slate-600 bg-slate-900 text-indigo-600"
+                      />
+                      <span>Substituir rascunhos não publicados ao gerar novo lote</span>
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -1951,7 +2082,8 @@ export default function UnionGrowthOSPortal() {
                 );
               })()}
             </div>
-          )}
+            );
+          })()}
 
           {/* FASE 14 — PLANO DIÁRIO CEO */}
           {activeMenu === "ceo_plan" && (
