@@ -2569,9 +2569,11 @@ def test_47_phase23_10_user_journeys_and_agent12(client: TestClient):
     assert r_cf.status_code == 201
     assert "Clínica Vida Mais" in r_cf.json()["items"][0]["body_text"]
 
-    # Jornada 7: Organização de Leads no CRM + LGPD
+    # Jornada 7: Organização de Leads e Deals no CRM + LGPD
     r_lead = client.post("/api/v1/crm/leads", headers=h, json={"full_name": "Carlos Paciente", "email": f"carlos.{RUN_SUFFIX}@paciente.com", "phone": "+5511999990000", "company_name": "Particular", "estimated_value": 900, "consent_lgpd": True, "source_channel": "Instagram"})
     assert r_lead.status_code == 201
+    r_deal = client.post("/api/v1/crm/deals", headers=h, json={"title": "Checkup Executivo Carlos", "stage": "CLOSED_WON", "value": 900.0, "lead_id": r_lead.json()["id"]})
+    assert r_deal.status_code == 201
 
     # Jornada 8: Criação de Automação Conversacional Nativa Python (Dry-Run + Ativação)
     r_conv_dry = client.post("/api/v1/automations/conversational-build", headers=h, json={"prompt": "Quando entrar um lead, quero que a IA analise e me avise", "dry_run": True, "approve_create": False})

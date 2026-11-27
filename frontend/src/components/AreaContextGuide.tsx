@@ -63,7 +63,7 @@ const AREA_GUIDES: Record<AreaId, AreaGuideContent> = {
   },
   ia: {
     title: "Guia de Inteligência Artificial — Agentes e Motores",
-    whatCanDo: "Entender o papel dos 11 agentes, conectar sua chave gratuita do Google Gemini, testar conexão real e ajustar autonomia.",
+    whatCanDo: "Entender o papel dos 12 agentes, conectar sua chave gratuita do Google Gemini, testar conexão real e ajustar autonomia.",
     howToStart: "Siga os 3 passos do Assistente de Configuração abaixo (Chave Gratuita -> Testar Conexão -> Escolher Autonomia).",
     whatToFill: "Apenas sua chave gratuita do Google AI Studio (começa com 'AIzaSy...') se desejar ativar textos via LLM.",
     whatHappensNext: "Mesmo sem chave externa, rotinas determinísticas e proteções de custo continuam operando normalmente.",

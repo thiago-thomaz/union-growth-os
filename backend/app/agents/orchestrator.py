@@ -1159,7 +1159,7 @@ class CentralOrchestrator:
 
         output_data["_response_origin"] = response_origin
         output_data["_llm_used"] = llm_used
-        provider_name = f"{provider_name} | origem={response_origin}"
+        provider_name = f"{provider_name[:90]} | origem={response_origin}"[:180]
 
         model_label = output_data.get("_llm_model") or (
             "ollama/llama3.2" if response_origin == "LOCAL_MODEL"

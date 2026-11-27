@@ -281,6 +281,7 @@ async def run_phase23_e2e():
 
             # J06: Comercial CRM
             await cdp.click_by_text("aside button", "Comercial")
+            await cdp.click_by_text('nav[aria-label*="Submenus"] button', "CRM")
             await cdp.wait_idle()
             crm_ok = await cdp.evaluate("(document.body.innerText || '').includes('Consentimento LGPD')")
             report["journeys"]["J06_CRM_And_LGPD"] = {"passed": bool(crm_ok)}
@@ -294,7 +295,7 @@ async def run_phase23_e2e():
             await cdp.set_input("#ug-conv-auto-input", "Leads que não responderam em 3 dias recebam tarefa de follow-up")
             await cdp.click_by_text("main button", "Simular Fluxo (Dry-Run)")
             await asyncio.sleep(1.5)
-            conv_ok = await cdp.evaluate("(document.body.innerText || '').includes('Teste de Simulação') && (document.body.innerText || '').includes('Python Native')")
+            conv_ok = await cdp.evaluate("(document.body.innerText || '').includes('Teste de Simulação') && (document.body.innerText || '').includes('Python Nativo')")
             sh6 = await cdp.screenshot("06_conversational_automation_builder.png")
             if sh6:
                 report["screenshots"].append(sh6)

@@ -329,7 +329,7 @@ export function AITeamAndGovernanceView({
               <span className="text-[11px] font-bold text-slate-300">Nível {currentAutonomy}</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              Defina o quanto os 11 agentes podem agir sozinhos antes de pedir sua confirmação em <strong>Meu Trabalho</strong>.
+              Defina o quanto os 12 agentes podem agir sozinhos antes de pedir sua confirmação em <strong>Meu Trabalho</strong>.
             </p>
             <div className="flex gap-1.5 pt-1">
               {[

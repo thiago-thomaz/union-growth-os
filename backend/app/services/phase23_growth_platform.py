@@ -168,8 +168,8 @@ def compute_growth_score_and_health(db: Session, tenant: Tenant, snap: dict[str,
     ceo_tasks = s["ceo_tasks"]
 
     connected_intgs = [i for i in integrations if i.status == "CONNECTED"]
-    won_deals = [d for d in real_deals if d.pipeline_stage == "CLOSED_WON"]
-    active_deals = [d for d in real_deals if d.pipeline_stage not in ("CLOSED_LOST",)]
+    won_deals = [d for d in real_deals if getattr(d, "stage", "") == "CLOSED_WON" or getattr(d, "status", "") == "WON"]
+    active_deals = [d for d in real_deals if getattr(d, "stage", "") not in ("CLOSED_LOST",) and getattr(d, "status", "") != "LOST"]
     qualified_leads = [l for l in real_leads if (l.lead_score or 0) >= 60 or l.qualification_status in ("MQL", "SQL", "QUALIFIED")]
     published_content = [c for c in cf_items if c.status == "PUBLISHED"] + [c for c in cal_items if c.publish_status == "PUBLISHED"]
     total_content = len(cf_items) + len(cal_items)
@@ -1573,7 +1573,7 @@ def get_analytics_attribution_service(db: Session, tenant_id: int) -> dict[str, 
         {"stage": "3. Leads Capturados (LGPD)", "count": len(real_leads), "origin": "REAL"},
         {"stage": "4. Leads Qualificados", "count": len([l for l in real_leads if (l.lead_score or 0) >= 60 or l.qualification_status in ("MQL", "SQL", "QUALIFIED")]), "origin": "REAL"},
         {"stage": "5. Oportunidades no Funil", "count": len(real_deals), "origin": "REAL"},
-        {"stage": "6. Vendas Fechadas", "count": len([d for d in real_deals if d.pipeline_stage == "CLOSED_WON"]), "origin": "REAL"},
+        {"stage": "6. Vendas Fechadas", "count": len([d for d in real_deals if getattr(d, "stage", "") == "CLOSED_WON" or getattr(d, "status", "") == "WON"]), "origin": "REAL"},
     ]
 
     connected_analytics = [i.provider_name for i in snap["integrations"] if i.status == "CONNECTED" and i.provider_key in ("ga4", "google_search_console", "meta_ads", "google_ads")]

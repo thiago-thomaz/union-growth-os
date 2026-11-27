@@ -525,7 +525,7 @@ class AgentExecutionLog(Base):
     task_name = Column(String(140), nullable=False)
     parent_agent_id = Column(String(60), default="")
     autonomy_level = Column(Integer, default=2)
-    provider_used = Column(String(80), default="deterministic-expert-engine")
+    provider_used = Column(String(180), default="deterministic-expert-engine")
     model_used = Column(String(100), default="rule-based-v1")
     processing_type = Column(String(50), default="DETERMINISTIC_PYTHON_ENGINE")  # REAL_LLM, LOCAL_MODEL, DETERMINISTIC_PYTHON_ENGINE, TEMPLATE_ENGINE, FALLBACK
     tokens_consumed = Column(Integer, default=0)

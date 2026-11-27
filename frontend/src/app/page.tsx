@@ -186,7 +186,7 @@ export default function UnionGrowthOSPortal() {
   // Creative Form
   const [creativeTitle, setCreativeTitle] = useState("Campanha Executiva Q4");
   const [creativeType, setCreativeType] = useState("CAROUSEL");
-  const [creativeHeadline, setCreativeHeadline] = useState("Cresça com 11 Agentes de IA Trabalhando 24/7");
+  const [creativeHeadline, setCreativeHeadline] = useState("Cresça com 12 Agentes de IA Trabalhando 24/7");
   const [creativeCta, setCreativeCta] = useState("Solicitar Diagnóstico");
 
   // Copywriter Form
@@ -631,7 +631,7 @@ export default function UnionGrowthOSPortal() {
               type="submit"
               className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition"
             >
-              {authMode === "login" ? "Acessar Central Executiva" : "Criar Workspace & Ativar 11 Agentes"}
+              {authMode === "login" ? "Acessar Central Executiva" : "Criar Workspace & Ativar 12 Agentes"}
             </button>
           </form>
 

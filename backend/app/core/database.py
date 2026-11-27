@@ -159,6 +159,15 @@ def run_automatic_schema_migrations(engine_instance=None):
     ]
 
     with eng.connect() as conn:
+        if dialect_name == "postgresql":
+            for widen_sql in (
+                "ALTER TABLE agent_execution_logs ALTER COLUMN provider_used TYPE VARCHAR(180);",
+            ):
+                try:
+                    conn.execute(text(widen_sql))
+                    conn.commit()
+                except Exception as e:
+                    logger.debug("Alter column opcional ignorado: %s", e)
         for table, col, col_def in migrations:
             try:
                 if dialect_name == "postgresql":
