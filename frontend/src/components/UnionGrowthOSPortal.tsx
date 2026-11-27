@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   Home,
   CheckSquare,
@@ -89,6 +89,7 @@ function AreaIcon({ areaId, className = "w-4 h-4" }: { areaId: AreaId; className
 export default function UnionGrowthOSPortal() {
   const [token, setToken] = useState<string>("");
   const [activeTenantId, setActiveTenantId] = useState<number | null>(null);
+  const loadSeqRef = useRef(0);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("admin@projetosunion.cloud");
   const [password, setPassword] = useState("UnionGrowth#2026!");
@@ -311,11 +312,35 @@ export default function UnionGrowthOSPortal() {
 
   const loadAllActiveData = useCallback(async () => {
     if (!token) return;
+    const seq = ++loadSeqRef.current;
     setLoading(true);
     try {
+      // Fase 25: Carrega Shell Executivo + Identidade + Command Center primeiro (< 1s) sem bloquear no fan-out completo
+      const [me, ov, cPlan, cmdRes, actRes] = await Promise.all([
+        apiFetch("/api/v1/auth/me"),
+        apiFetch("/api/v1/dashboard/overview"),
+        apiFetch("/api/v1/ceo/daily-plan").catch(() => null),
+        apiFetch("/api/v1/growth-os/command-center").catch(() => null),
+        apiFetch("/api/v1/growth-os/activation-retention").catch(() => null),
+      ]);
+      if (loadSeqRef.current !== seq) return;
+      setMeData(me);
+      setEditCompanyName(me?.active_tenant?.name || "");
+      setEditBrandName(me?.active_tenant?.brand_name || "");
+      setEditDomain(me?.active_tenant?.domain || "");
+      setEditNiche(me?.active_tenant?.niche || "");
+      setEditAudience(me?.active_tenant?.target_audience || "");
+      setBrandColorPrimary(me?.active_tenant?.primary_color || "#6366F1");
+      setBrandColorSecondary(me?.active_tenant?.secondary_color || "#10B981");
+      if (me?.active_tenant?.ui_mode === "SIMPLE" || me?.active_tenant?.ui_mode === "ADVANCED") {
+        setUiMode(me.active_tenant.ui_mode);
+      }
+      setOverviewData(ov);
+      setCeoDailyPlan(cPlan);
+      if (cmdRes) setCommandCenterData(cmdRes);
+      if (actRes) setActivationData(actRes);
+
       const [
-        me,
-        ov,
         ag,
         ceo,
         mkt,
@@ -334,21 +359,16 @@ export default function UnionGrowthOSPortal() {
         intg,
         aud,
         cfItems,
-        cPlan,
         opDash,
         sAlerts,
         rCosts,
         mbDash,
         aiCfg,
         pilotRes,
-        cmdRes,
         attrRes,
         plRes,
         revRes,
-        actRes,
       ] = await Promise.all([
-        apiFetch("/api/v1/auth/me"),
-        apiFetch("/api/v1/dashboard/overview"),
         apiFetch("/api/v1/agents"),
         apiFetch("/api/v1/ceo/briefings"),
         apiFetch("/api/v1/marketing/overview"),
@@ -367,28 +387,17 @@ export default function UnionGrowthOSPortal() {
         apiFetch("/api/v1/integrations"),
         apiFetch("/api/v1/audit-logs"),
         apiFetch("/api/v1/content-factory/items").catch(() => []),
-        apiFetch("/api/v1/ceo/daily-plan").catch(() => null),
         apiFetch("/api/v1/system/operational-dashboard").catch(() => null),
         apiFetch("/api/v1/system/alerts").catch(() => []),
         apiFetch("/api/v1/system/resource-costs").catch(() => null),
         apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`).catch(() => null),
         apiFetch("/api/v1/ai-engines/config").catch(() => null),
         apiFetch("/api/v1/system/pilot-7-days").catch(() => null),
-        apiFetch("/api/v1/growth-os/command-center").catch(() => null),
         apiFetch("/api/v1/growth-os/analytics-attribution").catch(() => null),
         apiFetch("/api/v1/plans/overview").catch(() => null),
         apiFetch("/api/v1/growth-os/revenue-intelligence").catch(() => null),
-        apiFetch("/api/v1/growth-os/activation-retention").catch(() => null),
       ]);
-      setMeData(me);
-      setEditCompanyName(me?.active_tenant?.name || "");
-      setEditBrandName(me?.active_tenant?.brand_name || "");
-      setEditDomain(me?.active_tenant?.domain || "");
-      setEditNiche(me?.active_tenant?.niche || "");
-      setEditAudience(me?.active_tenant?.target_audience || "");
-      setBrandColorPrimary(me?.active_tenant?.primary_color || "#6366F1");
-      setBrandColorSecondary(me?.active_tenant?.secondary_color || "#10B981");
-      setOverviewData(ov);
+      if (loadSeqRef.current !== seq) return;
       setAgentsData(ag);
       setCeoData(ceo);
       setMarketingData(mkt);
@@ -407,25 +416,23 @@ export default function UnionGrowthOSPortal() {
       setIntegrationsData(intg);
       setAuditData(aud);
       setContentFactoryItems(cfItems || []);
-      setCeoDailyPlan(cPlan);
       setOpDashboard(opDash);
       setSystemAlerts(sAlerts || []);
       setResourceCosts(rCosts);
       setMbDashboard(mbDash);
       setAiEnginesConfig(aiCfg);
       if (pilotRes) setPilotData(pilotRes);
-      if (cmdRes) setCommandCenterData(cmdRes);
       if (attrRes) setAnalyticsAttrData(attrRes);
       if (plRes) setPlansOverview(plRes);
       if (revRes) setRevenueIntel(revRes);
-      if (actRes) setActivationData(actRes);
-      if (me?.active_tenant?.ui_mode === "SIMPLE" || me?.active_tenant?.ui_mode === "ADVANCED") {
-        setUiMode(me.active_tenant.ui_mode);
-      }
     } catch (err: any) {
-      showNotice(err.message || "Falha ao carregar dados");
+      if (loadSeqRef.current === seq) {
+        showNotice(err.message || "Falha ao carregar dados");
+      }
     } finally {
-      setLoading(false);
+      if (loadSeqRef.current === seq) {
+        setLoading(false);
+      }
     }
   }, [token, apiFetch, selectedUnit]);
 
