@@ -23,6 +23,7 @@ import {
   LogOut,
   Sparkles,
   RefreshCw,
+  Star,
 } from "lucide-react";
 import {
   AreaId,
@@ -45,8 +46,7 @@ import { MyWorkHub } from "@/components/MyWorkHub";
 import { AITeamAndGovernanceView } from "@/components/AITeamAndGovernanceView";
 import { AllResourcesHub, HelpCenterDrawer } from "@/components/ResourceCenterAndHelp";
 import { AreaContextGuide } from "@/components/AreaContextGuide";
-import { GrowthCommandCenter } from "@/components/GrowthCommandCenter";
-import { BrandIntelligenceCenter, ProgressiveOnboardingWizard } from "@/components/BrandAndOnboardingHub";
+import { BrandIntelligenceCenter } from "@/components/BrandAndOnboardingHub";
 import { AnalyticsAttributionPanel, ConversationalAutomationPanel } from "@/components/ConversationalAutomationAndAnalytics";
 
 type MenuId = LegacyMenuId;
@@ -672,25 +672,22 @@ export default function UnionGrowthOSPortal() {
         />
       )}
 
-      {/* SIDEBAR MINIMALISTA (6 ÁREAS PRINCIPAIS + TODOS OS RECURSOS) */}
+      {/* SIDEBAR MINIMALISTA 3.0 (Linear / Attio inspired) */}
       <aside
         aria-label="Navegação principal"
         className={`fixed lg:sticky top-0 left-0 z-40 h-screen ug-sidebar border-r flex flex-col shrink-0 transition-all duration-200 ${
-          sidebarCollapsed ? "w-20" : "w-64"
+          sidebarCollapsed ? "w-16" : "w-60"
         } ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
-        <div className="p-3.5 border-b border-slate-800/80 space-y-3">
+        <div className="p-3 border-b border-[var(--ug-border-subtle)] space-y-2.5">
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-sm text-white shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="h-7 w-7 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-xs text-white shrink-0">
                 UG
               </div>
               {!sidebarCollapsed && (
-                <div className="min-w-0">
-                  <div className="font-bold text-sm text-white ug-text-primary leading-tight truncate">
-                    UNION GROWTH OS
-                  </div>
-                  <div className="text-[10px] text-emerald-400 font-medium truncate">Gestão & IA Empresarial</div>
+                <div className="font-semibold text-[13px] tracking-tight text-[var(--ug-text-primary)] truncate">
+                  UNION GROWTH
                 </div>
               )}
             </div>
@@ -702,59 +699,55 @@ export default function UnionGrowthOSPortal() {
                 if (typeof window !== "undefined") localStorage.setItem("ug_sidebar_collapsed", next ? "1" : "0");
               }}
               aria-label={sidebarCollapsed ? "Expandir barra lateral" : "Recolher barra lateral"}
-              className="hidden lg:inline-flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60"
+              className="hidden lg:inline-flex p-1.5 rounded-md text-[var(--ug-text-muted)] hover:text-[var(--ug-text-primary)] hover:bg-white/[0.05] transition"
             >
-              {sidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+              {sidebarCollapsed ? <PanelLeftOpen className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
             </button>
             <button
               type="button"
               onClick={() => setMobileMenuOpen(false)}
               aria-label="Fechar menu móvel"
-              className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white"
+              className="lg:hidden p-1.5 rounded-md text-[var(--ug-text-muted)] hover:text-[var(--ug-text-primary)]"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {!sidebarCollapsed && meData?.available_tenants && (
-            <div>
-              <label htmlFor="ug-tenant-select" className="text-[10px] uppercase tracking-wider text-slate-400 block mb-1">
-                Empresa Ativa (Multi-Tenant)
-              </label>
-              <select
-                id="ug-tenant-select"
-                value={activeTenantId || meData?.active_tenant?.id || ""}
-                onChange={(e) => setActiveTenantId(Number(e.target.value))}
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white"
-              >
-                {meData.available_tenants.map((t: any) => (
-                  <option key={t.id} value={t.id}>
-                    {t.brand_name} ({t.plan_tier})
-                  </option>
-                ))}
-              </select>
-            </div>
+            <select
+              id="ug-tenant-select"
+              aria-label="Empresa ativa"
+              value={activeTenantId || meData?.active_tenant?.id || ""}
+              onChange={(e) => setActiveTenantId(Number(e.target.value))}
+              className="w-full bg-[var(--ug-surface)] border border-[var(--ug-border)] rounded-lg px-2.5 py-1.5 text-xs font-medium text-[var(--ug-text-primary)]"
+            >
+              {meData.available_tenants.map((t: any) => (
+                <option key={t.id} value={t.id}>
+                  {t.brand_name} ({t.plan_tier})
+                </option>
+              ))}
+            </select>
           )}
 
           {!sidebarCollapsed && (
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden="true" />
+              <Search className="w-3.5 h-3.5 text-[var(--ug-text-muted)] absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden="true" />
               <input
                 type="text"
                 value={sidebarSearch}
                 onChange={(e) => setSidebarSearch(e.target.value)}
-                placeholder="Buscar módulo..."
+                placeholder="Ir para tela..."
                 aria-label="Filtrar módulos na barra lateral"
-                className="w-full pl-8 pr-2.5 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 text-xs text-white placeholder:text-slate-500"
+                className="w-full pl-8 pr-2.5 py-1 rounded-lg bg-white/[0.03] border border-[var(--ug-border)] text-xs text-[var(--ug-text-primary)] placeholder:text-[var(--ug-text-muted)]"
               />
             </div>
           )}
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-2 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-2 py-2.5 space-y-0.5">
           {sidebarSearch.trim() && !sidebarCollapsed ? (
             <div className="space-y-1 p-1">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-2">
+              <div className="text-[10px] font-medium text-[var(--ug-text-muted)] px-2">
                 Resultados ({sidebarMatchedResources.length})
               </div>
               {sidebarMatchedResources.map((res) => (
@@ -765,14 +758,14 @@ export default function UnionGrowthOSPortal() {
                     navigateTo(res.id);
                     setSidebarSearch("");
                   }}
-                  className="w-full text-left px-2.5 py-2 rounded-lg text-xs text-slate-200 hover:bg-indigo-600/20 hover:text-white transition"
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-[var(--ug-text-secondary)] hover:bg-white/[0.05] hover:text-[var(--ug-text-primary)] transition"
                 >
-                  <div className="font-semibold truncate">{res.name}</div>
-                  <div className="text-[10px] text-slate-400 truncate">{res.category}</div>
+                  <div className="font-medium truncate">{res.name}</div>
+                  <div className="text-[10px] text-[var(--ug-text-muted)] truncate">{res.category}</div>
                 </button>
               ))}
               {sidebarMatchedResources.length === 0 && (
-                <div className="text-xs text-slate-400 px-2 py-3">Nenhum módulo encontrado.</div>
+                <div className="text-xs text-[var(--ug-text-muted)] px-2 py-3">Nenhum módulo encontrado.</div>
               )}
             </div>
           ) : (
@@ -793,24 +786,23 @@ export default function UnionGrowthOSPortal() {
                             setExpandedArea(area.id);
                           }
                         }}
-                        className={`flex-1 flex items-center ${
-                          sidebarCollapsed ? "justify-center px-2" : "justify-between px-3"
-                        } py-2.5 rounded-xl text-xs font-semibold transition ${
+                        className={`relative flex-1 flex items-center ${
+                          sidebarCollapsed ? "justify-center px-2" : "justify-between px-2.5"
+                        } py-2 rounded-lg text-xs transition ${
                           isAreaActive
-                            ? "bg-indigo-600 text-white shadow-sm"
-                            : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
+                            ? "bg-white/[0.07] text-[var(--ug-text-primary)] font-semibold"
+                            : "text-[var(--ug-text-secondary)] hover:bg-white/[0.04] hover:text-[var(--ug-text-primary)] font-medium"
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <AreaIcon areaId={area.id} className="w-4 h-4 shrink-0" />
+                          <AreaIcon
+                            areaId={area.id}
+                            className={`w-4 h-4 shrink-0 ${isAreaActive ? "text-indigo-400" : "text-[var(--ug-text-muted)]"}`}
+                          />
                           {!sidebarCollapsed && <span className="truncate">{area.label}</span>}
                         </div>
                         {!sidebarCollapsed && area.id === "meu_trabalho" && pendingWorkCount > 0 && (
-                          <span
-                            className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                              isAreaActive ? "bg-white/20 text-white" : "bg-amber-500/20 text-amber-300"
-                            }`}
-                          >
+                          <span className="px-1.5 py-0.2 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-300 tabular-nums">
                             {pendingWorkCount}
                           </span>
                         )}
@@ -821,7 +813,7 @@ export default function UnionGrowthOSPortal() {
                           type="button"
                           onClick={() => setExpandedArea((prev) => (prev === area.id ? null : area.id))}
                           aria-label={`${isExpanded ? "Recolher" : "Expandir"} submenu de ${area.label}`}
-                          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50"
+                          className="p-1.5 rounded-md text-[var(--ug-text-muted)] hover:text-[var(--ug-text-primary)] hover:bg-white/[0.04]"
                         >
                           {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                         </button>
@@ -829,7 +821,7 @@ export default function UnionGrowthOSPortal() {
                     </div>
 
                     {isExpanded && (
-                      <div className="ml-4 pl-2.5 border-l border-slate-800 space-y-0.5 py-1">
+                      <div className="ml-4 pl-2.5 border-l border-[var(--ug-border)] space-y-0.5 py-0.5">
                         {area.subtabs
                           .filter((sub) => uiMode === "ADVANCED" || !sub.advancedOnly || activeMenu === sub.id)
                           .map((sub) => {
@@ -839,10 +831,10 @@ export default function UnionGrowthOSPortal() {
                                 key={sub.id}
                                 type="button"
                                 onClick={() => navigateTo(sub.id)}
-                                className={`w-full text-left px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition ${
+                                className={`w-full text-left px-2 py-1 rounded-md text-[11px] transition ${
                                   isSubActive
-                                    ? "bg-indigo-500/20 text-indigo-300 font-semibold"
-                                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+                                    ? "text-indigo-400 font-semibold bg-indigo-500/10"
+                                    : "text-[var(--ug-text-muted)] hover:text-[var(--ug-text-primary)] hover:bg-white/[0.03]"
                                 }`}
                               >
                                 {sub.label}
@@ -855,21 +847,44 @@ export default function UnionGrowthOSPortal() {
                 );
               })}
 
-              <div className="pt-2 mt-2 border-t border-slate-800/80">
+              {!sidebarCollapsed && (favoriteIds.length > 0 || recentIds.length > 0) && (
+                <div className="pt-3 mt-2 border-t border-[var(--ug-border-subtle)] space-y-1">
+                  <div className="px-2.5 flex items-center gap-1.5 text-[10px] font-medium text-[var(--ug-text-muted)]">
+                    <Star className="w-3 h-3 text-amber-400" aria-hidden="true" />
+                    <span>{favoriteIds.length > 0 ? "Favoritos" : "Recentes"}</span>
+                  </div>
+                  {(favoriteIds.length > 0 ? favoriteIds : recentIds).slice(0, 3).map((rid) => {
+                    const meta = getResourceMeta(rid);
+                    if (!meta) return null;
+                    return (
+                      <button
+                        key={rid}
+                        type="button"
+                        onClick={() => navigateTo(rid)}
+                        className="w-full text-left px-2.5 py-1 rounded-md text-[11px] text-[var(--ug-text-secondary)] hover:text-[var(--ug-text-primary)] hover:bg-white/[0.04] truncate"
+                      >
+                        {meta.name.split(" — ")[0]}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="pt-2 mt-2 border-t border-[var(--ug-border-subtle)]">
                 <button
                   type="button"
                   title={sidebarCollapsed ? "Todos os recursos" : undefined}
                   aria-current={activeMenu === "all_resources" ? "page" : undefined}
                   onClick={() => navigateTo("all_resources")}
                   className={`w-full flex items-center ${
-                    sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-3"
-                  } py-2.5 rounded-xl text-xs font-semibold transition ${
+                    sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-2.5"
+                  } py-2 rounded-lg text-xs font-medium transition ${
                     activeMenu === "all_resources"
-                      ? "bg-indigo-600 text-white shadow-sm"
-                      : "text-slate-300 hover:bg-slate-800/60 hover:text-white"
+                      ? "bg-white/[0.07] text-[var(--ug-text-primary)] font-semibold"
+                      : "text-[var(--ug-text-secondary)] hover:bg-white/[0.04] hover:text-[var(--ug-text-primary)]"
                   }`}
                 >
-                  <Grid className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  <Grid className="w-4 h-4 shrink-0 text-[var(--ug-text-muted)]" aria-hidden="true" />
                   {!sidebarCollapsed && <span>Todos os recursos</span>}
                 </button>
               </div>
@@ -877,86 +892,88 @@ export default function UnionGrowthOSPortal() {
           )}
         </nav>
 
-        <div className="p-3 border-t border-slate-800/80 text-xs space-y-2">
+        <div className="p-2.5 border-t border-[var(--ug-border-subtle)] flex items-center justify-between gap-2 text-xs">
           {!sidebarCollapsed && (
-            <div className="text-[11px] text-slate-400 truncate">
-              {meData?.user?.full_name} ({meData?.user?.role})
+            <div className="min-w-0">
+              <div className="text-[11px] font-medium text-[var(--ug-text-primary)] truncate">
+                {meData?.user?.full_name}
+              </div>
+              <div className="text-[10px] text-[var(--ug-text-muted)] truncate">{meData?.user?.role}</div>
             </div>
           )}
           <button
             type="button"
             onClick={handleLogout}
-            title={sidebarCollapsed ? "Sair da Conta" : undefined}
+            title="Sair da Conta"
             aria-label="Sair da Conta"
-            className="w-full py-2 px-2.5 rounded-xl bg-slate-800/80 hover:bg-red-900/50 text-slate-200 text-xs font-medium flex items-center justify-center gap-2 transition"
+            className={`${
+              sidebarCollapsed ? "w-full justify-center" : ""
+            } p-2 rounded-lg hover:bg-red-500/15 text-[var(--ug-text-muted)] hover:text-red-400 flex items-center gap-1.5 transition`}
           >
-            <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
-            {!sidebarCollapsed && <span>Sair da Conta</span>}
+            <LogOut className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+            {!sidebarCollapsed && <span className="sr-only">Sair da Conta</span>}
           </button>
         </div>
       </aside>
 
       {/* MAIN CONTENT */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* TOP HEADER (BUSCA GLOBAL, NOTIFICAÇÕES, TEMA, AJUDA, AÇÃO PRINCIPAL) */}
-        <header className="sticky top-0 z-30 ug-sidebar border-b border-slate-800/80 backdrop-blur-md">
-          <div className="px-4 lg:px-6 h-16 flex items-center justify-between gap-3">
+        {/* TOP HEADER MINIMALISTA */}
+        <header className="sticky top-0 z-30 ug-bg/85 border-b border-[var(--ug-border)] backdrop-blur-md">
+          <div className="px-4 lg:px-6 h-14 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(true)}
                 aria-label="Abrir menu de navegação"
-                className="lg:hidden p-2 rounded-lg bg-slate-800/70 text-slate-200"
+                className="lg:hidden p-1.5 rounded-lg border border-[var(--ug-border)] text-[var(--ug-text-secondary)]"
               >
                 <Menu className="w-4 h-4" />
               </button>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 hidden sm:inline-block">
-                    {currentAreaConfig?.label || (activeMenu === "all_resources" ? "Central" : "Workspace")}
+              <div className="min-w-0 flex items-center gap-2">
+                <span className="text-[11px] font-medium text-indigo-400 hidden sm:inline">
+                  {currentAreaConfig?.label || (activeMenu === "all_resources" ? "Central" : "Workspace")}
+                </span>
+                <span className="text-[var(--ug-text-muted)] hidden sm:inline">/</span>
+                <h2 className="text-sm font-semibold tracking-tight text-[var(--ug-text-primary)] truncate">
+                  {currentResourceMeta?.name || "UNION GROWTH OS"}
+                </h2>
+                {meData?.active_tenant?.brand_name && (
+                  <span className="hidden xl:inline-block text-[11px] text-[var(--ug-text-muted)] truncate">
+                    • {meData.active_tenant.brand_name}
                   </span>
-                  <h2 className="text-sm sm:text-base font-bold text-white ug-text-primary truncate">
-                    {currentResourceMeta?.name || "UNION GROWTH OS"}
-                  </h2>
-                </div>
-                <p className="text-[11px] text-slate-400 truncate">
-                  {meData?.active_tenant?.brand_name} • Plano {meData?.active_tenant?.plan_tier} • Autonomia Nível{" "}
-                  {meData?.active_tenant?.autonomy_default_level || 2}
-                </p>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-              {/* Botão Command Center / Busca Global (Ctrl+K) */}
+            <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
                 onClick={() => setCommandOpen(true)}
                 aria-label="Abrir busca global (Ctrl+K)"
-                className="px-2 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 hover:border-indigo-500/60 text-slate-300 text-xs flex items-center gap-2 transition"
+                className="px-2.5 py-1.5 rounded-lg border border-[var(--ug-border)] hover:bg-white/[0.04] text-[var(--ug-text-secondary)] text-xs flex items-center gap-2 transition"
               >
                 <Search className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
                 <span className="hidden md:inline">Buscar...</span>
-                <kbd className="hidden xl:inline-block px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-400">
+                <kbd className="hidden xl:inline-block px-1.5 py-0.2 rounded bg-white/[0.06] text-[10px] font-mono text-[var(--ug-text-muted)]">
                   Ctrl+K
                 </kbd>
               </button>
 
-              {/* Notificações -> Meu Trabalho */}
               <button
                 type="button"
                 onClick={() => navigateTo("my_work")}
                 aria-label={`Notificações e pendências (${pendingWorkCount})`}
-                className="relative p-1.5 sm:p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 text-slate-300 transition"
+                className="relative p-1.5 rounded-lg border border-[var(--ug-border)] hover:bg-white/[0.04] text-[var(--ug-text-secondary)] transition"
               >
                 <Bell className="w-4 h-4" />
                 {pendingWorkCount > 0 && (
-                  <span className="absolute -top-1 -right-1 px-1.5 min-w-[18px] h-[18px] rounded-full bg-amber-500 text-[10px] font-bold text-slate-950 flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 px-1 min-w-[16px] h-[16px] rounded-full bg-amber-500 text-[10px] font-bold text-zinc-950 flex items-center justify-center tabular-nums">
                     {pendingWorkCount}
                   </span>
                 )}
               </button>
 
-              {/* Seletor Persistente Modo Simples vs Avançado (Fase 23) */}
               <button
                 id="ug-ui-mode-toggle"
                 type="button"
@@ -975,60 +992,56 @@ export default function UnionGrowthOSPortal() {
                         : "Modo Avançado ativado: todos os controles técnicos visíveis."
                     );
                   } catch {
-                    // mantém preferência local em fallback
+                    // mantém preferência local
                   }
                 }}
                 aria-label={uiMode === "SIMPLE" ? "Alternar para Modo Avançado" : "Alternar para Modo Simples"}
-                title="Alternar entre Modo Simples (empreendedor) e Modo Avançado (detalhes técnicos)"
-                className={`px-2 sm:px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold transition ${
+                title="Alternar entre Modo Simples e Modo Avançado"
+                className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-medium transition ${
                   uiMode === "ADVANCED"
-                    ? "bg-purple-600/25 border-purple-500/50 text-purple-200"
-                    : "bg-slate-900/80 border-slate-700 text-slate-200 hover:border-indigo-500/50"
+                    ? "bg-indigo-500/15 border-indigo-500/40 text-indigo-300"
+                    : "border-[var(--ug-border)] text-[var(--ug-text-secondary)] hover:bg-white/[0.04]"
                 }`}
               >
                 <span className="sm:hidden">{uiMode === "SIMPLE" ? "Simples" : "Avanç."}</span>
                 <span className="hidden sm:inline">{uiMode === "SIMPLE" ? "Modo Simples" : "Modo Avançado"}</span>
               </button>
 
-              {/* Alternador Dark / Light Mode */}
               <button
                 type="button"
                 onClick={() => setThemeMode((prev) => (prev === "dark" ? "light" : "dark"))}
                 aria-label={themeMode === "dark" ? "Ativar Modo Claro" : "Ativar Modo Escuro"}
                 title={themeMode === "dark" ? "Ativar Modo Claro" : "Ativar Modo Escuro"}
-                className="p-1.5 sm:p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 text-slate-300 transition"
+                className="p-1.5 rounded-lg border border-[var(--ug-border)] hover:bg-white/[0.04] text-[var(--ug-text-secondary)] transition"
               >
                 {themeMode === "dark" ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-indigo-500" />}
               </button>
 
-              {/* Central de Ajuda Contextual */}
               <button
                 type="button"
                 onClick={() => setHelpOpen(true)}
                 aria-label="Abrir Central de Ajuda"
-                title="Ajuda desta tela, Glossário e Atalhos"
-                className="p-1.5 sm:p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 text-slate-300 transition"
+                title="Ajuda, Glossário e Atalhos"
+                className="p-1.5 rounded-lg border border-[var(--ug-border)] hover:bg-white/[0.04] text-[var(--ug-text-secondary)] transition"
               >
                 <HelpCircle className="w-4 h-4 text-indigo-400" />
               </button>
 
-              {/* Atualizar Dados */}
               <button
                 type="button"
                 onClick={loadAllActiveData}
                 aria-label="Atualizar Dados"
-                className="px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs flex items-center gap-1.5 transition"
+                className="p-1.5 rounded-lg border border-[var(--ug-border)] hover:bg-white/[0.04] text-[var(--ug-text-secondary)] flex items-center gap-1.5 text-xs transition"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} aria-hidden="true" />
-                <span className="hidden xl:inline">{loading ? "Atualizando..." : "Atualizar"}</span>
+                <span className="sr-only">{loading ? "Atualizando..." : "Atualizar"}</span>
               </button>
 
-              {/* Ação Primária Contextual da Área */}
-              {currentAreaConfig && (
+              {currentAreaConfig && activeMenu !== "overview" && (
                 <button
                   type="button"
                   onClick={() => navigateTo(currentAreaConfig.primaryCtaTarget)}
-                  className="hidden sm:inline-flex px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold items-center gap-1.5 transition shadow-sm"
+                  className="hidden sm:inline-flex px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium items-center gap-1.5 transition"
                 >
                   <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>{currentAreaConfig.primaryCtaLabel}</span>
@@ -1037,7 +1050,7 @@ export default function UnionGrowthOSPortal() {
             </div>
           </div>
 
-          {/* Barra Horizontal Contextual de Subtabs da Área Atual (Modo Simples vs Avançado) */}
+          {/* Barra Horizontal Limpa Underline de Submenus */}
           {currentAreaConfig && currentAreaConfig.subtabs.length > 0 && (() => {
             const visibleSubtabs = currentAreaConfig.subtabs.filter(
               (sub) => uiMode === "ADVANCED" || !sub.advancedOnly || activeMenu === sub.id
@@ -1045,7 +1058,7 @@ export default function UnionGrowthOSPortal() {
             const hiddenAdvancedCount = currentAreaConfig.subtabs.filter((s) => s.advancedOnly).length;
             return (
               <nav
-                className="px-4 lg:px-6 py-2 border-t border-slate-800/60 flex items-center gap-1.5 overflow-x-auto"
+                className="px-4 lg:px-6 flex items-center gap-4 border-t border-[var(--ug-border-subtle)] overflow-x-auto"
                 aria-label={`Submenus de ${currentAreaConfig.label}`}
               >
                 {visibleSubtabs.map((sub) => {
@@ -1056,10 +1069,10 @@ export default function UnionGrowthOSPortal() {
                       type="button"
                       onClick={() => navigateTo(sub.id)}
                       title={sub.shortDesc}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
+                      className={`py-2 text-xs whitespace-nowrap transition border-b-2 -mb-[1px] ${
                         isSubActive
-                          ? "bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 font-semibold"
-                          : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent"
+                          ? "border-[var(--ug-accent)] text-[var(--ug-text-primary)] font-semibold"
+                          : "border-transparent text-[var(--ug-text-muted)] hover:text-[var(--ug-text-primary)] font-medium"
                       }`}
                     >
                       {sub.label}
@@ -1083,7 +1096,7 @@ export default function UnionGrowthOSPortal() {
                       }
                       showNotice(`Modo Avançado ativado: +${hiddenAdvancedCount} opções técnicas liberadas.`);
                     }}
-                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 transition"
+                    className="py-2 text-[11px] font-medium whitespace-nowrap text-indigo-400 hover:underline transition"
                   >
                     + {hiddenAdvancedCount} Avançado
                   </button>
@@ -1093,8 +1106,7 @@ export default function UnionGrowthOSPortal() {
           })()}
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-6">
-          {/* Skeleton de carregamento inicial */}
+        <main className="flex-1 overflow-y-auto px-4 py-5 lg:px-8 lg:py-6 space-y-5">
           {loading && !overviewData && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <SkeletonCard lines={3} />
@@ -1104,43 +1116,22 @@ export default function UnionGrowthOSPortal() {
             </div>
           )}
 
-          {/* ORIENTAÇÃO CONTEXTUAL DE USABILIDADE (6 PERGUNTAS + DEPENDÊNCIAS REAIS) */}
-          {currentAreaConfig && activeMenu !== "all_resources" && (
+          {/* Gatilho discreto sob demanda "Como funciona esta área" */}
+          {currentAreaConfig && activeMenu !== "all_resources" && activeMenu !== "overview" && (
             <AreaContextGuide
               areaId={currentAreaConfig.id}
               integrationsData={integrationsData}
-              aiEnginesConfig={aiEnginesConfig}
               onNavigate={navigateTo}
             />
           )}
 
-          {/* ÁREA 1 — INÍCIO (AI GROWTH COMMAND CENTER FASE 23 + PAINEL EXECUTIVO) */}
+          {/* ÁREA 1 — INÍCIO UNIFICADO (FASE 24 EXECUTIVE WORKSPACE) */}
           {activeMenu === "overview" && overviewData && (
-            <div className="space-y-6">
-              {showOnboardingWizard && (
-                <ProgressiveOnboardingWizard
-                  apiFetch={apiFetch}
-                  onReload={loadAllActiveData}
-                  onNavigate={navigateTo}
-                  onClose={() => setShowOnboardingWizard(false)}
-                  showNotice={showNotice}
-                />
-              )}
-
-              <GrowthCommandCenter
-                meData={meData}
-                commandCenter={commandCenterData}
-                uiMode={uiMode}
-                apiFetch={apiFetch}
-                onReload={loadAllActiveData}
-                onNavigate={navigateTo}
-                onOpenOnboarding={() => setShowOnboardingWizard((v) => !v)}
-                showNotice={showNotice}
-              />
-
+            <div className="space-y-5">
               <HomeWorkspace
                 meData={meData}
                 overviewData={overviewData}
+                commandCenterData={commandCenterData}
                 agentsData={agentsData}
                 crmData={crmData}
                 marketingData={marketingData}
@@ -1150,6 +1141,9 @@ export default function UnionGrowthOSPortal() {
                 contentFactoryItems={contentFactoryItems}
                 automationsData={automationsData}
                 aiEnginesConfig={aiEnginesConfig}
+                uiMode={uiMode}
+                showOnboardingWizard={showOnboardingWizard}
+                setShowOnboardingWizard={setShowOnboardingWizard}
                 favoriteIds={favoriteIds}
                 recentIds={recentIds}
                 onboardingDismissed={onboardingDismissed}
@@ -1163,37 +1157,41 @@ export default function UnionGrowthOSPortal() {
                 }}
                 onNavigate={navigateTo}
                 onRunOrchestrator={async () => {
-                  showNotice("Executando Análise Coordenado pelos Agentes...");
+                  showNotice("Executando análise coordenada...");
                   const res = await apiFetch("/api/v1/orchestrator/diagnose", {
                     method: "POST",
                     body: JSON.stringify({ reason: "Acionamento Executivo Manual" }),
                   });
                   setDiagResult(res);
                   await loadAllActiveData();
-                  showNotice("Análise Multiagente concluída com sucesso!");
+                  showNotice("Análise multiagente concluída!");
                 }}
+                apiFetch={apiFetch}
+                onReload={loadAllActiveData}
+                showNotice={showNotice}
               />
 
               {diagResult && (
-                <div className="bg-[#0f1629] border border-emerald-500/40 rounded-xl p-5 space-y-2">
-                  <h3 className="text-sm font-bold text-emerald-300">
-                    Resultado do Último Diagnóstico Coordenado ({diagResult.workflow_run_id})
-                  </h3>
-                  <p className="text-xs text-slate-200">{diagResult.ceo_consolidation?.summary}</p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 pt-2">
-                    {diagResult.specialist_diagnostics?.map((d: any, i: number) => (
-                      <div key={i} className="p-2.5 rounded bg-slate-900 border border-slate-800 text-xs">
-                        <div className="font-bold text-indigo-300">{d.agent_name}</div>
-                        <div className="text-slate-300 mt-1">{d.summary}</div>
-                      </div>
-                    ))}
+                <div className="max-w-7xl mx-auto ug-card rounded-xl p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-semibold text-emerald-400">
+                      Diagnóstico Coordenado ({diagResult.workflow_run_id})
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setDiagResult(null)}
+                      className="text-[11px] text-[var(--ug-text-muted)] hover:text-[var(--ug-text-primary)]"
+                    >
+                      Dispensar
+                    </button>
                   </div>
+                  <p className="text-xs text-[var(--ug-text-secondary)]">{diagResult.ceo_consolidation?.summary}</p>
                 </div>
               )}
             </div>
           )}
 
-          {/* ÁREA 2 — MEU TRABALHO (CAIXA UNIFICADA DE TAREFAS, APROVAÇÕES E EXECUÇÕES) */}
+          {/* ÁREA 2 — MEU TRABALHO (TRIAGEM LINEAR-STYLE) */}
           {activeMenu === "my_work" && (
             <MyWorkHub
               approvalsData={approvalsData}
@@ -1203,6 +1201,7 @@ export default function UnionGrowthOSPortal() {
               aiEnginesConfig={aiEnginesConfig}
               integrationsData={integrationsData}
               meData={meData}
+              uiMode={uiMode}
               apiFetch={apiFetch}
               onReload={loadAllActiveData}
               onNavigate={navigateTo}
@@ -1210,13 +1209,14 @@ export default function UnionGrowthOSPortal() {
             />
           )}
 
-          {/* ÁREA 5 — VISÃO SIMPLIFICADA DE AGENTES, AUTONOMIA & UX DE IA */}
+          {/* ÁREA 5 — EQUIPE DE AGENTES & AUTONOMIA */}
           {activeMenu === "ai_team_overview" && (
             <AITeamAndGovernanceView
               meData={meData}
               agentsData={agentsData}
               aiEnginesConfig={aiEnginesConfig}
               integrationsData={integrationsData}
+              uiMode={uiMode}
               apiFetch={apiFetch}
               onReload={loadAllActiveData}
               onNavigate={navigateTo}
@@ -1373,16 +1373,16 @@ export default function UnionGrowthOSPortal() {
             </div>
           )}
 
-          {/* 03. MARKETING (AI CMO) */}
+          {/* MARKETING — PERSONAS & CAMPANHAS */}
           {activeMenu === "marketing" && marketingData && (
             <div className="space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0f1629] border border-slate-800 p-4 rounded-xl">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[var(--ug-border)]">
                 <div>
-                  <h3 className="text-sm font-bold text-white">
-                    Estratégia de Marketing, Personas &amp; Campanhas (AI CMO)
+                  <h3 className="text-base font-semibold text-[var(--ug-text-primary)]">
+                    Campanhas &amp; Público Ideal
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    1. Cadastre seu público ideal (Persona) → 2. Crie sua Campanha com canal e orçamento → 3. Gere conteúdo na Fábrica.
+                  <p className="text-xs text-[var(--ug-text-muted)] mt-0.5">
+                    Defina seu público-alvo, crie campanhas multicanal e gere conteúdo contextual na Fábrica.
                   </p>
                 </div>
                 <button
@@ -1394,20 +1394,20 @@ export default function UnionGrowthOSPortal() {
                         body: JSON.stringify({ task_name: "generate_monthly_marketing_plan" }),
                       });
                       await loadAllActiveData();
-                      showNotice("Novo Planejamento Mensal de Marketing gerado pelo AI CMO!");
+                      showNotice("Novo Planejamento Mensal de Marketing gerado!");
                     } catch (err: any) {
                       showNotice(err?.message || "Não foi possível gerar planejamento agora.");
                     }
                   }}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                  className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium"
                 >
                   Gerar Planejamento Mensal Automático
                 </button>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
-                  <h4 className="text-sm font-bold text-white">1. Personas &amp; Público-Alvo (Quem você quer atrair)</h4>
+                <div className="ug-card rounded-2xl p-5 space-y-4">
+                  <h4 className="text-sm font-semibold text-[var(--ug-text-primary)]">Personas &amp; Público-Alvo</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end text-xs">
                     <div>
                       <label htmlFor="ug-persona-name" className="block text-[11px] font-medium text-slate-300 mb-1">
@@ -1484,7 +1484,7 @@ export default function UnionGrowthOSPortal() {
 
                 <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h4 className="text-sm font-bold text-white">2. Campanhas Ativas &amp; ROI ({marketingData.campaigns.length})</h4>
+                    <h4 className="text-sm font-semibold text-[var(--ug-text-primary)]">Campanhas Ativas &amp; ROI ({marketingData.campaigns.length})</h4>
                     <input
                       value={campFilter}
                       onChange={(e) => setCampFilter(e.target.value)}
@@ -3570,25 +3570,26 @@ export default function UnionGrowthOSPortal() {
             </div>
           )}
 
-          {/* 15. AUTOMAÇÕES NATIVAS PYTHON */}
+          {/* AUTOMAÇÕES NATIVAS PYTHON */}
           {activeMenu === "automations" && automationsData && (
-            <div className="space-y-6">
+            <div className="space-y-6 max-w-6xl mx-auto">
               <ConversationalAutomationPanel
                 apiFetch={apiFetch}
                 onReload={loadAllActiveData}
                 showNotice={showNotice}
+                uiMode={uiMode}
               />
 
-              <div className="bg-[#0f1629] border border-emerald-500/30 rounded-xl p-4 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--ug-border)]">
                 <div>
-                  <h3 className="text-sm font-bold text-white">
+                  <h3 className="text-sm font-semibold text-[var(--ug-text-primary)]">
                     {uiMode === "SIMPLE"
                       ? "Rotinas Automáticas Ativas da Sua Empresa (100% Nativo • Zero n8n)"
                       : "Central de Automações 100% Nativa em Python (Zero Dependência de n8n)"}
                   </h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-[var(--ug-text-muted)]">
                     {uiMode === "SIMPLE"
-                      ? `O sistema monitora ${automationsData.rules?.length || 0} rotinas diárias com segurança no servidor cloud.`
+                      ? `O sistema monitora ${automationsData.rules?.length || 0} rotinas automáticas com segurança na nuvem.`
                       : `Motor: ${automationsData.scheduler?.engine} • Status: `}
                     {uiMode === "ADVANCED" && (
                       <strong className="text-emerald-400">
@@ -3601,34 +3602,36 @@ export default function UnionGrowthOSPortal() {
                   <button
                     type="button"
                     onClick={() => setUiMode("ADVANCED")}
-                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] text-slate-200 font-medium"
+                    className="px-3 py-1.5 rounded-lg border border-[var(--ug-border)] hover:bg-white/[0.04] text-[11px] text-[var(--ug-text-secondary)] font-medium"
                   >
-                    Ver logs e testes técnicos (Avançado)
+                    Ver logs e ajustes técnicos (Avançado)
                   </button>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="ug-card rounded-2xl divide-y divide-white/[0.05]">
                 {(uiMode === "SIMPLE" ? automationsData.rules.slice(0, 6) : automationsData.rules).map((r: any) => (
-                  <div key={r.id} className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 space-y-2 text-xs">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-white">{r.name}</span>
-                      <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-[10px]">
-                        {uiMode === "SIMPLE" ? r.frequency_label : `${r.trigger_type} • ${r.frequency_label}`}
-                      </span>
+                  <div key={r.id} className="px-4 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs hover:bg-white/[0.02] transition">
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-[var(--ug-text-primary)]">{r.name}</span>
+                        <span className="px-2 py-0.5 rounded bg-indigo-500/12 text-indigo-300 text-[10px]">
+                          {uiMode === "SIMPLE" ? r.frequency_label : `${r.trigger_type} • ${r.frequency_label}`}
+                        </span>
+                      </div>
+                      {uiMode === "ADVANCED" ? (
+                        <div className="text-[11px] text-[var(--ug-text-muted)] tabular-nums">
+                          Agente: <strong className="text-[var(--ug-text-secondary)]">{r.action_agent}</strong> • Execuções: {r.run_count} • Status:{" "}
+                          <strong className="text-emerald-400">{r.last_status}</strong>
+                        </div>
+                      ) : (
+                        <div className="text-[11px] text-[var(--ug-text-muted)] tabular-nums">
+                          Execuções: <strong className="text-[var(--ug-text-secondary)]">{r.run_count}</strong> • Estado:{" "}
+                          <strong className="text-emerald-400">{r.last_status === "READY" ? "Pronta" : r.last_status}</strong>
+                        </div>
+                      )}
                     </div>
-                    {uiMode === "ADVANCED" ? (
-                      <div className="text-slate-400">
-                        Agente Responsável: <strong className="text-slate-200">{r.action_agent}</strong> • Execuções:{" "}
-                        {r.run_count} • Último Status: <strong className="text-emerald-400">{r.last_status}</strong>
-                      </div>
-                    ) : (
-                      <div className="text-slate-400">
-                        Execuções concluídas: <strong className="text-slate-200">{r.run_count}</strong> • Estado:{" "}
-                        <strong className="text-emerald-400">{r.last_status === "READY" ? "Pronta" : r.last_status}</strong>
-                      </div>
-                    )}
-                    <div className="pt-2 flex gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
                         onClick={async () => {
@@ -3639,7 +3642,7 @@ export default function UnionGrowthOSPortal() {
                           await loadAllActiveData();
                           showNotice(`Automação '${r.name}' executada imediatamente!`);
                         }}
-                        className="px-3 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-semibold"
+                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-medium"
                       >
                         Executar Agora
                       </button>
@@ -3656,7 +3659,7 @@ export default function UnionGrowthOSPortal() {
                               `Retry com Backoff validado: status ${res.status} na tentativa #${res.attempt_number}!`
                             );
                           }}
-                          className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300"
+                          className="px-2.5 py-1.5 rounded-lg border border-[var(--ug-border)] hover:bg-white/[0.04] text-[var(--ug-text-secondary)] text-[11px]"
                         >
                           Testar Retry + Backoff
                         </button>
@@ -3667,20 +3670,18 @@ export default function UnionGrowthOSPortal() {
               </div>
 
               {uiMode === "ADVANCED" && automationsData.executions?.length > 0 && (
-                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-2">
-                  <h4 className="text-sm font-bold text-white">Histórico Persistido de Execuções do Scheduler</h4>
+                <div className="ug-card rounded-xl divide-y divide-white/[0.05]">
+                  <div className="px-4 py-3 text-xs font-semibold text-[var(--ug-text-primary)]">
+                    Histórico Persistido de Execuções
+                  </div>
                   {automationsData.executions.map((ex: any) => (
-                    <div
-                      key={ex.id}
-                      className="p-2.5 rounded bg-slate-900 border border-slate-800 text-xs flex justify-between"
-                    >
+                    <div key={ex.id} className="px-4 py-2.5 text-xs flex flex-wrap justify-between gap-2">
                       <div>
-                        <span className="font-bold text-indigo-300">Regra #{ex.rule_id}</span> •{" "}
-                        {ex.result_summary?.summary || ex.error_message}
+                        <span className="font-medium text-indigo-400">Regra #{ex.rule_id}</span> •{" "}
+                        <span className="text-[var(--ug-text-secondary)]">{ex.result_summary?.summary || ex.error_message}</span>
                       </div>
-                      <div className="text-slate-400">
-                        Status: <strong className="text-emerald-400">{ex.status}</strong> (Tentativa #
-                        {ex.attempt_number} • {ex.duration_ms}ms)
+                      <div className="text-[var(--ug-text-muted)] tabular-nums">
+                        <strong className="text-emerald-400">{ex.status}</strong> (Tentativa #{ex.attempt_number} • {ex.duration_ms}ms)
                       </div>
                     </div>
                   ))}
@@ -3755,11 +3756,11 @@ export default function UnionGrowthOSPortal() {
             <div className="space-y-6">
               <AnalyticsAttributionPanel attribution={analyticsAttrData} />
 
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="ug-card rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-[var(--ug-border-subtle)] flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-sm font-bold text-white">Relatório Executivo Consolidado</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <h3 className="text-sm font-semibold text-[var(--ug-text-primary)]">Relatório Executivo Consolidado</h3>
+                    <p className="text-xs text-[var(--ug-text-muted)] mt-0.5">
                       Empresa: {reportsData.tenant?.brand_name || reportsData.tenant?.name || "—"} • Plano:{" "}
                       {reportsData.tenant?.plan_tier || "—"} • Gerado em{" "}
                       {reportsData.generated_at ? new Date(reportsData.generated_at).toLocaleString("pt-BR") : "agora"}
@@ -3771,38 +3772,38 @@ export default function UnionGrowthOSPortal() {
                       const bkp = await apiFetch("/api/v1/system/backup", { method: "POST" });
                       showNotice(`Backup persistente criado: ${bkp.backup_file} (${bkp.size_bytes} bytes)`);
                     }}
-                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                    className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium"
                   >
-                    Gerar Snapshot & Backup Agora
+                    Gerar Snapshot &amp; Backup Agora
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
-                    <div className="text-[11px] uppercase text-slate-400">Receita Real Confirmada</div>
-                    <div className="text-lg font-bold text-emerald-400 mt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.06]">
+                  <div className="p-4">
+                    <div className="text-[11px] text-[var(--ug-text-muted)]">Receita Real Confirmada</div>
+                    <div className="text-lg font-semibold text-emerald-400 mt-1 tabular-nums">
                       R$ {Number(reportsData.financial_performance?.real_revenue || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </div>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
-                    <div className="text-[11px] uppercase text-slate-400">Lucro Real / Margem</div>
-                    <div className="text-lg font-bold text-white mt-1">
+                  <div className="p-4">
+                    <div className="text-[11px] text-[var(--ug-text-muted)]">Lucro Real / Margem</div>
+                    <div className="text-lg font-semibold text-[var(--ug-text-primary)] mt-1 tabular-nums">
                       R$ {Number(reportsData.financial_performance?.real_profit || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (
                       {Number(reportsData.financial_performance?.margin_pct || 0)}%)
                     </div>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
-                    <div className="text-[11px] uppercase text-slate-400">Leads Reais & Conversão</div>
-                    <div className="text-lg font-bold text-indigo-300 mt-1">
+                  <div className="p-4">
+                    <div className="text-[11px] text-[var(--ug-text-muted)]">Leads Reais &amp; Conversão</div>
+                    <div className="text-lg font-semibold text-indigo-400 mt-1 tabular-nums">
                       {reportsData.financial_performance?.leads_total ?? 0} leads •{" "}
                       {reportsData.financial_performance?.conversion_rate_pct ?? 0}% conv.
                     </div>
                   </div>
-                  <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800">
-                    <div className="text-[11px] uppercase text-slate-400">Integrações Prontas</div>
-                    <div className="text-lg font-bold text-amber-300 mt-1">
-                      {(reportsData.integrations_summary?.connected || []).length} conectadas •{" "}
-                      {(reportsData.integrations_summary?.pending_credentials || []).length} pendentes
+                  <div className="p-4">
+                    <div className="text-[11px] text-[var(--ug-text-muted)]">Conexões Externas</div>
+                    <div className="text-lg font-semibold text-amber-300 mt-1 tabular-nums">
+                      {(reportsData.integrations_summary?.connected || []).length} ativas •{" "}
+                      {(reportsData.integrations_summary?.pending_credentials || []).length} opcionais
                     </div>
                   </div>
                 </div>
@@ -3840,16 +3841,18 @@ export default function UnionGrowthOSPortal() {
             </div>
           )}
 
-          {/* 18. INTEGRAÇÕES */}
+          {/* INTEGRAÇÕES / CONECTAR FERRAMENTAS EXTERNAS */}
           {activeMenu === "integrations" && (
-            <div className="space-y-4">
-              <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-5 max-w-6xl mx-auto">
+              <div className="flex flex-wrap items-end justify-between gap-3 pb-3 border-b border-[var(--ug-border)]">
                 <div>
-                  <h3 className="text-sm font-bold text-white">
-                    Central de Integrações Oficiais (Criptografia Fernet • Status Real Sem Simulação)
+                  <h3 className="text-base font-semibold text-[var(--ug-text-primary)]">
+                    {uiMode === "SIMPLE"
+                      ? "Conectar Ferramentas Externas (Status Real)"
+                      : "Central de Integrações Oficiais (Criptografia Fernet • Status Real)"}
                   </h3>
-                  <p className="text-xs text-slate-400">
-                    Cada integração informa exatamente qual credencial é necessária, onde obtê-la, permissões exigidas e teste real.
+                  <p className="text-xs text-[var(--ug-text-muted)]">
+                    Contas sem conexão continuam funcionando no Modo Assistido em 1 clique, sem simular envios.
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5" role="group" aria-label="Filtrar status de integrações">
@@ -3868,10 +3871,10 @@ export default function UnionGrowthOSPortal() {
                       key={f.id}
                       type="button"
                       onClick={() => setIntgStatusFilter(f.id as any)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${
+                      className={`px-3 py-1 rounded-lg text-xs font-medium border transition ${
                         intgStatusFilter === f.id
                           ? "bg-indigo-600 text-white border-indigo-500"
-                          : "bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800"
+                          : "border-[var(--ug-border)] text-[var(--ug-text-secondary)] hover:bg-white/[0.04]"
                       }`}
                     >
                       {f.label}
@@ -4163,8 +4166,8 @@ export default function UnionGrowthOSPortal() {
               {/* Planos SaaS */}
               {meData.plans_catalog && (
                 <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                  <h3 className="text-sm font-bold text-white">
-                    3. Arquitetura de Planos para Comercialização SaaS (Cobrança Desativada por Padrão)
+                  <h3 className="text-sm font-semibold text-[var(--ug-text-primary)]">
+                    Planos da Plataforma
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {Object.values(meData.plans_catalog).map((pl: any) => (
@@ -4211,7 +4214,7 @@ export default function UnionGrowthOSPortal() {
               />
 
               <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-                <h3 className="text-sm font-bold text-white">4. Criar Nova Empresa no Grupo (Multi-Tenant Isolado)</h3>
+                <h3 className="text-sm font-semibold text-[var(--ug-text-primary)]">Nova Empresa / Unidade (Isolamento Completo)</h3>
                 <div className="flex flex-wrap gap-3">
                   <input
                     value={newTenantName}
@@ -4294,119 +4297,117 @@ export default function UnionGrowthOSPortal() {
                 </div>
               </div>
 
-              {/* KPIs Financeiros Consolidados (DADO REAL vs PROJEÇÃO vs META) */}
+              {/* KPIs Financeiros Consolidados (Faixa Única Hairline) */}
               {mbDashboard.financial_summary?.consolidated && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="bg-[#0f1629] border border-emerald-500/30 rounded-xl p-4">
+                <div className="ug-card rounded-2xl grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x divide-white/[0.06] overflow-hidden">
+                  <div className="p-4">
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-[11px] text-slate-400">Receita Confirmada / Recebida</span>
+                      <span className="text-[11px] text-[var(--ug-text-muted)]">Receita Confirmada</span>
                       <OriginBadge origin="REAL" />
                     </div>
-                    <div className="text-xl font-bold text-emerald-400">
+                    <div className="text-xl font-semibold text-emerald-400 tabular-nums">
                       R$ {Number(mbDashboard.financial_summary.consolidated.dado_real.received_confirmed_revenue_brl || 0).toLocaleString("pt-BR")}
                     </div>
-                    <div className="text-[11px] text-slate-400 mt-1">
+                    <div className="text-[11px] text-[var(--ug-text-muted)] mt-1 tabular-nums">
                       MRR Ativo: R$ {Number(mbDashboard.financial_summary.consolidated.dado_real.monthly_recurring_revenue_mrr_brl || 0).toLocaleString("pt-BR")}
                     </div>
                   </div>
 
-                  <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-4">
+                  <div className="p-4">
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-[11px] text-slate-400">Lucro Líquido & Margem</span>
+                      <span className="text-[11px] text-[var(--ug-text-muted)]">Lucro Líquido &amp; Margem</span>
                       <OriginBadge origin="REAL" />
                     </div>
-                    <div className="text-xl font-bold text-white">
+                    <div className="text-xl font-semibold text-[var(--ug-text-primary)] tabular-nums">
                       R$ {Number(mbDashboard.financial_summary.consolidated.dado_real.net_profit_brl || 0).toLocaleString("pt-BR")}
                     </div>
-                    <div className="text-[11px] text-slate-400 mt-1">
+                    <div className="text-[11px] text-[var(--ug-text-muted)] mt-1 tabular-nums">
                       Margem: {mbDashboard.financial_summary.consolidated.dado_real.margin_pct}% • Custos: R$ {Number(mbDashboard.financial_summary.consolidated.dado_real.expenses_and_costs_brl || 0).toLocaleString("pt-BR")}
                     </div>
                   </div>
 
-                  <div className="bg-[#0f1629] border border-amber-500/30 rounded-xl p-4">
+                  <div className="p-4">
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-[11px] text-slate-400">Pipeline Ponderado (Não Recebido)</span>
+                      <span className="text-[11px] text-[var(--ug-text-muted)]">Pipeline Ponderado</span>
                       <OriginBadge origin="ESTIMATED" />
                     </div>
-                    <div className="text-xl font-bold text-amber-300">
+                    <div className="text-xl font-semibold text-amber-300 tabular-nums">
                       R$ {Number(mbDashboard.financial_summary.consolidated.projecao.weighted_pipeline_projection_brl || 0).toLocaleString("pt-BR")}
                     </div>
-                    <div className="text-[11px] text-slate-400 mt-1">
+                    <div className="text-[11px] text-[var(--ug-text-muted)] mt-1 tabular-nums">
                       Negociações abertas: {mbDashboard.financial_summary.consolidated.projecao.open_deals_count}
                     </div>
                   </div>
 
-                  <div className="bg-[#0f1629] border border-purple-500/30 rounded-xl p-4">
+                  <div className="p-4">
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-[11px] text-slate-400">Meta de Receita Mensal</span>
+                      <span className="text-[11px] text-[var(--ug-text-muted)]">Meta Mensal</span>
                       <OriginBadge origin="GOAL" />
                     </div>
-                    <div className="text-xl font-bold text-purple-300">
+                    <div className="text-xl font-semibold text-indigo-300 tabular-nums">
                       R$ {Number(mbDashboard.financial_summary.consolidated.meta.monthly_revenue_goal_brl || 0).toLocaleString("pt-BR")}
                     </div>
-                    <div className="text-[11px] text-slate-400 mt-1">
+                    <div className="text-[11px] text-[var(--ug-text-muted)] mt-1 tabular-nums">
                       Atingimento Real: {mbDashboard.financial_summary.consolidated.meta.goal_attainment_pct}%
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* FASE 18.1 — SEPARAÇÃO OBRIGATÓRIA: REAL vs ESTIMATIVA vs PROJEÇÃO vs META vs SIMULAÇÃO */}
+              {/* Separação Real vs Estimativa vs Projeção vs Meta vs Simulação (Faixa Única Limpa) */}
               {mbDashboard.phase18_1_executive_panel && (
-                <div className="bg-[#0f1629] border border-emerald-500/30 rounded-xl p-5 space-y-3">
-                  <div className="flex flex-wrap justify-between items-center gap-2">
-                    <h3 className="text-sm font-bold text-white">
-                      Painel de Validação Comercial Fase 18.1 — Separação Estrita (REAL • ESTIMATIVA • PROJEÇÃO • META • SIMULAÇÃO)
+                <div className="ug-card rounded-2xl overflow-hidden">
+                  <div className="px-5 py-3.5 border-b border-[var(--ug-border-subtle)] flex flex-wrap justify-between items-center gap-2">
+                    <h3 className="text-xs font-semibold text-[var(--ug-text-primary)]">
+                      Transparência Financeira (Real • Estimativa • Projeção • Meta • Sandbox)
                     </h3>
-                    <span className="text-[11px] text-emerald-300 font-semibold">
-                      Primeiro Cliente Pago em Produção (API Live):{" "}
-                      {mbDashboard.phase18_1_executive_panel.REAL.first_real_paid_customer_verified ? "CONFIRMADO" : "AGUARDANDO 1º PAGAMENTO LIVE (R$ 0,00)"}
+                    <span className="text-[11px] text-emerald-400 font-medium">
+                      Primeiro Pagamento Live:{" "}
+                      {mbDashboard.phase18_1_executive_panel.REAL.first_real_paid_customer_verified ? "CONFIRMADO" : "AGUARDANDO (R$ 0,00)"}
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs">
-                    <div className="p-3 rounded-lg bg-slate-900 border border-emerald-500/40 space-y-1">
-                      <div className="font-bold text-emerald-400">1. REAL (Verificado Live)</div>
-                      <div className="text-slate-300">Receita Live: <strong>R$ {mbDashboard.phase18_1_executive_panel.REAL.receita_recebida_confirmada_brl}</strong></div>
-                      <div className="text-slate-400">Leads Reais: {mbDashboard.phase18_1_executive_panel.REAL.leads_reais} • Qualif: {mbDashboard.phase18_1_executive_panel.REAL.leads_qualificados}</div>
-                      <div className="text-slate-400">Contratos c/ Evidência: {mbDashboard.phase18_1_executive_panel.REAL.contratos_assinados_com_evidencia}</div>
-                      <div className="text-slate-400">Entregas c/ Evidência: {mbDashboard.phase18_1_executive_panel.REAL.entregas_concluidas_com_evidencia}</div>
+                  <div className="grid grid-cols-1 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-white/[0.06] text-xs">
+                    <div className="p-3.5 space-y-1">
+                      <div className="font-semibold text-emerald-400">Real</div>
+                      <div className="text-[var(--ug-text-primary)] tabular-nums">Receita Live: <strong>R$ {mbDashboard.phase18_1_executive_panel.REAL.receita_recebida_confirmada_brl}</strong></div>
+                      <div className="text-[11px] text-[var(--ug-text-muted)]">Leads Reais: {mbDashboard.phase18_1_executive_panel.REAL.leads_reais} • Qualif: {mbDashboard.phase18_1_executive_panel.REAL.leads_qualificados}</div>
+                      <div className="text-[11px] text-[var(--ug-text-muted)]">Contratos: {mbDashboard.phase18_1_executive_panel.REAL.contratos_assinados_com_evidencia} • Entregas: {mbDashboard.phase18_1_executive_panel.REAL.entregas_concluidas_com_evidencia}</div>
                     </div>
-                    <div className="p-3 rounded-lg bg-slate-900 border border-amber-500/30 space-y-1">
-                      <div className="font-bold text-amber-300">2. ESTIMATIVA (Calculadora)</div>
-                      <div className="text-slate-300">Custo Médio Serviço: R$ {mbDashboard.phase18_1_executive_panel.ESTIMATIVA.custo_medio_servico_brl}</div>
-                      <div className="text-slate-400">Margem Estimada: {mbDashboard.phase18_1_executive_panel.ESTIMATIVA.margem_estimada_catalogo_pct}%</div>
+                    <div className="p-3.5 space-y-1">
+                      <div className="font-semibold text-amber-300">Estimativa</div>
+                      <div className="text-[var(--ug-text-primary)] tabular-nums">Custo Médio: R$ {mbDashboard.phase18_1_executive_panel.ESTIMATIVA.custo_medio_servico_brl}</div>
+                      <div className="text-[11px] text-[var(--ug-text-muted)]">Margem Estimada: {mbDashboard.phase18_1_executive_panel.ESTIMATIVA.margem_estimada_catalogo_pct}%</div>
                     </div>
-                    <div className="p-3 rounded-lg bg-slate-900 border border-sky-500/30 space-y-1">
-                      <div className="font-bold text-sky-300">3. PROJEÇÃO (Pipeline)</div>
-                      <div className="text-slate-300">Pipeline Ponderado: R$ {mbDashboard.phase18_1_executive_panel.PROJECAO.pipeline_ponderado_aberto_brl}</div>
-                      <div className="text-slate-400">Deals Abertos: {mbDashboard.phase18_1_executive_panel.PROJECAO.negociacoes_abertas_count}</div>
+                    <div className="p-3.5 space-y-1">
+                      <div className="font-semibold text-sky-300">Projeção</div>
+                      <div className="text-[var(--ug-text-primary)] tabular-nums">Pipeline: R$ {mbDashboard.phase18_1_executive_panel.PROJECAO.pipeline_ponderado_aberto_brl}</div>
+                      <div className="text-[11px] text-[var(--ug-text-muted)]">Negociações: {mbDashboard.phase18_1_executive_panel.PROJECAO.negociacoes_abertas_count}</div>
                     </div>
-                    <div className="p-3 rounded-lg bg-slate-900 border border-purple-500/30 space-y-1">
-                      <div className="font-bold text-purple-300">4. META (Objetivos)</div>
-                      <div className="text-slate-300">Meta Mensal (3 Unidades): R$ {mbDashboard.phase18_1_executive_panel.META.meta_mensal_total_brl}</div>
+                    <div className="p-3.5 space-y-1">
+                      <div className="font-semibold text-indigo-300">Meta</div>
+                      <div className="text-[var(--ug-text-primary)] tabular-nums">Meta Mensal: R$ {mbDashboard.phase18_1_executive_panel.META.meta_mensal_total_brl}</div>
                     </div>
-                    <div className="p-3 rounded-lg bg-slate-900 border border-slate-700 space-y-1">
-                      <div className="font-bold text-slate-300">5. SIMULAÇÃO & SANDBOX</div>
-                      <div className="text-slate-300">Cobranças Sandbox: {mbDashboard.phase18_1_executive_panel.SIMULACAO.cobrancas_sandbox_total} ({mbDashboard.phase18_1_executive_panel.SIMULACAO.pagamentos_sandbox_aprovados} aprov.)</div>
-                      <div className="text-slate-400">Volume Sandbox: R$ {mbDashboard.phase18_1_executive_panel.SIMULACAO.valor_transacionado_sandbox_brl}</div>
-                      <div className="text-slate-400">Seed Importado: R$ {mbDashboard.phase18_1_executive_panel.SIMULACAO.historico_importado_seed_brl}</div>
+                    <div className="p-3.5 space-y-1">
+                      <div className="font-semibold text-[var(--ug-text-secondary)]">Simulação / Sandbox</div>
+                      <div className="text-[var(--ug-text-primary)] tabular-nums">Sandbox: {mbDashboard.phase18_1_executive_panel.SIMULACAO.cobrancas_sandbox_total} ({mbDashboard.phase18_1_executive_panel.SIMULACAO.pagamentos_sandbox_aprovados} aprov.)</div>
+                      <div className="text-[11px] text-[var(--ug-text-muted)] tabular-nums">Volume: R$ {mbDashboard.phase18_1_executive_panel.SIMULACAO.valor_transacionado_sandbox_brl}</div>
+                      <div className="text-[11px] text-[var(--ug-text-muted)] tabular-nums">Seed: R$ {mbDashboard.phase18_1_executive_panel.SIMULACAO.historico_importado_seed_brl}</div>
                     </div>
                   </div>
-                  <p className="text-[11px] text-slate-400">{mbDashboard.phase18_1_executive_panel.honesty_statement}</p>
                 </div>
               )}
 
-              {/* Funil Comercial de 10 Etapas */}
+              {/* Funil Comercial de 10 Etapas em Faixa Limpa */}
               {mbDashboard.sales_funnel_10_stages && (
-                <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5">
-                  <h3 className="text-sm font-bold text-white mb-3">
+                <div className="ug-card rounded-2xl overflow-hidden">
+                  <div className="px-5 py-3 border-b border-[var(--ug-border-subtle)] text-xs font-semibold text-[var(--ug-text-primary)]">
                     Funil Comercial de 10 Etapas (Visitante → Pós-Venda)
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-2">
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 divide-y md:divide-y-0 md:divide-x divide-white/[0.06]">
                     {Object.entries(mbDashboard.sales_funnel_10_stages).map(([stage, count]: [string, any]) => (
-                      <div key={stage} className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-center">
-                        <div className="text-[10px] font-semibold text-slate-400 truncate">{stage}</div>
-                        <div className="text-base font-bold text-indigo-400 mt-0.5">{count}</div>
+                      <div key={stage} className="p-3 text-center">
+                        <div className="text-[10px] font-medium text-[var(--ug-text-muted)] truncate">{stage}</div>
+                        <div className="text-base font-semibold text-indigo-400 mt-0.5 tabular-nums">{count}</div>
                       </div>
                     ))}
                   </div>

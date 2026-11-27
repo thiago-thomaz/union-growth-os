@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { ArrowRight, Bot, CheckCircle2, ChevronDown, ChevronUp, Compass, Info, ShieldAlert } from "lucide-react";
+import React, { useState } from "react";
+import { ArrowRight, Bot, CheckCircle2, HelpCircle, ShieldAlert } from "lucide-react";
 import { AreaId, LegacyMenuId } from "@/lib/navigation";
+import { Drawer } from "@/components/DesignSystem";
 
 interface AreaGuideContent {
   title: string;
   whatCanDo: string;
   howToStart: string;
-  whatToFill: string;
   whatHappensNext: string;
   whatAiDoes: string;
   needsApprovalOrCreds: string;
@@ -18,214 +18,167 @@ interface AreaGuideContent {
 
 const AREA_GUIDES: Record<AreaId, AreaGuideContent> = {
   inicio: {
-    title: "Guia do Início — Seu Painel de Decisão Diária",
-    whatCanDo: "Ver prioridades reais do dia, aprovações pendentes, ações da IA e os 4 indicadores principais do negócio.",
-    howToStart: "Revise os cards do Bloco 1 ('O que precisa da sua atenção') ou conclua os primeiros passos de configuração.",
-    whatToFill: "Nada obrigatório nesta tela — ela consolida automaticamente os dados das outras áreas.",
-    whatHappensNext: "Cada ação clicada leva direto ao módulo certo para resolver em 1 ou 2 cliques.",
-    whatAiDoes: "O AI CEO lê seus indicadores reais e gera o resumo executivo sem inventar números.",
-    needsApprovalOrCreds: "Qualquer gasto financeiro, cobrança ou publicação externa aguarda sua autorização explícita.",
-    recommendedLabel: "Ver Pendências em Meu Trabalho",
+    title: "Como funciona o Início",
+    whatCanDo: "Acompanhe prioridades reais do dia, indicadores verificados e peça ajuda ao ASK UNION em linguagem natural.",
+    howToStart: "Revise as Prioridades de hoje ou digite o que deseja resolver no campo ASK UNION.",
+    whatHappensNext: "Cada item leva direto à ação correspondente sem navegar por menus técnicos.",
+    whatAiDoes: "Lê empresa, marca, CRM, site e campanhas reais sem inventar dados.",
+    needsApprovalOrCreds: "Cobranças, gastos ou publicações externas nunca executam sem sua aprovação.",
+    recommendedLabel: "Abrir Meu Trabalho",
     recommendedTarget: "my_work",
   },
   meu_trabalho: {
-    title: "Guia de Meu Trabalho — Caixa Unificada de Ações",
-    whatCanDo: "Aprovar ou recusar solicitações da IA, resolver alertas operacionais e acompanhar tarefas comerciais.",
-    howToStart: "Use os filtros superiores ('Precisa de mim' ou 'Aguardando aprovação') e clique em um item para abrir os detalhes.",
-    whatToFill: "Apenas escolha Aprovar ou Recusar quando uma decisão crítica exigir confirmação humana.",
-    whatHappensNext: "Itens aprovados avançam imediatamente no histórico auditável; recusados ficam bloqueados com registro.",
-    whatAiDoes: "Agentes preparam campanhas, propostas e diagnósticos e enviam para esta fila quando exigem supervisão.",
-    needsApprovalOrCreds: "Decisões financeiras e envios externos nunca executam sem seu clique em Aprovar.",
-    recommendedLabel: "Ver Fila Completa",
-    recommendedTarget: "my_work",
+    title: "Como funciona Meu Trabalho",
+    whatCanDo: "Aprove solicitações da IA, resolva alertas e acompanhe tarefas comerciais em uma única lista.",
+    howToStart: "Use as abas superiores ('Precisa de mim' ou 'Aguardando aprovação') e clique em um item.",
+    whatHappensNext: "Itens aprovados avançam no histórico; recusados ficam bloqueados com registro.",
+    whatAiDoes: "Agentes preparam campanhas, propostas e diagnósticos e enviam aqui quando exigem supervisão.",
+    needsApprovalOrCreds: "Decisões financeiras e envios externos aguardam sua confirmação.",
+    recommendedLabel: "Ver Central de Aprovações",
+    recommendedTarget: "approvals",
   },
   comercial: {
-    title: "Guia Comercial — Leads, Propostas e Vendas",
-    whatCanDo: "Cadastrar leads com consentimento LGPD, buscar contatos, mover negociações no funil e gerar propostas com PDF seguro.",
-    howToStart: "Cadastre um lead em 'Leads & CRM' ou gere uma proposta comercial em 'Propostas, Contratos & 3 Unidades'.",
-    whatToFill: "Nome do contato, e-mail corporativo, empresa e valor estimado para iniciar a qualificação automática.",
-    whatHappensNext: "A IA calcula o Score do lead (0 a 100), cria tarefa de follow-up e coloca propostas na fila de aprovação.",
-    whatAiDoes: "Qualifica oportunidades, estrutura preços pela tabela aprovada e monitora etapas do funil.",
-    needsApprovalOrCreds: "Envio final de proposta vinculante e cobranças exigem sua aprovação; pagamentos Sandbox ficam isolados.",
+    title: "Como funciona Comercial",
+    whatCanDo: "Cadastre leads com consentimento LGPD, acompanhe negociações, gere propostas PDF e analise concorrentes.",
+    howToStart: "Adicione um lead em Leads & CRM ou abra o Pipeline para mover oportunidades.",
+    whatHappensNext: "A IA pontua leads automaticamente (0–100) e prepara tarefas de retorno.",
+    whatAiDoes: "Qualifica oportunidades, estrutura propostas e monitora estágios sem perder contexto.",
+    needsApprovalOrCreds: "Envio final de propostas e cobranças exigem sua aprovação.",
     recommendedLabel: "Cadastrar Novo Lead",
     recommendedTarget: "crm",
   },
   marketing: {
-    title: "Guia de Marketing — Campanhas, Conteúdo e SEO",
-    whatCanDo: "Definir personas ideais, criar campanhas, gerar lote de 30 conteúdos ou agendar posts individuais no calendário.",
-    howToStart: "Comece criando uma Persona ou Campanha em 'Campanhas & Personas' e gere peças em 'Fábrica de Conteúdo'.",
-    whatToFill: "Nome da campanha, canal principal e orçamento planejado (ou apenas um título/tema no Calendário).",
-    whatHappensNext: "Você baixa o pacote pronto em 1 clique ('Modo Assistido') ou publica ao conectar suas contas sociais.",
-    whatAiDoes: "Gera textos persuasivos AIDA/PAS, imagens locais PNG, auditorias técnicas SEO e cronograma semanal.",
-    needsApprovalOrCreds: "Publicação automática direta exige credencial social em Integrações; sem ela, o Modo Assistido funciona normalmente.",
-    recommendedLabel: "Ir para Campanhas & Personas",
+    title: "Como funciona Marketing",
+    whatCanDo: "Defina seu público ideal, crie campanhas, produza conteúdos para 30 dias e audite seu site no Google (SEO).",
+    howToStart: "Cadastre público e campanha em Campanhas & Personas e gere conteúdo na Fábrica.",
+    whatHappensNext: "Baixe pacotes prontos em 1 clique ou publique após conectar suas redes sociais.",
+    whatAiDoes: "Cria textos, roteiros, artes visuais e auditorias técnicas reais do seu site.",
+    needsApprovalOrCreds: "Sem rede social conectada, o Modo Assistido libera tudo para copiar em 1 clique.",
+    recommendedLabel: "Ir para Campanhas",
     recommendedTarget: "marketing",
   },
   ia: {
-    title: "Guia de Inteligência Artificial — Agentes e Motores",
-    whatCanDo: "Entender o papel dos 12 agentes, conectar sua chave gratuita do Google Gemini, testar conexão real e ajustar autonomia.",
-    howToStart: "Siga os 3 passos do Assistente de Configuração abaixo (Chave Gratuita -> Testar Conexão -> Escolher Autonomia).",
-    whatToFill: "Apenas sua chave gratuita do Google AI Studio (começa com 'AIzaSy...') se desejar ativar textos via LLM.",
-    whatHappensNext: "Mesmo sem chave externa, rotinas determinísticas e proteções de custo continuam operando normalmente.",
-    whatAiDoes: "Executa diagnósticos coordenados, cria copies e automatiza triagens dentro dos limites definidos.",
-    needsApprovalOrCreds: "Trava financeira FREE_ONLY ativa por padrão: modelos pagos (GPT-4o, Imagen 3, Veo 2) ficam bloqueados automaticamente.",
-    recommendedLabel: "Abrir Modelos & Provedores",
-    recommendedTarget: "ai_engines",
+    title: "Como funciona Inteligência Artificial",
+    whatCanDo: "Configure sua equipe de 12 agentes, ajuste autonomia e crie automações falando em português.",
+    howToStart: "Descreva uma regra em Automações 24/7 ou ajuste permissões dos agentes.",
+    whatHappensNext: "Tudo roda em Python nativo na própria nuvem, sem custos surpresa.",
+    whatAiDoes: "Analisa negócio, prioriza ações, prepara conteúdos e monitora falhas 24/7.",
+    needsApprovalOrCreds: "Trava gratuita (FREE_ONLY) ativa por padrão: modelos pagos permanecem bloqueados.",
+    recommendedLabel: "Criar Automação",
+    recommendedTarget: "automations",
   },
   gestao: {
-    title: "Guia de Gestão — Empresa, Integrações e Relatórios",
-    whatCanDo: "Configurar nome/marca da empresa, conectar integrações oficiais, revisar finanças reais e exportar backups.",
-    howToStart: "Atualize os dados da sua empresa em 'Configurações & Planos' e revise as integrações desejadas.",
-    whatToFill: "Nome da empresa, marca, nicho e credenciais apenas das integrações externas que desejar automatizar.",
-    whatHappensNext: "Os agentes e o painel Início passam a refletir sua marca, relatórios consolidados e integrações ativas.",
-    whatAiDoes: "Consolida receita real x importada x estimada sem inventar faturamento e gera relatórios executivos.",
-    needsApprovalOrCreds: "Alterações financeiras e de plano ficam registradas na Auditoria Imutável; credenciais usam criptografia Fernet.",
-    recommendedLabel: "Configurar Empresa & Marca",
+    title: "Como funciona Gestão",
+    whatCanDo: "Gerencie identidade da marca, empresas, financeiro real, relatórios, conecte ferramentas externas e auditoria.",
+    howToStart: "Mantenha a Central de Marca atualizada para melhorar toda comunicação automática.",
+    whatHappensNext: "Relatórios e o painel inicial refletem automaticamente os dados reais consolidados.",
+    whatAiDoes: "Separa estritamente dados reais, projeções e simulações Sandbox.",
+    needsApprovalOrCreds: "Alterações financeiras e de planos ficam registradas na auditoria.",
+    recommendedLabel: "Configurações & Marca",
     recommendedTarget: "settings",
   },
   todos_recursos: {
-    title: "Guia da Central Completa de Recursos",
-    whatCanDo: "Buscar qualquer ferramenta por nome ou palavra-chave, fixar seus favoritos e acessar últimos módulos.",
-    howToStart: "Digite o que procura no campo de busca acima ou clique em uma categoria.",
-    whatToFill: "Apenas a busca opcional ou clique na estrela para salvar módulos nos seus Favoritos.",
-    whatHappensNext: "Clicar em 'Abrir' leva direto ao módulo desejado sem alterar a organização das 6 áreas.",
-    whatAiDoes: "Exibe transparentemente quais módulos dependem de credenciais ou estão no Modo Assistido/Sandbox.",
-    needsApprovalOrCreds: "Os cards mostram etiquetas claras do que está 100% operacional ou aguardando configuração.",
+    title: "Central de Descoberta",
+    whatCanDo: "Encontre qualquer ferramenta por palavra-chave e fixe favoritos para acesso instantâneo.",
+    howToStart: "Digite o que procura no campo de busca ou clique na estrela para favoritar.",
+    whatHappensNext: "Os favoritos aparecem no menu lateral para abrir em 1 clique.",
+    whatAiDoes: "Sinaliza com clareza quais integrações exigem conexão externa.",
+    needsApprovalOrCreds: "Módulos principais operam mesmo sem conexões OAuth.",
     recommendedLabel: "Voltar ao Início",
     recommendedTarget: "overview",
   },
 };
 
+/**
+ * Fase 24 — Substitui a muralha permanente de 5 caixas no topo das páginas
+ * por um gatilho discreto sob demanda que abre um Drawer limpo quando o usuário quiser.
+ */
 export function AreaContextGuide({
   areaId,
   integrationsData,
-  aiEnginesConfig,
   onNavigate,
 }: {
   areaId: AreaId;
   integrationsData: any[];
-  aiEnginesConfig: any;
+  aiEnginesConfig?: any;
   onNavigate: (view: LegacyMenuId) => void;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [open, setOpen] = useState(false);
+  const guide = AREA_GUIDES[areaId];
+  if (!guide) return null;
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setCollapsed(localStorage.getItem(`ug_ctx_guide_${areaId}`) === "1");
-    }
-  }, [areaId]);
-
-  const toggleCollapsed = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    if (typeof window !== "undefined") {
-      if (next) localStorage.setItem(`ug_ctx_guide_${areaId}`, "1");
-      else localStorage.removeItem(`ug_ctx_guide_${areaId}`);
-    }
-  };
-
-  const guide = AREA_GUIDES[areaId] || AREA_GUIDES.inicio;
   const connectedCount = (integrationsData || []).filter((i: any) => i.status === "CONNECTED").length;
-  const geminiProv = (aiEnginesConfig?.providers || []).find((p: any) => p.provider_key === "gemini");
-  const aiReady = Boolean(geminiProv?.has_credential && geminiProv?.last_test_status === "CONNECTED");
-  const lastErr = String(geminiProv?.last_test_error || "");
-  const quotaBlocked = lastErr.includes("402") || lastErr.toLowerCase().includes("cota");
-
-  let dependencyAlert: { text: string; tone: "ok" | "warn" } | null = null;
-  if (areaId === "marketing") {
-    dependencyAlert =
-      connectedCount > 0
-        ? { text: `${connectedCount} integração(ões) ativa(s). Contas sem OAuth operam em Modo Assistido (pacote 1-clique).`, tone: "ok" }
-        : { text: "Nenhuma rede social conectada ainda: publicações automáticas externas usam Modo Assistido (você baixa e posta em 1 clique, sem simular envio).", tone: "warn" };
-  } else if (areaId === "ia") {
-    dependencyAlert = quotaBlocked
-      ? { text: "Chave Gemini atual bloqueada por cota/faturamento (HTTP 402). Nenhuma cobrança foi feita; substitua por uma chave AIzaSy... Free Tier abaixo.", tone: "warn" }
-      : aiReady
-      ? { text: "Motor gratuito Gemini conectado e validado com trava FREE_ONLY ativa (zero cobrança inesperada).", tone: "ok" }
-      : { text: "Nenhuma chave LLM validada agora: os agentes operam no modo determinístico seguro sem custos até você configurar o Gemini gratuito.", tone: "warn" };
-  }
 
   return (
-    <section
-      aria-label="Orientação contextual da área"
-      className="ug-card rounded-2xl border border-indigo-500/25 p-4 text-xs"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Compass className="w-4 h-4 text-indigo-400 shrink-0" aria-hidden="true" />
-          <h4 className="font-bold text-white ug-text-primary">{guide.title}</h4>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => onNavigate(guide.recommendedTarget)}
-            className="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 font-semibold inline-flex items-center gap-1"
-          >
-            <span>{guide.recommendedLabel}</span>
-            <ArrowRight className="w-3 h-3" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={toggleCollapsed}
-            aria-expanded={!collapsed}
-            aria-label={collapsed ? "Expandir orientação da área" : "Recolher orientação da área"}
-            className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white inline-flex items-center gap-1"
-          >
-            <span>{collapsed ? "Como funciona?" : "Recolher guia"}</span>
-            {collapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-          </button>
-        </div>
+    <>
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={`Abrir guia rápido: ${guide.title}`}
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--ug-text-muted)] hover:text-[var(--ug-text-primary)] transition py-0.5"
+        >
+          <HelpCircle className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
+          <span>Como funciona esta área</span>
+          <span className="text-emerald-400 font-semibold">• {connectedCount} conexão(ões)</span>
+        </button>
       </div>
 
-      {!collapsed && (
-        <div className="mt-3 pt-3 border-t border-slate-800/80 space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-1">
-              <div className="font-semibold text-indigo-300">O que você pode fazer aqui?</div>
-              <p className="text-slate-300 leading-relaxed">{guide.whatCanDo}</p>
-            </div>
-            <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-1">
-              <div className="font-semibold text-emerald-300">Como começo &amp; o que preencher?</div>
-              <p className="text-slate-300 leading-relaxed">{guide.howToStart} {guide.whatToFill}</p>
-            </div>
-            <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-1">
-              <div className="font-semibold text-sky-300">O que acontece depois?</div>
-              <p className="text-slate-300 leading-relaxed">{guide.whatHappensNext}</p>
-            </div>
-            <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-1 md:col-span-1 lg:col-span-2">
-              <div className="font-semibold text-purple-300 flex items-center gap-1">
-                <Bot className="w-3.5 h-3.5" aria-hidden="true" />
-                O que a IA pode fazer aqui?
-              </div>
-              <p className="text-slate-300 leading-relaxed">{guide.whatAiDoes}</p>
-            </div>
-            <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 space-y-1">
-              <div className="font-semibold text-amber-300 flex items-center gap-1">
-                <ShieldAlert className="w-3.5 h-3.5" aria-hidden="true" />
-                Depende da sua aprovação?
-              </div>
-              <p className="text-slate-300 leading-relaxed">{guide.needsApprovalOrCreds}</p>
-            </div>
+      <Drawer
+        open={open}
+        onClose={() => setOpen(false)}
+        title={guide.title}
+        subtitle="Orientação rápida da área atual"
+      >
+        <div className="space-y-4 text-xs leading-relaxed">
+          <div className="space-y-1">
+            <div className="font-semibold text-[var(--ug-text-primary)]">O que você resolve aqui</div>
+            <p className="text-[var(--ug-text-secondary)]">{guide.whatCanDo}</p>
           </div>
 
-          {dependencyAlert && (
-            <div
-              className={`p-2.5 rounded-xl border flex items-center gap-2 text-[11px] ${
-                dependencyAlert.tone === "ok"
-                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-200"
-                  : "bg-amber-500/10 border-amber-500/30 text-amber-200"
-              }`}
-            >
-              {dependencyAlert.tone === "ok" ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
-              ) : (
-                <Info className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
-              )}
-              <span>{dependencyAlert.text}</span>
+          <div className="space-y-1">
+            <div className="font-semibold text-emerald-400">Como começar</div>
+            <p className="text-[var(--ug-text-secondary)]">{guide.howToStart}</p>
+          </div>
+
+          <div className="space-y-1">
+            <div className="font-semibold text-sky-400">O que acontece depois</div>
+            <p className="text-[var(--ug-text-secondary)]">{guide.whatHappensNext}</p>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-white/[0.03] border border-[var(--ug-border)] space-y-1.5">
+            <div className="font-semibold text-indigo-300 flex items-center gap-1.5">
+              <Bot className="w-3.5 h-3.5" aria-hidden="true" /> O que a IA faz automaticamente
             </div>
-          )}
+            <p className="text-[var(--ug-text-secondary)]">{guide.whatAiDoes}</p>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-amber-500/8 border border-amber-500/20 space-y-1.5">
+            <div className="font-semibold text-amber-300 flex items-center gap-1.5">
+              <ShieldAlert className="w-3.5 h-3.5" aria-hidden="true" /> Segurança e Aprovação
+            </div>
+            <p className="text-[var(--ug-text-secondary)]">{guide.needsApprovalOrCreds}</p>
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-[var(--ug-border)]">
+            <span className="inline-flex items-center gap-1.5 text-emerald-400 text-[11px] font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+              {connectedCount} integração(ões) ativa(s)
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onNavigate(guide.recommendedTarget);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium inline-flex items-center gap-1"
+            >
+              <span>{guide.recommendedLabel}</span>
+              <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
+          </div>
         </div>
-      )}
-    </section>
+      </Drawer>
+    </>
   );
 }

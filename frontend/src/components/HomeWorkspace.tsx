@@ -1,49 +1,45 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
-  AlertCircle,
+  Activity,
   ArrowRight,
   Bot,
+  Calendar,
   CheckCircle2,
-  ChevronRight,
-  Clock,
   Compass,
   FilePlus2,
   Megaphone,
-  Plus,
+  Play,
+  Radar,
+  RefreshCw,
   SearchCheck,
-  ShieldAlert,
+  Send,
   Sparkles,
   Star,
   UserPlus,
   X,
+  XCircle,
 } from "lucide-react";
 import { LegacyMenuId, getResourceMeta } from "@/lib/navigation";
-import { EmptyState, OriginBadge, StatusPill } from "@/components/DesignSystem";
-
-interface PriorityCardItem {
-  id: string;
-  countLabel: string;
-  title: string;
-  description: string;
-  severity: "urgent" | "warning" | "info" | "success";
-  actionLabel: string;
-  targetView: LegacyMenuId;
-}
+import { UIMode, simplifyTechnicalText } from "@/lib/plainLanguage";
+import { EmptyState, MetricStrip, OriginBadge, StatusPill } from "@/components/DesignSystem";
+import { BusinessHealthAndScoreDrawer } from "@/components/GrowthCommandCenter";
+import { ProgressiveOnboardingWizard } from "@/components/BrandAndOnboardingHub";
 
 export function HomeWorkspace({
   meData,
   overviewData,
-  agentsData,
+  commandCenterData,
   crmData,
   marketingData,
   approvalsData,
   integrationsData,
   systemAlerts,
   contentFactoryItems,
-  automationsData,
-  aiEnginesConfig,
+  uiMode,
+  showOnboardingWizard,
+  setShowOnboardingWizard,
   favoriteIds,
   recentIds,
   onboardingDismissed,
@@ -51,18 +47,25 @@ export function HomeWorkspace({
   onRestoreOnboarding,
   onNavigate,
   onRunOrchestrator,
+  apiFetch,
+  onReload,
+  showNotice,
 }: {
   meData: any;
   overviewData: any;
-  agentsData: any;
+  commandCenterData: any;
+  agentsData?: any;
   crmData: any;
   marketingData: any;
   approvalsData: any[];
   integrationsData: any[];
   systemAlerts: any[];
   contentFactoryItems: any[];
-  automationsData: any;
-  aiEnginesConfig: any;
+  automationsData?: any;
+  aiEnginesConfig?: any;
+  uiMode: UIMode;
+  showOnboardingWizard: boolean;
+  setShowOnboardingWizard: React.Dispatch<React.SetStateAction<boolean>>;
   favoriteIds: LegacyMenuId[];
   recentIds: LegacyMenuId[];
   onboardingDismissed: boolean;
@@ -70,481 +73,664 @@ export function HomeWorkspace({
   onRestoreOnboarding: () => void;
   onNavigate: (view: LegacyMenuId) => void;
   onRunOrchestrator: () => Promise<void>;
+  apiFetch: (path: string, options?: RequestInit) => Promise<any>;
+  onReload: () => Promise<void>;
+  showNotice: (msg: string) => void;
 }) {
+  const [askInput, setAskInput] = useState("");
+  const [askBusy, setAskBusy] = useState(false);
+  const [askResult, setAskResult] = useState<any>(null);
+  const [execBusyId, setExecBusyId] = useState("");
+  const [healthDrawerOpen, setHealthDrawerOpen] = useState(false);
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+  const tenantName = meData?.active_tenant?.brand_name || "sua empresa";
+  const firstName = meData?.user?.full_name?.split(" ")[0] || "Diretor";
 
-  // Calcular checklist progressivo real de Onboarding (Seção 10)
-  const hasCompany = Boolean(meData?.active_tenant?.name);
-  const hasBrand = Boolean(meData?.active_tenant?.brand_name);
-  const hasAnyIntegration = (integrationsData || []).some((i: any) => i.status === "CONNECTED");
-  const hasAiConfigured = (aiEnginesConfig?.providers || []).some((p: any) => p.has_credential);
-  const hasCampaign = (marketingData?.campaigns || []).length > 0;
-  const realLeads = (crmData?.leads || []).filter((l: any) => !["TEST", "SIMULATION", "DEMO"].includes((l.data_origin || "REAL").toUpperCase()));
-  const hasLeads = realLeads.length > 0;
-  const hasAutomationsRun = (automationsData?.rules || []).some((r: any) => (r.run_count || 0) > 0);
-  const hasReviewedOverview = Boolean(overviewData);
+  // Dados reais consolidados (sem duplicação nem números fictícios)
+  const gs = commandCenterData?.growth_score || { score: 0, max_score: 100 };
+  const briefing = commandCenterData?.ceo_briefing || overviewData?.ceo_briefing || {};
+  const opportunities: any[] = commandCenterData?.opportunity_radar || [];
+  const execActions: any[] = commandCenterData?.executive_actions || [];
+  const health: any[] = commandCenterData?.business_health || [];
 
-  const onboardingSteps: { id: string; title: string; done: boolean; target: LegacyMenuId }[] = [
-    { id: "ob-1", title: "Configure sua empresa", done: hasCompany, target: "settings" },
-    { id: "ob-2", title: "Configure sua marca e identidade", done: hasBrand, target: "settings" },
-    { id: "ob-3", title: "Conecte suas integrações", done: hasAnyIntegration, target: "integrations" },
-    { id: "ob-4", title: "Configure os motores e agentes de IA", done: hasAiConfigured, target: "ai_engines" },
-    { id: "ob-5", title: "Crie sua primeira campanha", done: hasCampaign, target: "marketing" },
-    { id: "ob-6", title: "Cadastre seus primeiros leads", done: hasLeads, target: "crm" },
-    { id: "ob-7", title: "Ative e execute automações 24/7", done: hasAutomationsRun, target: "automations" },
-    { id: "ob-8", title: "Revise seus indicadores reais", done: hasReviewedOverview, target: "finance" },
-  ];
-  const onboardingDoneCount = onboardingSteps.filter((s) => s.done).length;
-  const onboardingPct = Math.round((onboardingDoneCount / onboardingSteps.length) * 100);
-
-  // Bloco 1: Prioridades reais do dia (máx. 5 itens)
+  const realLeads = (crmData?.leads || []).filter(
+    (l: any) => !["TEST", "SIMULATION", "DEMO"].includes((l.data_origin || "REAL").toUpperCase())
+  );
+  const openDealsCount = (crmData?.deals || []).filter(
+    (d: any) => !["CLOSED_WON", "CLOSED_LOST"].includes((d.stage || d.status || "").toUpperCase())
+  ).length;
+  const campaignsCount = (marketingData?.campaigns || []).length;
   const pendingApprovals = (approvalsData || []).filter((a: any) => a.status === "PENDING");
   const openAlerts = (systemAlerts || []).filter((a: any) => a.status !== "RESOLVED");
-  const leadsNeedingFollowup = realLeads.filter((l: any) => l.pipeline_stage === "NEW_LEAD" || l.qualification_status === "QUALIFIED");
-  const pendingIntegrations = (integrationsData || []).filter((i: any) => i.status !== "CONNECTED");
-  const readyContents = (contentFactoryItems || []).filter((c: any) => !c.published_at);
-  const aiExecCount = overviewData?.autonomy_status_panel?.executed_by_ai_count || 0;
-  const failedExecs = (aiEnginesConfig?.recent_executions || []).filter((e: any) => e.status !== "SUCCESS");
+  const recentLogs: any[] = overviewData?.recent_agent_logs || [];
 
-  const priorities: PriorityCardItem[] = [];
+  // Progresso discreto de Onboarding (6 Etapas)
+  const currentObStep = Math.min(6, Math.max(1, Number(meData?.active_tenant?.onboarding_step || 1)));
+  const obPct = Math.round((currentObStep / 6) * 100);
+
+  // Consolidar "Prioridades de hoje" (fonte única: Executive Action Center + pendências reais críticas)
+  interface UnifiedPriority {
+    id: string;
+    title: string;
+    reason: string;
+    priority: "ALTA" | "MÉDIA" | "NORMAL";
+    actionLabel: string;
+    targetView: LegacyMenuId;
+    canDecide?: boolean;
+    meta?: string;
+  }
+
+  const prioritiesList: UnifiedPriority[] = [];
   if (pendingApprovals.length > 0) {
-    priorities.push({
-      id: "pri-approvals",
-      countLabel: `${pendingApprovals.length}`,
-      title: `${pendingApprovals.length} ação(ões) aguardam sua aprovação`,
-      description: "Decisões de alto impacto aguardando liberação humana.",
-      severity: "urgent",
+    prioritiesList.push({
+      id: "pending-approvals",
+      title: `${pendingApprovals.length} decisão(ões) aguardando aprovação`,
+      reason: "Ações externas ou comerciais aguardam sua confirmação em Meu Trabalho.",
+      priority: "ALTA",
       actionLabel: "Revisar agora",
-      targetView: "my_work",
+      targetView: "approvals",
     });
   }
   if (openAlerts.length > 0) {
-    priorities.push({
-      id: "pri-alerts",
-      countLabel: `${openAlerts.length}`,
-      title: `${openAlerts.length} alerta(s) operacional(is) em aberto`,
-      description: openAlerts[0]?.title || "Verifique notificações técnicas e avisos de execução.",
-      severity: "warning",
-      actionLabel: "Ver alertas",
-      targetView: "operational247",
+    prioritiesList.push({
+      id: "open-alerts",
+      title: `${openAlerts.length} alerta(s) em monitoramento`,
+      reason: simplifyTechnicalText(openAlerts[0]?.title || "Há avisos abertos que merecem atenção.", uiMode),
+      priority: "ALTA",
+      actionLabel: "Verificar",
+      targetView: "my_work",
     });
   }
-  if (leadsNeedingFollowup.length > 0) {
-    priorities.push({
-      id: "pri-leads",
-      countLabel: `${leadsNeedingFollowup.length}`,
-      title: `${leadsNeedingFollowup.length} lead(s) pronto(s) para acompanhamento`,
-      description: "Contatos no CRM que exigem avanço comercial ou proposta.",
-      severity: "info",
-      actionLabel: "Abrir CRM",
-      targetView: "crm",
+  for (const act of execActions) {
+    if (prioritiesList.length >= (uiMode === "SIMPLE" ? 5 : 8)) break;
+    prioritiesList.push({
+      id: act.id,
+      title: act.what_to_do,
+      reason: simplifyTechnicalText(`${act.why_do_it} (${act.expected_result})`, uiMode),
+      priority: act.risk === "ALTO" ? "ALTA" : "MÉDIA",
+      actionLabel: "Executar",
+      targetView: act.target_view || "overview",
+      canDecide: true,
+      meta: `${act.estimated_time || "Rápido"} • Custo R$ ${act.cost_brl ?? 0}`,
     });
   }
-  if (readyContents.length > 0) {
-    priorities.push({
-      id: "pri-content",
-      countLabel: `${readyContents.length}`,
-      title: `${readyContents.length} conteúdo(s) pronto(s) na fábrica`,
-      description: "Peças geradas disponíveis para revisão e publicação assistida.",
-      severity: "success",
+  if (realLeads.length > 0 && prioritiesList.length < 4) {
+    const newLeadsCount = realLeads.filter((l: any) => l.pipeline_stage === "NEW_LEAD").length;
+    if (newLeadsCount > 0) {
+      prioritiesList.push({
+        id: "crm-followup",
+        title: `Responder ${newLeadsCount} novo(s) lead(s) no CRM`,
+        reason: "Contatos recentes prontos para qualificação e envio de proposta.",
+        priority: "MÉDIA",
+        actionLabel: "Abrir CRM",
+        targetView: "crm",
+      });
+    }
+  }
+  const readyContentCount = (contentFactoryItems || []).filter((c: any) => !c.published_at).length;
+  if (readyContentCount > 0 && prioritiesList.length < 5) {
+    prioritiesList.push({
+      id: "ready-content",
+      title: `${readyContentCount} conteúdo(s) pronto(s) para publicação`,
+      reason: "Peças geradas disponíveis para revisão ou pacote em 1 clique.",
+      priority: "NORMAL",
       actionLabel: "Ver conteúdos",
       targetView: "content_factory",
     });
   }
-  if (pendingIntegrations.length > 0) {
-    priorities.push({
-      id: "pri-intg",
-      countLabel: `${pendingIntegrations.length}`,
-      title: `${pendingIntegrations.length} integração(ões) precisam de credenciais`,
-      description: "Conecte redes sociais, anúncios ou e-mail para liberar publicação automática.",
-      severity: "warning",
-      actionLabel: "Configurar",
-      targetView: "integrations",
-    });
-  }
-  if (failedExecs.length > 0 && priorities.length < 5) {
-    priorities.push({
-      id: "pri-ai-err",
-      countLabel: `${failedExecs.length}`,
-      title: "Atenção na cota ou configuração do motor de IA",
-      description: failedExecs[0]?.error_message || "Verifique a chave gratuita e limites em Modelos & Provedores.",
-      severity: "warning",
-      actionLabel: "Verificar IA",
-      targetView: "ai_engines",
-    });
-  }
-  const topPriorities = priorities.slice(0, 5);
 
-  // Bloco 3: Resultados — Selecionar os 4 KPIs mais importantes do backend
-  const keyOrder = ["revenue", "leads", "campaigns", "roi"];
-  const allCards: any[] = overviewData?.metrics_cards || [];
-  const essentialCards = keyOrder
-    .map((k) => allCards.find((c) => c.key === k))
-    .filter(Boolean);
-
-  const severityStyles: Record<string, string> = {
-    urgent: "border-red-500/40 bg-red-500/5",
-    warning: "border-amber-500/40 bg-amber-500/5",
-    info: "border-indigo-500/40 bg-indigo-500/5",
-    success: "border-emerald-500/40 bg-emerald-500/5",
+  const submitAskUnion = async (customPrompt?: string) => {
+    const q = (customPrompt ?? askInput).trim();
+    if (!q || q.length < 2) {
+      showNotice("Escreva o que você deseja resolver (ex.: Quero vender mais).");
+      return;
+    }
+    setAskBusy(true);
+    try {
+      const res = await apiFetch("/api/v1/growth-os/ask-union", {
+        method: "POST",
+        body: JSON.stringify({ prompt: q, auto_execute_safe: false }),
+      });
+      setAskResult(res);
+      if (!customPrompt) setAskInput("");
+      await onReload();
+    } catch (e: any) {
+      showNotice(e?.message || "Erro ao consultar ASK UNION.");
+    } finally {
+      setAskBusy(false);
+    }
   };
 
+  const handleActionDecision = async (actionId: string, decision: "EXECUTE" | "SCHEDULE" | "APPROVE" | "REJECT") => {
+    setExecBusyId(`${actionId}:${decision}`);
+    try {
+      const res = await apiFetch("/api/v1/growth-os/actions/decide", {
+        method: "POST",
+        body: JSON.stringify({ action_id: actionId, decision }),
+      });
+      await onReload();
+      showNotice(res?.message || "Ação processada!");
+    } catch (e: any) {
+      showNotice(e?.message || "Erro ao executar ação.");
+    } finally {
+      setExecBusyId("");
+    }
+  };
+
+  // Montar Resumo Inteligente horizontal apenas com indicadores reais úteis
+  const summaryMetrics = [
+    {
+      key: "growth_score",
+      label: "Growth Score",
+      value: `${gs.score}/100`,
+      subtext: "Ver nota e 12 dimensões →",
+      origin: "REAL",
+      onClick: () => setHealthDrawerOpen(true),
+    },
+    {
+      key: "leads",
+      label: "Leads Reais",
+      value: realLeads.length,
+      subtext: realLeads.length > 0 ? "Base qualificada LGPD" : "Nenhum lead cadastrado",
+      origin: "REAL",
+      onClick: () => onNavigate("crm"),
+    },
+    {
+      key: "deals",
+      label: "Oportunidades",
+      value: openDealsCount,
+      subtext: openDealsCount > 0 ? "Em negociação ativa" : "Abrir funil de vendas",
+      origin: openDealsCount > 0 ? "REAL" : "ESTIMATED",
+      onClick: () => onNavigate("commercial"),
+    },
+    {
+      key: "campaigns",
+      label: "Campanhas",
+      value: campaignsCount,
+      subtext: `${readyContentCount} peça(s) pronta(s)`,
+      origin: "REAL",
+      onClick: () => onNavigate("marketing"),
+    },
+    {
+      key: "pending",
+      label: "Pendências",
+      value: pendingApprovals.length + openAlerts.length,
+      subtext: pendingApprovals.length > 0 ? "Aguardam sua decisão" : "Tudo em dia agora",
+      origin: "REAL",
+      onClick: () => onNavigate("my_work"),
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Saudação discreta + contexto */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-bold text-white ug-text-primary">
-            {greeting}, {meData?.user?.full_name?.split(" ")[0] || "Diretor"}.
+    <div className="space-y-6 max-w-7xl mx-auto ug-fade-in">
+      {/* ÁREA 1 — CABEÇALHO CONTEXTUAL + CHECKLIST DISCRETO DE ONBOARDING */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="space-y-1">
+          <h3 className="text-xl font-semibold tracking-tight text-[var(--ug-text-primary)]">
+            {greeting}, {firstName}.
           </h3>
-          <p className="text-xs text-slate-400 ug-text-muted mt-0.5">
-            Aqui está o resumo real do que precisa da sua atenção hoje em{" "}
-            <strong className="text-slate-200 ug-text-primary">{meData?.active_tenant?.brand_name}</strong>.
+          <p className="text-xs text-[var(--ug-text-muted)]">
+            Visão executiva de <strong className="text-[var(--ug-text-secondary)] font-medium">{tenantName}</strong>{" "}
+            • dados reais, sem métricas simuladas.
           </p>
         </div>
+
         <div className="flex flex-wrap items-center gap-2">
-          {onboardingDismissed && (
+          {onboardingDismissed ? (
             <button
               type="button"
               onClick={onRestoreOnboarding}
-              className="px-3 py-1.5 rounded-lg border border-slate-700 text-xs text-slate-300 hover:bg-slate-800 transition flex items-center gap-1.5"
+              className="px-2.5 py-1.5 rounded-lg border border-[var(--ug-border)] text-xs text-[var(--ug-text-secondary)] hover:text-[var(--ug-text-primary)] hover:bg-white/[0.04] transition inline-flex items-center gap-1.5"
             >
               <Compass className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
-              Guia Inicial ({onboardingDoneCount}/{onboardingSteps.length})
+              <span>Configuração ({currentObStep}/6)</span>
             </button>
-          )}
-          <button
-            type="button"
-            onClick={onRunOrchestrator}
-            className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition flex items-center gap-1.5 shadow-sm"
-          >
-            <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
-            Executar Análise do Dia
-          </button>
-        </div>
-      </div>
-
-      {/* Onboarding Contextual Progressivo (Dispensável e Persistente) */}
-      {!onboardingDismissed && (
-        <section
-          aria-label="Primeiros passos no sistema"
-          className="ug-card ug-onboarding-banner rounded-2xl p-5 border border-indigo-500/30"
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <Compass className="w-4 h-4 text-indigo-400" aria-hidden="true" />
-                <h4 className="text-sm font-bold text-white ug-text-primary">
-                  Primeiros Passos — Configuração Guiada ({onboardingDoneCount} de {onboardingSteps.length})
-                </h4>
-              </div>
-              <p className="text-xs text-slate-400 ug-text-muted mt-0.5">
-                Você pode navegar livremente pelo sistema a qualquer momento. Conclua quando quiser:
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-bold text-indigo-300">{onboardingPct}%</span>
+          ) : (
+            <div className="inline-flex items-center gap-1 rounded-lg border border-[var(--ug-border)] bg-[var(--ug-surface)] px-2.5 py-1">
+              <button
+                type="button"
+                onClick={() => setShowOnboardingWizard((v) => !v)}
+                className="inline-flex items-center gap-2 text-xs text-[var(--ug-text-secondary)] hover:text-[var(--ug-text-primary)] transition"
+              >
+                <Compass className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
+                <span>Onboarding 6 Etapas</span>
+                <span className="text-[11px] font-medium text-indigo-400 tabular-nums">
+                  {currentObStep}/6 ({obPct}%)
+                </span>
+              </button>
               <button
                 type="button"
                 onClick={onDismissOnboarding}
                 aria-label="Dispensar checklist de onboarding"
-                className="px-2.5 py-1 rounded-lg text-[11px] text-slate-400 hover:text-white hover:bg-slate-800 flex items-center gap-1"
+                title="Ocultar barra de onboarding"
+                className="p-0.5 rounded text-[var(--ug-text-muted)] hover:text-[var(--ug-text-primary)] hover:bg-white/[0.06]"
               >
-                <X className="w-3.5 h-3.5" aria-hidden="true" />
-                Ocultar
+                <X className="w-3 h-3" />
               </button>
             </div>
-          </div>
-          <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden mb-4">
-            <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${onboardingPct}%` }} />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-            {onboardingSteps.map((step, i) => (
-              <button
-                key={step.id}
-                type="button"
-                onClick={() => onNavigate(step.target)}
-                className={`p-2.5 rounded-xl border text-left transition flex items-center justify-between gap-2 ${
-                  step.done
-                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-200"
-                    : "bg-slate-900/70 border-slate-800 hover:border-indigo-500/50 text-slate-200"
-                }`}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  {step.done ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" aria-hidden="true" />
-                  ) : (
-                    <span className="w-4 h-4 rounded-full border border-slate-600 text-[10px] flex items-center justify-center shrink-0">
-                      {i + 1}
-                    </span>
-                  )}
-                  <span className="text-xs font-medium truncate">{step.title}</span>
-                </div>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-500 shrink-0" aria-hidden="true" />
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
+          )}
 
-      {/* BLOCO 1 — O QUE PRECISA DA MINHA ATENÇÃO? */}
-      <section aria-label="Prioridades do dia" className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h4 className="text-sm font-bold text-white ug-text-primary flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-400" aria-hidden="true" />
-            1. O que precisa da sua atenção agora
-          </h4>
           <button
             type="button"
-            onClick={() => onNavigate("my_work")}
-            className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+            onClick={() => setHealthDrawerOpen(true)}
+            className="px-2.5 py-1.5 rounded-lg border border-[var(--ug-border)] text-xs font-medium text-[var(--ug-text-secondary)] hover:text-[var(--ug-text-primary)] hover:bg-white/[0.04] transition inline-flex items-center gap-1.5"
           >
-            Ver tudo em Meu Trabalho
-            <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+            <Activity className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
+            <span>Saúde ({health.length || 12} pilares)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onRunOrchestrator}
+            className="px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.09] border border-[var(--ug-border)] text-xs font-medium text-[var(--ug-text-primary)] transition inline-flex items-center gap-1.5"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
+            <span>Analisar Agora</span>
           </button>
         </div>
+      </div>
 
-        {topPriorities.length === 0 ? (
-          <EmptyState
-            icon={<CheckCircle2 className="w-5 h-5" />}
-            title="Tudo sob controle no momento"
-            description="Não há aprovações pendentes ou alertas críticos agora. Use o Acesso Rápido abaixo para criar novas campanhas ou cadastrar leads."
-            actionLabel="Abrir Meu Trabalho"
-            onAction={() => onNavigate("my_work")}
-          />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {topPriorities.map((pri) => (
-              <div
-                key={pri.id}
-                className={`rounded-xl border p-4 flex flex-col justify-between gap-3 ${severityStyles[pri.severity]}`}
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-white ug-text-primary">{pri.title}</span>
+      {/* Onboarding Progressivo sob demanda (só abre quando solicitado) */}
+      {showOnboardingWizard && (
+        <ProgressiveOnboardingWizard
+          apiFetch={apiFetch}
+          onReload={onReload}
+          onNavigate={onNavigate}
+          onClose={() => setShowOnboardingWizard(false)}
+          showNotice={showNotice}
+        />
+      )}
+
+      {/* ÁREA 6 (CENTRAL) — ASK UNION SPOTLIGHT STRIP */}
+      <section aria-label="Ask Union — Assistente de Crescimento" className="ug-spotlight-strip rounded-2xl p-4 space-y-3">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            submitAskUnion();
+          }}
+          className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2"
+        >
+          <div className="flex-1 flex items-center gap-2.5 px-3 py-2 rounded-xl bg-[var(--ug-bg)] border border-[var(--ug-border)] focus-within:border-indigo-500/60 transition">
+            <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" aria-hidden="true" />
+            <input
+              id="ug-ask-union-input"
+              value={askInput}
+              onChange={(e) => setAskInput(e.target.value)}
+              aria-label="Perguntar ao Ask Union"
+              placeholder={`ASK UNION — O que você quer resolver hoje em ${tenantName}?`}
+              className="w-full bg-transparent text-xs sm:text-sm text-[var(--ug-text-primary)] placeholder:text-[var(--ug-text-muted)] focus:outline-none border-none"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={askBusy}
+            className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5 shrink-0 transition"
+          >
+            <Send className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>{askBusy ? "Analisando..." : "Perguntar ao Ask Union"}</span>
+          </button>
+        </form>
+
+        <div className="flex flex-wrap items-center gap-2 text-[11px]">
+          <span className="text-[var(--ug-text-muted)]">Sugestões rápidas:</span>
+          {[
+            "Quero vender mais",
+            "Quero divulgar meu site nas redes",
+            "Quando entrar um lead, analisar e avisar",
+          ].map((pill) => (
+            <button
+              key={pill}
+              type="button"
+              onClick={() => submitAskUnion(pill)}
+              className="px-2.5 py-0.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--ug-border)] text-[var(--ug-text-secondary)] hover:text-[var(--ug-text-primary)] transition"
+            >
+              {pill}
+            </button>
+          ))}
+        </div>
+
+        {askResult && (
+          <div className="pt-3 border-t border-[var(--ug-border)] space-y-2.5 text-xs ug-fade-in">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-semibold text-[var(--ug-text-primary)]">
+                Plano Estruturado ({askResult.intent})
+              </span>
+              <OriginBadge origin="REAL" />
+            </div>
+            <p className="text-[var(--ug-text-secondary)] leading-relaxed">{askResult.diagnosis}</p>
+            <ul className="space-y-1 text-[var(--ug-text-secondary)] list-disc pl-4">
+              {(askResult.plan_steps || []).map((st: string, i: number) => (
+                <li key={i}>{simplifyTechnicalText(st, uiMode)}</li>
+              ))}
+            </ul>
+            {(askResult.suggested_actions || []).length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {askResult.suggested_actions.map((sa: any) => (
+                  <div key={sa.id} className="inline-flex items-center gap-1.5">
+                    {sa.id !== "act-create-conv-auto" && (
+                      <button
+                        type="button"
+                        disabled={execBusyId === `${sa.id}:EXECUTE`}
+                        onClick={() => handleActionDecision(sa.id, "EXECUTE")}
+                        className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-medium inline-flex items-center gap-1"
+                      >
+                        <Play className="w-3 h-3" aria-hidden="true" />
+                        <span>{execBusyId === `${sa.id}:EXECUTE` ? "Executando..." : sa.label}</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onNavigate(sa.target_view)}
+                      className="px-2.5 py-1.5 rounded-lg border border-[var(--ug-border)] hover:bg-white/[0.05] text-[var(--ug-text-secondary)] text-[11px]"
+                    >
+                      Abrir tela →
+                    </button>
                   </div>
-                  <p className="text-[11px] text-slate-300 ug-text-muted leading-relaxed">{pri.description}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onNavigate(pri.targetView)}
-                  className="self-start inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-300 hover:text-indigo-200"
-                >
-                  {pri.actionLabel}
-                  <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
-                </button>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
       </section>
 
-      {/* BLOCO 2 & 3 — OPERAÇÃO DA IA + RESULTADOS REAIS */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* BLOCO 2 — O QUE A IA ESTÁ FAZENDO? */}
-        <section aria-label="Operação da Inteligência Artificial" className="lg:col-span-5 ug-card rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold text-white ug-text-primary flex items-center gap-2">
-              <Bot className="w-4 h-4 text-indigo-400" aria-hidden="true" />
-              2. O que a IA está fazendo
-            </h4>
-            <button
-              type="button"
-              onClick={() => onNavigate("ai_team_overview")}
-              className="text-xs font-semibold text-indigo-400 hover:underline"
-            >
-              Gerenciar IA →
-            </button>
-          </div>
+      {/* ÁREA 2 — RESUMO INTELIGENTE (FAIXA HORIZONTAL STRIPE-STYLE) */}
+      <section aria-label="Resumo inteligente do negócio">
+        <MetricStrip items={summaryMetrics} />
+      </section>
 
-          <div className="grid grid-cols-2 gap-2.5">
-            <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800">
-              <div className="text-[11px] text-slate-400">Agentes Disponíveis</div>
-              <div className="text-lg font-bold text-white mt-0.5">{(agentsData?.agents || []).length || 11} agentes</div>
-              <div className="text-[10px] text-emerald-400 mt-0.5">Autonomia Nível {meData?.active_tenant?.autonomy_default_level || 2}</div>
-            </div>
-            <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800">
-              <div className="text-[11px] text-slate-400">Ações Executadas</div>
-              <div className="text-lg font-bold text-emerald-400 mt-0.5">{aiExecCount}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">
-                {pendingApprovals.length} aguardando aprovação
-              </div>
-            </div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 space-y-1.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-slate-300">Resumo Executivo do AI CEO</span>
-              <StatusPill status="EXECUTED" label="Atualizado" />
-            </div>
-            <p className="text-xs text-slate-200 leading-relaxed">
-              {overviewData?.ceo_briefing?.headline || "Sistema operacional e pronto para análise."}
-            </p>
-          </div>
-
-          <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-            <span>
-              Motor IA padrão:{" "}
-              <strong className="text-slate-200 uppercase">
-                {aiEnginesConfig?.configuration?.default_provider_key || "gemini"}
-              </strong>{" "}
-              ({aiEnginesConfig?.configuration?.cost_policy_mode || "FREE_ONLY"})
-            </span>
-            <button
-              type="button"
-              onClick={() => onNavigate("ai_engines")}
-              className="text-indigo-400 hover:underline font-medium"
-            >
-              Ver motores
-            </button>
-          </div>
-        </section>
-
-        {/* BLOCO 3 — O QUE ESTÁ GERANDO RESULTADOS? */}
-        <section aria-label="Resultados essenciais" className="lg:col-span-7 ug-card rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold text-white ug-text-primary flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" aria-hidden="true" />
-              3. O que está gerando resultados
-            </h4>
-            <button
-              type="button"
-              onClick={() => onNavigate("finance")}
-              className="text-xs font-semibold text-indigo-400 hover:underline"
-            >
-              Ver indicadores completos →
-            </button>
-          </div>
-
-          {essentialCards.length === 0 ? (
-            <EmptyState
-              title="Sem indicadores registrados ainda"
-              description="Cadastre seus primeiros leads, campanhas ou registros financeiros para acompanhar o desempenho real aqui."
-            />
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {essentialCards.map((card: any) => (
-                <div key={card.key} className="p-4 rounded-xl bg-slate-900/70 border border-slate-800 space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-slate-400">{card.label}</span>
-                    <OriginBadge origin={card.origin} />
-                  </div>
-                  <div className="text-2xl font-bold text-white">{card.value}</div>
-                  <div className="text-[11px] text-slate-400">{card.subtext}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-
-      {/* BLOCO 4 & 5 — ATIVIDADE RECENTE + ACESSO RÁPIDO & FAVORITOS */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* BLOCO 4 — ATIVIDADE RECENTE */}
-        <section aria-label="Atividade recente" className="lg:col-span-7 ug-card rounded-2xl p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold text-white ug-text-primary flex items-center gap-2">
-              <Clock className="w-4 h-4 text-sky-400" aria-hidden="true" />
-              4. Atividade recente
-            </h4>
-            <button
-              type="button"
-              onClick={() => onNavigate("audit")}
-              className="text-xs font-semibold text-indigo-400 hover:underline"
-            >
-              Histórico completo →
-            </button>
-          </div>
-
-          {(overviewData?.recent_agent_logs || []).length === 0 ? (
-            <EmptyState
-              title="Nenhuma atividade executada recentemente"
-              description="Quando os agentes ou sua equipe executarem rotinas, os registros reais aparecerão aqui."
-            />
-          ) : (
-            <div className="divide-y divide-slate-800/80">
-              {(overviewData?.recent_agent_logs || []).slice(0, 5).map((log: any, idx: number) => (
-                <div key={log.id || idx} className="py-2.5 flex items-center justify-between gap-3 text-xs">
-                  <div className="min-w-0">
-                    <div className="font-semibold text-white truncate">
-                      {log.agent_name || log.agent_id} • {log.task_name || "Execução"}
-                    </div>
-                    <div className="text-[11px] text-slate-400 truncate">
-                      {log.summary || "Concluído sem observações"}
-                    </div>
-                  </div>
-                  <StatusPill
-                    status={log.status === "FAILED" ? "FAILED" : log.status === "PENDING_APPROVAL" ? "PENDING" : "EXECUTED"}
-                    label={log.status === "COMPLETED" ? "Executado" : log.status}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* BLOCO 5 — O QUE POSSO FAZER AGORA? (ACESSO RÁPIDO + FAVORITOS + RECENTES) */}
-        <section aria-label="Acesso rápido" className="lg:col-span-5 ug-card rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold text-white ug-text-primary flex items-center gap-2">
-              <Plus className="w-4 h-4 text-emerald-400" aria-hidden="true" />
-              5. O que posso fazer agora
-            </h4>
-            <button
-              type="button"
-              onClick={() => onNavigate("all_resources")}
-              className="text-xs font-semibold text-indigo-400 hover:underline"
-            >
-              Todos os recursos →
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { label: "Novo Lead", target: "crm" as LegacyMenuId, icon: <UserPlus className="w-3.5 h-3.5 text-emerald-400" /> },
-              { label: "Criar Campanha", target: "marketing" as LegacyMenuId, icon: <Megaphone className="w-3.5 h-3.5 text-indigo-400" /> },
-              { label: "Auditoria SEO", target: "seo" as LegacyMenuId, icon: <SearchCheck className="w-3.5 h-3.5 text-sky-400" /> },
-              { label: "Nova Proposta PDF", target: "multibusiness" as LegacyMenuId, icon: <FilePlus2 className="w-3.5 h-3.5 text-purple-400" /> },
-            ].map((qa) => (
+      {/* ÁREAS 3, 4 & 5 — FOCO DO DIA (PRIORIDADES + ATIVIDADE) E INTELIGÊNCIA (AI CEO + OPORTUNIDADES) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Coluna Principal (7 cols): Prioridades de Hoje + Atividade do Sistema */}
+        <div className="lg:col-span-7 space-y-6">
+          <section aria-label="Prioridades de hoje" className="space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="text-[13px] font-semibold text-[var(--ug-text-primary)]">
+                Prioridades de hoje
+              </h4>
               <button
-                key={qa.target}
                 type="button"
-                onClick={() => onNavigate(qa.target)}
-                className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 hover:border-indigo-500/50 text-left transition flex items-center gap-2 text-xs font-semibold text-white"
+                onClick={() => onNavigate("my_work")}
+                className="text-xs font-medium text-indigo-400 hover:underline inline-flex items-center gap-1"
               >
-                {qa.icon}
-                <span className="truncate">{qa.label}</span>
+                <span>Ver tudo em Meu Trabalho</span>
+                <ArrowRight className="w-3 h-3" aria-hidden="true" />
               </button>
-            ))}
-          </div>
-
-          {(favoriteIds.length > 0 || recentIds.length > 0) && (
-            <div className="pt-2 border-t border-slate-800 space-y-2">
-              <div className="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
-                <Star className="w-3 h-3 text-amber-400" aria-hidden="true" />
-                {favoriteIds.length > 0 ? "Seus Atalhos Favoritos" : "Últimos Acessados"}
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {(favoriteIds.length > 0 ? favoriteIds : recentIds).slice(0, 5).map((id) => {
-                  const meta = getResourceMeta(id);
-                  if (!meta) return null;
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => onNavigate(id)}
-                      className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-indigo-500/40 text-[11px] text-slate-200"
-                    >
-                      {meta.name.split(" — ")[0]}
-                    </button>
-                  );
-                })}
-              </div>
             </div>
-          )}
-        </section>
+
+            {prioritiesList.length === 0 ? (
+              <EmptyState
+                icon={<CheckCircle2 className="w-5 h-5" />}
+                title="Sem pendências urgentes agora"
+                description="Use o ASK UNION acima ou os atalhos abaixo para iniciar campanhas ou cadastrar novos leads."
+                actionLabel="Abrir Meu Trabalho"
+                onAction={() => onNavigate("my_work")}
+              />
+            ) : (
+              <div className="ug-card rounded-xl divide-y divide-white/[0.05]">
+                {prioritiesList.map((item) => (
+                  <div
+                    key={item.id}
+                    className="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/[0.02] transition"
+                  >
+                    <div className="flex items-start gap-2.5 min-w-0">
+                      <span
+                        className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${
+                          item.priority === "ALTA"
+                            ? "bg-amber-400"
+                            : item.priority === "MÉDIA"
+                            ? "bg-indigo-400"
+                            : "bg-emerald-400"
+                        }`}
+                        aria-hidden="true"
+                      />
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="text-xs font-medium text-[var(--ug-text-primary)]">{item.title}</div>
+                        <p className="text-[11px] text-[var(--ug-text-muted)] line-clamp-2">{item.reason}</p>
+                        {item.meta && (
+                          <div className="text-[10px] text-[var(--ug-text-muted)]">{item.meta}</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0 pl-4 sm:pl-0">
+                      {item.canDecide ? (
+                        <>
+                          <button
+                            type="button"
+                            disabled={Boolean(execBusyId)}
+                            onClick={() => handleActionDecision(item.id, "EXECUTE")}
+                            className="px-2.5 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-medium inline-flex items-center gap-1"
+                          >
+                            <Play className="w-3 h-3" aria-hidden="true" />
+                            <span>Executar</span>
+                          </button>
+                          {uiMode === "ADVANCED" && (
+                            <button
+                              type="button"
+                              disabled={Boolean(execBusyId)}
+                              onClick={() => handleActionDecision(item.id, "SCHEDULE")}
+                              aria-label={`Agendar ${item.title}`}
+                              className="p-1.5 rounded-md border border-[var(--ug-border)] hover:bg-white/[0.05] text-[var(--ug-text-secondary)]"
+                            >
+                              <Calendar className="w-3 h-3" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            disabled={Boolean(execBusyId)}
+                            onClick={() => handleActionDecision(item.id, "REJECT")}
+                            aria-label={`Ignorar ${item.title}`}
+                            className="p-1.5 rounded-md hover:bg-red-500/15 text-[var(--ug-text-muted)] hover:text-red-400"
+                          >
+                            <XCircle className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => onNavigate(item.targetView)}
+                        className="px-2.5 py-1 rounded-md border border-[var(--ug-border)] hover:bg-white/[0.05] text-[11px] font-medium text-[var(--ug-text-secondary)] hover:text-[var(--ug-text-primary)]"
+                      >
+                        {item.canDecide ? "Abrir →" : `${item.actionLabel} →`}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Atividade do sistema */}
+          <section aria-label="Atividade do sistema" className="space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="text-[13px] font-semibold text-[var(--ug-text-primary)]">
+                Atividade do sistema
+              </h4>
+              <button
+                type="button"
+                onClick={() => onNavigate(uiMode === "ADVANCED" ? "audit" : "my_work")}
+                className="text-xs font-medium text-[var(--ug-text-muted)] hover:text-[var(--ug-text-primary)]"
+              >
+                Ver histórico →
+              </button>
+            </div>
+
+            {recentLogs.length === 0 ? (
+              <div className="ug-card rounded-xl px-4 py-4 text-xs text-[var(--ug-text-muted)]">
+                Nenhuma atividade recente registrada nesta empresa ainda.
+              </div>
+            ) : (
+              <div className="ug-card rounded-xl divide-y divide-white/[0.05]">
+                {recentLogs.slice(0, 4).map((log: any, idx: number) => (
+                  <div key={log.id || idx} className="px-4 py-2.5 flex items-center justify-between gap-3 text-xs">
+                    <div className="min-w-0">
+                      <div className="font-medium text-[var(--ug-text-primary)] truncate">
+                        {log.agent_name || log.agent_id} • {log.task_name || "Execução"}
+                      </div>
+                      <div className="text-[11px] text-[var(--ug-text-muted)] truncate">
+                        {simplifyTechnicalText(log.summary || "Concluído sem pendências", uiMode)}
+                      </div>
+                    </div>
+                    <StatusPill
+                      status={log.status === "FAILED" ? "FAILED" : log.status === "PENDING_APPROVAL" ? "PENDING" : "EXECUTED"}
+                      label={log.status === "COMPLETED" ? "Executado" : log.status}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* Coluna Lateral (5 cols): AI CEO Briefing + Oportunidades */}
+        <div className="lg:col-span-5 space-y-6">
+          <section aria-label="AI CEO Briefing" className="space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="text-[13px] font-semibold text-[var(--ug-text-primary)] flex items-center gap-1.5">
+                <Bot className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
+                <span>AI CEO Briefing</span>
+              </h4>
+              <OriginBadge origin="REAL" />
+            </div>
+
+            <div className="ug-card rounded-xl p-4 space-y-3 text-xs">
+              <p className="text-[var(--ug-text-secondary)] leading-relaxed">
+                {simplifyTechnicalText(
+                  briefing.summary || briefing.headline || "Resumo estratégico baseado nos registros atuais.",
+                  uiMode
+                )}
+              </p>
+
+              {(briefing.day_plan || []).length > 0 && (
+                <div className="pt-2.5 border-t border-[var(--ug-border-subtle)] space-y-1">
+                  <div className="text-[11px] font-semibold text-indigo-300">Plano de Hoje</div>
+                  <ul className="space-y-1 text-[11px] text-[var(--ug-text-secondary)] list-disc pl-4">
+                    {briefing.day_plan.slice(0, 3).map((d: string, i: number) => (
+                      <li key={i}>{simplifyTechnicalText(d, uiMode)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {(briefing.week_plan || []).length > 0 && (
+                <div className="pt-2.5 border-t border-[var(--ug-border-subtle)] space-y-1">
+                  <div className="text-[11px] font-semibold text-emerald-400">Foco da Semana</div>
+                  <ul className="space-y-1 text-[11px] text-[var(--ug-text-secondary)] list-disc pl-4">
+                    {briefing.week_plan.slice(0, 3).map((w: string, i: number) => (
+                      <li key={i}>{simplifyTechnicalText(w, uiMode)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section aria-label="Oportunidades" className="space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="text-[13px] font-semibold text-[var(--ug-text-primary)] flex items-center gap-1.5">
+                <Radar className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" />
+                <span>Oportunidades ({opportunities.length})</span>
+              </h4>
+              <span className="text-[11px] text-[var(--ug-text-muted)]">Custo R$ 0,00</span>
+            </div>
+
+            {opportunities.length === 0 ? (
+              <div className="ug-card rounded-xl px-4 py-4 text-xs text-[var(--ug-text-muted)]">
+                Nenhuma lacuna aberta nos pilares avaliados agora.
+              </div>
+            ) : (
+              <div className="ug-card rounded-xl divide-y divide-white/[0.05]">
+                {opportunities.slice(0, uiMode === "SIMPLE" ? 4 : 6).map((op: any) => (
+                  <div key={op.id} className="px-4 py-3 space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-[var(--ug-text-primary)] truncate">
+                        {op.category}: {op.name}
+                      </span>
+                      <span
+                        className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                          op.priority === "ALTA"
+                            ? "bg-amber-500/12 text-amber-300"
+                            : "bg-white/[0.05] text-[var(--ug-text-muted)]"
+                        }`}
+                      >
+                        {op.priority}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[var(--ug-text-muted)]">
+                      {simplifyTechnicalText(op.description, uiMode)}
+                    </p>
+                    <div className="flex items-center justify-between gap-2 text-[11px]">
+                      <span className="text-[var(--ug-text-muted)]">
+                        Impacto: <strong className="text-[var(--ug-text-secondary)]">{op.estimated_impact}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onNavigate(op.target_view)}
+                        className="text-indigo-400 hover:underline font-medium inline-flex items-center gap-1"
+                      >
+                        <span>{op.next_action_label}</span>
+                        <ArrowRight className="w-3 h-3" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
       </div>
+
+      {/* ACESSOS RÁPIDOS DISCRETOS */}
+      <section aria-label="Ações rápidas" className="pt-2 border-t border-[var(--ug-border-subtle)] flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] text-[var(--ug-text-muted)] mr-1">Ações rápidas:</span>
+          {[
+            { label: "Novo Lead", target: "crm" as LegacyMenuId, icon: <UserPlus className="w-3.5 h-3.5 text-emerald-400" /> },
+            { label: "Criar Campanha", target: "marketing" as LegacyMenuId, icon: <Megaphone className="w-3.5 h-3.5 text-indigo-400" /> },
+            { label: "Auditoria SEO", target: "seo" as LegacyMenuId, icon: <SearchCheck className="w-3.5 h-3.5 text-sky-400" /> },
+            { label: "Nova Proposta", target: "multibusiness" as LegacyMenuId, icon: <FilePlus2 className="w-3.5 h-3.5 text-purple-400" /> },
+          ].map((qa) => (
+            <button
+              key={qa.target}
+              type="button"
+              onClick={() => onNavigate(qa.target)}
+              className="px-2.5 py-1.5 rounded-lg border border-[var(--ug-border)] hover:bg-white/[0.04] text-xs font-medium text-[var(--ug-text-secondary)] hover:text-[var(--ug-text-primary)] inline-flex items-center gap-1.5 transition"
+            >
+              {qa.icon}
+              <span>{qa.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {(favoriteIds.length > 0 || recentIds.length > 0) && (
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+            <Star className="w-3 h-3 text-amber-400" aria-hidden="true" />
+            {(favoriteIds.length > 0 ? favoriteIds : recentIds).slice(0, 3).map((id) => {
+              const meta = getResourceMeta(id);
+              if (!meta) return null;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => onNavigate(id)}
+                  className="px-2 py-0.5 rounded bg-white/[0.04] hover:bg-white/[0.08] text-[var(--ug-text-secondary)]"
+                >
+                  {meta.name.split(" — ")[0]}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <BusinessHealthAndScoreDrawer
+        open={healthDrawerOpen}
+        onClose={() => setHealthDrawerOpen(false)}
+        commandCenter={commandCenterData}
+        uiMode={uiMode}
+      />
     </div>
   );
 }

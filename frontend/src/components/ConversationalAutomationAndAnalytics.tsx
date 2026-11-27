@@ -1,17 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
-import { BarChart3, CheckCircle2, Play, Sparkles, Workflow } from "lucide-react";
+import { BarChart3, CheckCircle2, Sparkles, Workflow } from "lucide-react";
 import { OriginBadge, StatusPill } from "@/components/DesignSystem";
+import { UIMode, simplifyTechnicalText } from "@/lib/plainLanguage";
 
 export function ConversationalAutomationPanel({
   apiFetch,
   onReload,
   showNotice,
+  uiMode = "SIMPLE",
 }: {
   apiFetch: (path: string, options?: RequestInit) => Promise<any>;
   onReload: () => Promise<void>;
   showNotice: (msg: string) => void;
+  uiMode?: UIMode;
 }) {
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
@@ -33,7 +36,7 @@ export function ConversationalAutomationPanel({
       if (overridePrompt) setPrompt(overridePrompt);
       if (approveCreate) {
         await onReload();
-        showNotice(`Automação '${res.workflow_preview?.name}' salva em Python/APScheduler!`);
+        showNotice(`Automação '${res.workflow_preview?.name}' salva em Python nativo!`);
       }
     } catch (e: any) {
       showNotice(e?.message || "Erro no construtor conversacional.");
@@ -50,14 +53,18 @@ export function ConversationalAutomationPanel({
   ];
 
   return (
-    <section aria-label="Construtor Conversacional de Automações" className="bg-[#0f1629] border border-indigo-500/35 rounded-xl p-5 space-y-4">
-      <div>
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
+    <section aria-label="Construtor Conversacional de Automações" className="ug-spotlight-strip rounded-2xl p-5 space-y-4">
+      <div className="space-y-0.5">
+        <h3 className="text-sm font-semibold text-[var(--ug-text-primary)] flex items-center gap-2">
           <Workflow className="w-4 h-4 text-indigo-400" aria-hidden="true" />
-          Criar Automação em Linguagem Natural (100% Python Nativo • Zero n8n)
+          <span>
+            {uiMode === "SIMPLE"
+              ? "Criar Automação Falando em Português (100% Nativo • Zero n8n)"
+              : "Criar Automação em Linguagem Natural (100% Python Nativo • Zero n8n)"}
+          </span>
         </h3>
-        <p className="text-xs text-slate-400 mt-0.5">
-          Descreva com suas palavras o que quer automatizar. Nós mostramos os gatilhos, riscos e simulação antes de você autorizar.
+        <p className="text-xs text-[var(--ug-text-muted)]">
+          Descreva o que quer automatizar. Simulamos quando vai rodar e o impacto antes de ativar.
         </p>
       </div>
 
@@ -68,16 +75,16 @@ export function ConversationalAutomationPanel({
           onChange={(e) => setPrompt(e.target.value)}
           aria-label="Descreva a automação desejada"
           placeholder="Ex.: Leads que não responderam em 3 dias recebam tarefa de follow-up"
-          className="flex-1 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white"
+          className="flex-1 px-3 py-2 rounded-xl bg-[var(--ug-bg)] border border-[var(--ug-border)] text-xs text-[var(--ug-text-primary)]"
         />
         <button
           type="button"
           disabled={busy}
           onClick={() => runBuilder(false)}
-          className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5"
+          className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium inline-flex items-center justify-center gap-1.5 shrink-0"
         >
           <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
-          {busy ? "Analisando..." : "Simular Fluxo (Dry-Run)"}
+          <span>{busy ? "Analisando..." : "Simular Fluxo (Dry-Run)"}</span>
         </button>
       </div>
 
@@ -87,7 +94,7 @@ export function ConversationalAutomationPanel({
             key={ex}
             type="button"
             onClick={() => runBuilder(false, ex)}
-            className="px-2.5 py-1 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] text-slate-300"
+            className="px-2.5 py-1 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-[var(--ug-border)] text-[11px] text-[var(--ug-text-secondary)] transition"
           >
             {ex}
           </button>
@@ -95,37 +102,44 @@ export function ConversationalAutomationPanel({
       </div>
 
       {preview?.workflow_preview && (
-        <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5 text-xs">
+        <div className="pt-3 border-t border-[var(--ug-border)] space-y-3 text-xs ug-fade-in">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="font-bold text-indigo-300">{preview.workflow_preview.name}</span>
+            <span className="font-semibold text-[var(--ug-text-primary)]">{preview.workflow_preview.name}</span>
             <StatusPill status={preview.status === "ACTIVATED" ? "EXECUTED" : "PENDING"} label={preview.status} />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px]">
-            <div className="p-2.5 rounded bg-slate-900 border border-slate-800">
-              <strong className="text-slate-300 block">1. Gatilho</strong>
-              <span className="text-slate-200">{preview.workflow_preview.trigger_label}</span>
+          <div className="ug-card rounded-xl grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/[0.06] text-[11px]">
+            <div className="p-3 space-y-0.5">
+              <strong className="text-[var(--ug-text-muted)] block">
+                {uiMode === "SIMPLE" ? "Quando essa automação deve começar" : "1. Gatilho"}
+              </strong>
+              <span className="text-[var(--ug-text-primary)]">{preview.workflow_preview.trigger_label}</span>
             </div>
-            <div className="p-2.5 rounded bg-slate-900 border border-slate-800">
-              <strong className="text-slate-300 block">2. Condição</strong>
-              <span className="text-slate-200">{preview.workflow_preview.condition}</span>
+            <div className="p-3 space-y-0.5">
+              <strong className="text-[var(--ug-text-muted)] block">Condição aplicada</strong>
+              <span className="text-[var(--ug-text-primary)]">
+                {simplifyTechnicalText(preview.workflow_preview.condition, uiMode)}
+              </span>
             </div>
-            <div className="p-2.5 rounded bg-slate-900 border border-slate-800">
-              <strong className="text-slate-300 block">3. Ação &amp; Risco</strong>
-              <span className="text-slate-200">{preview.workflow_preview.action_label} • {preview.workflow_preview.risk}</span>
+            <div className="p-3 space-y-0.5">
+              <strong className="text-[var(--ug-text-muted)] block">Ação &amp; Risco</strong>
+              <span className="text-[var(--ug-text-primary)]">
+                {preview.workflow_preview.action_label} • {preview.workflow_preview.risk}
+              </span>
             </div>
           </div>
-          <div className="p-2.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-[11px]">
-            <strong>Teste de Simulação:</strong> {preview.workflow_preview.dry_run_result} • Custo estimado: R$ {preview.workflow_preview.estimated_cost_brl}
+          <div className="text-[11px] text-emerald-400">
+            <strong>Teste de Simulação:</strong> {preview.workflow_preview.dry_run_result} • Custo estimado: R${" "}
+            {preview.workflow_preview.estimated_cost_brl}
           </div>
           {preview.status === "PREVIEW_READY" && (
             <button
               type="button"
               disabled={busy}
               onClick={() => runBuilder(true)}
-              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold inline-flex items-center gap-1.5"
+              className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium inline-flex items-center gap-1.5"
             >
               <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
-              Aprovar e Ativar Automação no Servidor
+              <span>Aprovar e Ativar Automação no Servidor</span>
             </button>
           )}
         </div>
@@ -140,14 +154,14 @@ export function AnalyticsAttributionPanel({ attribution }: { attribution: any })
   const channels: any[] = attribution.channels || [];
 
   return (
-    <section aria-label="Analytics e Atribuição de Resultados" className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+    <section aria-label="Analytics e Atribuição de Resultados" className="ug-card rounded-2xl p-5 space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--ug-border-subtle)]">
+        <div className="space-y-0.5">
+          <h3 className="text-sm font-semibold text-[var(--ug-text-primary)] flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-indigo-400" aria-hidden="true" />
-            Analytics, Funil &amp; Atribuição de Marketing
+            <span>Analytics, Funil &amp; Atribuição de Marketing</span>
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">{attribution.attribution_methodology}</p>
+          <p className="text-xs text-[var(--ug-text-muted)]">{attribution.attribution_methodology}</p>
         </div>
         <StatusPill
           status={attribution.external_analytics_status === "CONNECTED" ? "EXECUTED" : "NEEDS_CREDENTIALS"}
@@ -155,11 +169,12 @@ export function AnalyticsAttributionPanel({ attribution }: { attribution: any })
         />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
+      {/* Funil horizontal em faixa única Stripe-style */}
+      <div className="ug-card rounded-xl grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-white/[0.06] overflow-hidden text-xs">
         {funnel.map((st: any) => (
-          <div key={st.stage} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1">
-            <div className="text-[11px] text-slate-400 truncate">{st.stage}</div>
-            <div className="text-lg font-bold text-white">{st.count}</div>
+          <div key={st.stage} className="px-3.5 py-3 space-y-1">
+            <div className="text-[11px] text-[var(--ug-text-muted)] truncate">{st.stage}</div>
+            <div className="text-lg font-semibold text-[var(--ug-text-primary)] tabular-nums">{st.count}</div>
             <OriginBadge origin={st.origin} />
           </div>
         ))}
@@ -168,29 +183,33 @@ export function AnalyticsAttributionPanel({ attribution }: { attribution: any })
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="text-[11px] text-slate-400 border-b border-slate-800">
-              <th className="py-2 pr-3">Canal / Origem</th>
-              <th className="py-2 pr-3">Leads Reais</th>
-              <th className="py-2 pr-3">Qualificados</th>
-              <th className="py-2 pr-3">Pipeline Estimado (R$)</th>
-              <th className="py-2">Classificação</th>
+            <tr className="text-[11px] text-[var(--ug-text-muted)] border-b border-[var(--ug-border)]">
+              <th className="py-2 pr-3 font-medium">Canal / Origem</th>
+              <th className="py-2 pr-3 font-medium">Leads Reais</th>
+              <th className="py-2 pr-3 font-medium">Qualificados</th>
+              <th className="py-2 pr-3 font-medium">Pipeline Estimado (R$)</th>
+              <th className="py-2 font-medium">Origem dos Dados</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-white/[0.05]">
             {channels.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-3 text-slate-400">
+                <td colSpan={5} className="py-4 text-[var(--ug-text-muted)]">
                   Nenhum lead real atribuído por canal ainda (o sistema não inventa tráfego).
                 </td>
               </tr>
             ) : (
               channels.map((ch: any) => (
-                <tr key={ch.channel} className="border-b border-slate-900 text-slate-200">
-                  <td className="py-2 pr-3 font-medium">{ch.channel}</td>
-                  <td className="py-2 pr-3">{ch.leads}</td>
-                  <td className="py-2 pr-3">{ch.qualified_leads}</td>
-                  <td className="py-2 pr-3">R$ {Number(ch.estimated_pipeline_brl || 0).toLocaleString("pt-BR")}</td>
-                  <td className="py-2"><OriginBadge origin={ch.data_origin} /></td>
+                <tr key={ch.channel} className="text-[var(--ug-text-secondary)] hover:bg-white/[0.02]">
+                  <td className="py-2.5 pr-3 font-medium text-[var(--ug-text-primary)]">{ch.channel}</td>
+                  <td className="py-2.5 pr-3 tabular-nums">{ch.leads}</td>
+                  <td className="py-2.5 pr-3 tabular-nums">{ch.qualified_leads}</td>
+                  <td className="py-2.5 pr-3 tabular-nums">
+                    R$ {Number(ch.estimated_pipeline_brl || 0).toLocaleString("pt-BR")}
+                  </td>
+                  <td className="py-2.5">
+                    <OriginBadge origin={ch.data_origin} />
+                  </td>
                 </tr>
               ))
             )}

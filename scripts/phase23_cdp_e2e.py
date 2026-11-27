@@ -206,21 +206,27 @@ async def run_phase23_e2e():
             await asyncio.sleep(3.5)
             await cdp.wait_idle()
 
-            # J15 & J11 & J16: Dashboard Executivo (Command Center), ASK UNION & Modo Simples
+            # J15 & J11 & J16: Dashboard Executivo (Phase 24 Home), ASK UNION & Modo Simples
             cc_dom = await cdp.evaluate("""
                 (() => {
                     const txt = document.body.innerText || '';
                     return {
                         has_ask_union: txt.includes('ASK UNION'),
-                        has_growth_score: txt.includes('Growth Score Documentado'),
-                        has_business_health: txt.includes('Business Health'),
+                        has_growth_score: txt.includes('Growth Score'),
+                        has_priorities: txt.includes('Prioridades de hoje'),
                         has_ceo_briefing: txt.includes('AI CEO Briefing'),
-                        has_opp_radar: txt.includes('Opportunity Radar'),
-                        has_exec_center: txt.includes('Executive Action Center'),
+                        has_opp_radar: txt.includes('Oportunidades'),
+                        has_system_activity: txt.includes('Atividade do sistema'),
                         has_mode_toggle: Boolean(document.querySelector('#ug-ui-mode-toggle')),
                     };
                 })()
             """)
+            # Abrir drawer de Business Health (12 dimensões) para validar transparência e metodologia
+            await cdp.click_by_text("main button", "Saúde (")
+            await asyncio.sleep(0.45)
+            has_business_health = await cdp.evaluate("(document.querySelector('[role=\"dialog\"]')?.innerText || '').includes('Business Health') && (document.querySelector('[role=\"dialog\"]')?.innerText || '').includes('Growth Score Documentado')")
+            await cdp.click_by_text('[role="dialog"] button[aria-label="Fechar painel"]', "")
+            await asyncio.sleep(0.35)
             sh1 = await cdp.screenshot("01_command_center_inicio.png")
             if sh1:
                 report["screenshots"].append(sh1)
@@ -241,7 +247,8 @@ async def run_phase23_e2e():
             report["journeys"]["J11_Ask_Union"] = {"passed": bool(ask_ok)}
             report["journeys"]["J15_Dashboard_Executivo"] = {
                 **(cc_dom or {}),
-                "passed": bool(switched_qa and (cc_dom or {}).get("has_ask_union") and (cc_dom or {}).get("has_growth_score") and (cc_dom or {}).get("has_business_health") and (cc_dom or {}).get("has_ceo_briefing") and (cc_dom or {}).get("has_opp_radar") and (cc_dom or {}).get("has_exec_center")),
+                "has_business_health": bool(has_business_health),
+                "passed": bool(switched_qa and has_business_health and (cc_dom or {}).get("has_ask_union") and (cc_dom or {}).get("has_growth_score") and (cc_dom or {}).get("has_priorities") and (cc_dom or {}).get("has_ceo_briefing") and (cc_dom or {}).get("has_opp_radar") and (cc_dom or {}).get("has_system_activity")),
             }
 
             # J01 & J03: Onboarding 6 Etapas (Empresa + Objetivos/Plano)

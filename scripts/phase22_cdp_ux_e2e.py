@@ -223,8 +223,8 @@ async def run_phase22_e2e():
                     const txt = document.body.innerText || '';
                     return {
                         has_sidebar_areas: ['Início', 'Meu Trabalho', 'Comercial', 'Marketing', 'Inteligência Artificial', 'Gestão'].every(x => txt.includes(x)),
-                        has_5_blocks: txt.includes('1. O que precisa da sua atenção agora') && txt.includes('2. O que a IA está fazendo') && txt.includes('3. O que está gerando resultados') && txt.includes('4. Atividade recente') && txt.includes('5. O que posso fazer agora'),
-                        has_onboarding: txt.includes('Primeiros Passos'),
+                        has_phase24_home: txt.includes('Prioridades de hoje') && txt.includes('AI CEO Briefing') && txt.includes('Oportunidades') && txt.includes('Atividade do sistema') && txt.includes('ASK UNION') && txt.includes('Growth Score'),
+                        has_onboarding: txt.includes('Onboarding 6 Etapas'),
                     };
                 })()
             """)
@@ -233,7 +233,7 @@ async def run_phase22_e2e():
                 report["screenshots"].append(sh1)
             report["scenarios"]["S01_S02_login_and_inicio_5blocks"] = {
                 **(home_check or {}),
-                "passed": bool(home_check and home_check.get("has_sidebar_areas") and home_check.get("has_5_blocks") and home_check.get("has_onboarding")),
+                "passed": bool(home_check and home_check.get("has_sidebar_areas") and home_check.get("has_phase24_home") and home_check.get("has_onboarding")),
             }
 
             # SCENARIO 3: Onboarding Dismiss + Persistence + Restore
@@ -241,16 +241,16 @@ async def run_phase22_e2e():
             await asyncio.sleep(0.4)
             after_dismiss = await cdp.evaluate("""
                 (() => ({
-                    hidden_in_dom: !(document.body.innerText || '').includes('Primeiros Passos — Configuração Guiada'),
+                    hidden_in_dom: !(document.body.innerText || '').includes('Onboarding 6 Etapas'),
                     stored: localStorage.getItem('ug_onboarding_dismissed') === '1',
-                    has_restore_btn: (document.body.innerText || '').includes('Guia Inicial'),
+                    has_restore_btn: (document.body.innerText || '').includes('Configuração ('),
                 }))()
             """)
-            restored_ok = await cdp.click_by_text("main button", "Guia Inicial")
+            restored_ok = await cdp.click_by_text("main button", "Configuração (")
             await asyncio.sleep(0.4)
             after_restore = await cdp.evaluate("""
                 (() => ({
-                    visible_again: (document.body.innerText || '').includes('Primeiros Passos — Configuração Guiada'),
+                    visible_again: (document.body.innerText || '').includes('Onboarding 6 Etapas'),
                     cleared_storage: !localStorage.getItem('ug_onboarding_dismissed'),
                 }))()
             """)
@@ -275,8 +275,8 @@ async def run_phase22_e2e():
                     const mainStyle = window.getComputedStyle(document.body);
                     const h1 = document.querySelector('header h1, header h2');
                     const h1Color = h1 ? window.getComputedStyle(h1).color : '';
-                    const obHeading = document.querySelector('section[aria-label="Primeiros passos no sistema"] h4');
-                    const obBanner = document.querySelector('section[aria-label="Primeiros passos no sistema"]');
+                    const obHeading = document.querySelector('main h3, main h4');
+                    const obBanner = document.querySelector('section[aria-label*="Ask Union"]');
                     const obBg = obBanner ? window.getComputedStyle(obBanner).backgroundColor : '';
                     const obFg = obHeading ? window.getComputedStyle(obHeading).color : '';
                     return { htmlLight, bodyBg: mainStyle.backgroundColor, bodyColor: mainStyle.color, h1Color, obBg, obFg };
@@ -516,7 +516,7 @@ async def run_phase22_e2e():
             ia_overview_ok = await cdp.evaluate("""
                 (() => {
                     const txt = document.querySelector('main')?.innerText || '';
-                    return txt.includes('Assistente Guiado de Configuração de IA') && txt.includes('Controle & Autonomia') && txt.includes('Equipe Digital de Agentes Especializados');
+                    return txt.includes('Configuração Rápida dos Serviços de IA') && txt.includes('Controle & Autonomia') && txt.includes('Equipe Digital de Agentes Especializados');
                 })()
             """)
             sh8 = await cdp.screenshot("08_ia_visao_e_agentes.png")
@@ -579,7 +579,7 @@ async def run_phase22_e2e():
             # SCENARIO 12: Central de Ajuda Drawer
             help_opened = await cdp.click_aria("Abrir Central de Ajuda")
             await asyncio.sleep(0.45)
-            gloss_ok = await cdp.click_by_text('[role="dialog"] button', "Glossário & FAQ")
+            gloss_ok = await cdp.click_by_text('[role="dialog"] button', "Glossário")
             short_ok = await cdp.click_by_text('[role="dialog"] button', "Atalhos")
             sh11 = await cdp.screenshot("11_central_ajuda_drawer.png")
             if sh11:

@@ -50,7 +50,6 @@ export function CommandCenter({
     const q = query.trim().toLowerCase();
     const out: SearchResultItem[] = [];
 
-    // 1. Ações Rápidas Reais
     const quickActions: SearchResultItem[] = [
       { id: "act-lead", group: "Ações Rápidas", title: "Cadastrar Novo Lead no CRM", subtitle: "Comercial → Leads & CRM", targetMenu: "crm", badge: "Ação" },
       { id: "act-camp", group: "Ações Rápidas", title: "Criar Nova Campanha de Marketing", subtitle: "Marketing → Campanhas", targetMenu: "marketing", badge: "Ação" },
@@ -65,22 +64,20 @@ export function CommandCenter({
       }
     }
 
-    // 2. Módulos e Recursos (Todos os 27 recursos reais)
     for (const mod of RESOURCE_CATALOG) {
       const hay = `${mod.name} ${mod.description} ${mod.category} ${mod.keywords.join(" ")}`.toLowerCase();
       if (!q || hay.includes(q)) {
         out.push({
           id: `mod-${mod.id}`,
-          group: "Módulos & Ferramentas",
+          group: "Recursos",
           title: mod.name,
           subtitle: `${mod.category} • ${mod.description}`,
           targetMenu: mod.id,
-          badge: mod.legacyNum === "NEW" ? "Novo" : `Ref ${mod.legacyNum}`,
+          badge: mod.category.split(" ")[0],
         });
       }
     }
 
-    // 3. Leads Reais do CRM
     for (const l of (crmData?.leads || []).slice(0, 40)) {
       const hay = `${l.full_name} ${l.company_name || ""} ${l.email || ""}`.toLowerCase();
       if (q && hay.includes(q)) {
@@ -95,7 +92,6 @@ export function CommandCenter({
       }
     }
 
-    // 4. Campanhas Reais
     for (const c of (marketingData?.campaigns || []).slice(0, 40)) {
       const hay = `${c.name} ${c.channel || ""} ${c.campaign_type || ""}`.toLowerCase();
       if (q && hay.includes(q)) {
@@ -110,7 +106,6 @@ export function CommandCenter({
       }
     }
 
-    // 5. Propostas Comerciais Reais
     for (const p of (mbDashboard?.proposals || []).slice(0, 25)) {
       const hay = `${p.proposal_number} ${p.client_company} ${p.client_name} ${p.status}`.toLowerCase();
       if (q && hay.includes(q)) {
@@ -125,7 +120,6 @@ export function CommandCenter({
       }
     }
 
-    // 6. Conteúdos da Fábrica
     for (const cf of (contentFactoryItems || []).slice(0, 30)) {
       const hay = `${cf.title || ""} ${cf.channel || ""} ${cf.theme || ""}`.toLowerCase();
       if (q && hay.includes(q)) {
@@ -140,7 +134,6 @@ export function CommandCenter({
       }
     }
 
-    // 7. Aprovações
     for (const ap of (approvalsData || []).slice(0, 20)) {
       if (q && `${ap.title} ${ap.action_type}`.toLowerCase().includes(q)) {
         out.push({
@@ -154,7 +147,6 @@ export function CommandCenter({
       }
     }
 
-    // 8. Integrações
     for (const intg of integrationsData || []) {
       if (q && `${intg.provider_name} ${intg.provider_key}`.toLowerCase().includes(q)) {
         out.push({
@@ -213,36 +205,36 @@ export function CommandCenter({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] px-4 bg-black/70 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] px-4 bg-black/65 backdrop-blur-[2px]"
       role="dialog"
       aria-modal="true"
       aria-label="Busca Global e Central de Comandos"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-[#0d1425] ug-surface border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-2xl ug-surface border border-[var(--ug-border)] rounded-2xl shadow-2xl overflow-hidden ug-fade-in"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-slate-800">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--ug-border)]">
           <Search className="w-4 h-4 text-indigo-400 shrink-0" aria-hidden="true" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar módulos, ações, leads, campanhas, propostas ou configurações..."
+            placeholder="Buscar recursos, ações, leads, campanhas ou configurações..."
             aria-label="Campo de busca global"
-            className="flex-1 bg-transparent text-sm text-white ug-text-primary placeholder:text-slate-500 focus:outline-none"
+            className="flex-1 bg-transparent text-sm text-[var(--ug-text-primary)] placeholder:text-[var(--ug-text-muted)] focus:outline-none border-none"
           />
-          <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-400">
+          <kbd className="hidden sm:inline-flex items-center px-2 py-0.5 rounded bg-white/[0.06] text-[10px] font-mono text-[var(--ug-text-muted)]">
             ESC
           </kbd>
           <button
             type="button"
             onClick={onClose}
             aria-label="Fechar busca global"
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+            className="p-1 rounded-lg text-[var(--ug-text-muted)] hover:text-[var(--ug-text-primary)] hover:bg-white/[0.06]"
           >
             <X className="w-4 h-4" />
           </button>
@@ -251,17 +243,17 @@ export function CommandCenter({
         <div className="max-h-[60vh] overflow-y-auto p-3 space-y-4">
           {results.length === 0 ? (
             <div className="py-10 text-center space-y-1">
-              <p className="text-sm font-medium text-white ug-text-primary">
-                Nenhum resultado encontrado para &ldquo;{query}&rdquo;
+              <p className="text-sm font-medium text-[var(--ug-text-primary)]">
+                Nenhum resultado para &ldquo;{query}&rdquo;
               </p>
-              <p className="text-xs text-slate-400">
-                Tente buscar por &ldquo;Campanha&rdquo;, &ldquo;Lead&rdquo;, &ldquo;Gemini&rdquo;, &ldquo;Proposta&rdquo;, &ldquo;SEO&rdquo; ou &ldquo;Financeiro&rdquo;.
+              <p className="text-xs text-[var(--ug-text-muted)]">
+                Tente buscar por &ldquo;Campanha&rdquo;, &ldquo;Lead&rdquo;, &ldquo;Gemini&rdquo;, &ldquo;SEO&rdquo; ou &ldquo;Financeiro&rdquo;.
               </p>
             </div>
           ) : (
             Object.entries(grouped).map(([grp, items]) => (
               <div key={grp} className="space-y-1">
-                <div className="px-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                <div className="px-2 flex items-center gap-1.5 text-[11px] font-medium text-[var(--ug-text-muted)]">
                   {groupIcon(grp)}
                   <span>{grp}</span>
                 </div>
@@ -278,23 +270,21 @@ export function CommandCenter({
                         onNavigate(item.targetMenu);
                         onClose();
                       }}
-                      className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition ${
-                        selected
-                          ? "bg-indigo-600/20 border border-indigo-500/40"
-                          : "border border-transparent hover:bg-slate-800/50"
+                      className={`w-full flex items-center justify-between gap-3 px-3 py-2 rounded-lg text-left transition ${
+                        selected ? "bg-indigo-600/15" : "hover:bg-white/[0.04]"
                       }`}
                     >
                       <div className="min-w-0">
-                        <div className="text-xs font-semibold text-white ug-text-primary truncate">{item.title}</div>
-                        <div className="text-[11px] text-slate-400 ug-text-muted truncate">{item.subtitle}</div>
+                        <div className="text-xs font-medium text-[var(--ug-text-primary)] truncate">{item.title}</div>
+                        <div className="text-[11px] text-[var(--ug-text-muted)] truncate">{item.subtitle}</div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {item.badge && (
-                          <span className="px-2 py-0.5 rounded-md bg-slate-800 text-[10px] font-medium text-indigo-300">
+                          <span className="px-2 py-0.5 rounded bg-white/[0.06] text-[10px] text-[var(--ug-text-secondary)]">
                             {item.badge}
                           </span>
                         )}
-                        <ArrowRight className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
+                        <ArrowRight className="w-3.5 h-3.5 text-[var(--ug-text-muted)]" aria-hidden="true" />
                       </div>
                     </button>
                   );
@@ -304,10 +294,10 @@ export function CommandCenter({
           )}
         </div>
 
-        <div className="px-4 py-2.5 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+        <div className="px-4 py-2.5 border-t border-[var(--ug-border)] flex items-center justify-between text-[11px] text-[var(--ug-text-muted)]">
           <div className="flex items-center gap-2">
             <Command className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Use ↑ ↓ para navegar e Enter para abrir</span>
+            <span>↑ ↓ para navegar • Enter para abrir</span>
           </div>
           <button
             type="button"
@@ -315,9 +305,9 @@ export function CommandCenter({
               onNavigate("all_resources");
               onClose();
             }}
-            className="text-indigo-400 hover:text-indigo-300 font-medium"
+            className="text-indigo-400 hover:underline font-medium"
           >
-            Ver Todos os Recursos →
+            Todos os recursos →
           </button>
         </div>
       </div>
