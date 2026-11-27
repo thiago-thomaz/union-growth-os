@@ -1,0 +1,154 @@
+{
+  "prod_url": "https://automacao.projetosunion.cloud",
+  "profiles": {
+    "P1_Usuario_Iniciante": {
+      "clicks_core_flow": 3,
+      "elapsed_s": 28.93,
+      "ask_union_ok": true,
+      "health_drawer_ok": true,
+      "light_mode_ok": true,
+      "noGuideWall": true,
+      "noDoubleDashboard": true,
+      "hasCleanHome": true,
+      "askUnionAboveFold": true,
+      "prioritiesAboveFold": true,
+      "passed": true
+    },
+    "P2_Usuario_Operacional": {
+      "elapsed_s": 7.07,
+      "meu_trabalho_clean": true,
+      "ondemand_guide_drawer": true,
+      "marketing_clean": true,
+      "discovery_directory_ok": true,
+      "passed": true
+    },
+    "P3_Usuario_Avancado": {
+      "elapsed_s": 6.43,
+      "layman_simple_mode": true,
+      "advanced_mode_controls": true,
+      "passed": true
+    }
+  },
+  "clutter_and_design": {
+    "total_elapsed_s": 60.6,
+    "permanent_guide_wall_removed": true,
+    "double_dashboard_eliminated": true,
+    "card_in_card_eliminated": true
+  },
+  "accessibility": {
+    "lang": "pt-BR",
+    "total_buttons": 61,
+    "unlabeled_buttons": 0,
+    "unlabeled_inputs": 0,
+    "passed": true
+  },
+  "viewports": {
+    "desktop_1920x1080": {
+      "scrollWidth": 1914,
+      "clientWidth": 1914,
+      "overflowPx": 0,
+      "first_fold_clean": true,
+      "passed": true
+    },
+    "desktop_1440x900": {
+      "scrollWidth": 1434,
+      "clientWidth": 1434,
+      "overflowPx": 0,
+      "first_fold_clean": true,
+      "passed": true
+    },
+    "notebook_1366x768": {
+      "scrollWidth": 1360,
+      "clientWidth": 1360,
+      "overflowPx": 0,
+      "first_fold_clean": true,
+      "passed": true
+    },
+    "compact_1024x768": {
+      "scrollWidth": 1018,
+      "clientWidth": 1018,
+      "overflowPx": 0,
+      "first_fold_clean": true,
+      "passed": true
+    },
+    "tablet_768x1024": {
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowPx": 0,
+      "first_fold_clean": true,
+      "passed": true
+    },
+    "mobile_390x844": {
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "overflowPx": 0,
+      "first_fold_clean": true,
+      "passed": true
+    },
+    "mobile_small_360x800": {
+      "scrollWidth": 360,
+      "clientWidth": 360,
+      "overflowPx": 0,
+      "first_fold_clean": true,
+      "passed": true
+    }
+  },
+  "screenshots": [
+    {
+      "file": "01_phase24_home_dark.png",
+      "size_bytes": 228460
+    },
+    {
+      "file": "02_phase24_ask_union.png",
+      "size_bytes": 265745
+    },
+    {
+      "file": "03_phase24_health_12_drawer.png",
+      "size_bytes": 341889
+    },
+    {
+      "file": "04_phase24_home_light.png",
+      "size_bytes": 264689
+    },
+    {
+      "file": "05_phase24_meu_trabalho.png",
+      "size_bytes": 224704
+    },
+    {
+      "file": "06_phase24_comercial_propostas.png",
+      "size_bytes": 165696
+    },
+    {
+      "file": "07_phase24_marketing_campanhas.png",
+      "size_bytes": 157354
+    },
+    {
+      "file": "08_phase24_todos_recursos_lista.png",
+      "size_bytes": 136686
+    },
+    {
+      "file": "09_phase24_ia_agentes.png",
+      "size_bytes": 196982
+    },
+    {
+      "file": "10_phase24_automacoes_avancado.png",
+      "size_bytes": 257764
+    },
+    {
+      "file": "11_phase24_viewport_notebook_1366x768.png",
+      "size_bytes": 162349
+    },
+    {
+      "file": "11_phase24_viewport_mobile_small_360x800.png",
+      "size_bytes": 61549
+    }
+  ],
+  "telemetry": {
+    "console_errors_count": 0,
+    "exceptions_count": 0,
+    "network_4xx_5xx_count": 0,
+    "url_token_leaks_count": 0,
+    "network_4xx_5xx": []
+  },
+  "all_phase24_e2e_passed": true
+}

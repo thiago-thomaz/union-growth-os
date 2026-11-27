@@ -1,5 +1,14 @@
 # Changelog — UNION GROWTH OS
 
+## [2.1.0 — FASE 24] — 2026-11-27
+
+### Reconstrução Radical de UX/UI & Design System 3.0
+- **Design System 3.0 (`globals.css`, `DesignSystem.tsx`)**: Nova identidade visual Obsidian Dark (`#09090b`, `#0c0c0f`, `#111115`) & Crisp Alabaster Light (`#fafafa`, `#ffffff`, `#f4f4f5`) com contornos hairline (`divide-y` / `divide-x`), `.tabular-nums`, `MetricStrip`, `FilterTabBar` underline, `OriginBadge` sem quebra (`whitespace-nowrap shrink-0`) e `Drawer` acessível (`Escape`, `aria-modal`).
+- **Workspace Executivo Único (`HomeWorkspace.tsx`, `GrowthCommandCenter.tsx`)**: Eliminação do duplo dashboard empilhado na rota `overview`, unificando saudação, checklist discreto de 6 etapas, **ASK UNION Spotlight Strip**, faixa de métricas reais, `Prioridades de hoje`, `AI CEO Briefing`, `Oportunidades` e `BusinessHealthAndScoreDrawer` sob demanda (`12` dimensões + fórmula auditável do Growth Score).
+- **Fim da Muralha de Instruções (`AreaContextGuide.tsx`) & Navegação Minimalista (`page.tsx`, `ResourceCenterAndHelp.tsx`)**: Remoção das 5 caixas permanentes do topo de todas as telas (agora acessíveis sob demanda via `Como funciona esta área`), Sidebar enxuta com Favoritos/Recentes discretos, **Meu Trabalho (`MyWorkHub.tsx`)** em lista de triagem estilo Linear e diretório **Todos os recursos** agrupado por categoria sem grade de 27 caixas.
+- **Modo Simples em Linguagem Natural (`plainLanguage.ts`)**: Tradução automática de termos técnicos (*Webhook*, *Rate limit*, *Provider*, *Trigger*, *Dry-Run*) no **Modo Simples**, preservando controles técnicos no **Modo Avançado**.
+- **Performance, Telemetria & Qualidade Validada em Produção**: Bundle reduzido na rota `/` de `74.2 kB` (First Load `180 kB`) para **`71.3 kB` (First Load `177 kB`)**, exposição de `aria-busy`/`data-loading` no botão `Atualizar Dados`, **`51/51` testes `pytest`**, suíte Chrome CDP **Fase 24 (`3` perfis + `7` viewports `0px` overflow + `61` botões sem falhas)**, **Fase 23 (`20/20` jornadas)** e **Fase 22 (`S01..S15` incluindo `S08`)** todas 100% aprovadas em produção.
+
 ## [2.0.0 — FASE 23] — 2026-11-26
 
 ### Adicionado & Evoluído
