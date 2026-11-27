@@ -258,7 +258,7 @@ async def run_phase26_e2e():
             agents_matrix_ok = await cdp.evaluate("""
                 (() => {
                     const t = document.querySelector('main')?.innerText || '';
-                    return t.includes('Classificação Técnica Auditada') && t.includes('Híbridos') && t.includes('Determinísticos') && t.includes('Simulados: 0');
+                    return t.includes('Classificação Técnica Auditada') && t.includes('Híbridos') && t.includes('Determinísticos') && t.includes('Simulados: 0') && t.includes('HYBRID') && t.includes('DETERMINISTIC');
                 })()
             """)
             sh3 = await cdp.screenshot("03_phase26_agents_matrix_honest.png")

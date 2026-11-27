@@ -402,6 +402,7 @@ def build_phase26_ai_agents_matrix_service(db: Session, tenant_id: int) -> dict[
 
         matrix.append(
             {
+                "id": aid,
                 "agent_id": aid,
                 "name": reg["name"],
                 "objective": reg["role"],

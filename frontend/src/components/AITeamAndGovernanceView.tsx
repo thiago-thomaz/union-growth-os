@@ -170,7 +170,7 @@ export function AITeamAndGovernanceView({
   }, [apiFetch, agentsData]);
 
   const matrixMap = new Map<string, any>(
-    ((matrixData?.agents || []) as any[]).map((m) => [m.id, m])
+    ((matrixData?.agents || []) as any[]).map((m) => [m.agent_id || m.id, m])
   );
 
   const currentAutonomy = meData?.active_tenant?.autonomy_default_level || 2;

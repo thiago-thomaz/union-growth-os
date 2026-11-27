@@ -3,7 +3,7 @@
   "profiles": {
     "P1_Usuario_Iniciante": {
       "clicks_core_flow": 3,
-      "elapsed_s": 9.68,
+      "elapsed_s": 7.16,
       "ask_union_ok": true,
       "health_drawer_ok": true,
       "light_mode_ok": true,
@@ -15,7 +15,7 @@
       "passed": true
     },
     "P2_Usuario_Operacional": {
-      "elapsed_s": 6.08,
+      "elapsed_s": 6.07,
       "meu_trabalho_clean": true,
       "ondemand_guide_drawer": true,
       "marketing_clean": true,
@@ -23,21 +23,21 @@
       "passed": true
     },
     "P3_Usuario_Avancado": {
-      "elapsed_s": 6.08,
+      "elapsed_s": 7.5,
       "layman_simple_mode": true,
       "advanced_mode_controls": true,
       "passed": true
     }
   },
   "clutter_and_design": {
-    "total_elapsed_s": 44.42,
+    "total_elapsed_s": 41.23,
     "permanent_guide_wall_removed": true,
     "double_dashboard_eliminated": true,
     "card_in_card_eliminated": true
   },
   "accessibility": {
     "lang": "pt-BR",
-    "total_buttons": 61,
+    "total_buttons": 62,
     "unlabeled_buttons": 0,
     "unlabeled_inputs": 0,
     "passed": true
@@ -96,23 +96,23 @@
   "screenshots": [
     {
       "file": "01_phase24_home_dark.png",
-      "size_bytes": 228496
+      "size_bytes": 233269
     },
     {
       "file": "02_phase24_ask_union.png",
-      "size_bytes": 269465
+      "size_bytes": 273774
     },
     {
       "file": "03_phase24_health_12_drawer.png",
-      "size_bytes": 343007
+      "size_bytes": 352905
     },
     {
       "file": "04_phase24_home_light.png",
-      "size_bytes": 267148
+      "size_bytes": 271659
     },
     {
       "file": "05_phase24_meu_trabalho.png",
-      "size_bytes": 224704
+      "size_bytes": 224710
     },
     {
       "file": "06_phase24_comercial_propostas.png",
@@ -120,27 +120,27 @@
     },
     {
       "file": "07_phase24_marketing_campanhas.png",
-      "size_bytes": 157354
+      "size_bytes": 138055
     },
     {
       "file": "08_phase24_todos_recursos_lista.png",
-      "size_bytes": 136686
+      "size_bytes": 133927
     },
     {
       "file": "09_phase24_ia_agentes.png",
-      "size_bytes": 197974
+      "size_bytes": 207662
     },
     {
       "file": "10_phase24_automacoes_avancado.png",
-      "size_bytes": 257764
+      "size_bytes": 257840
     },
     {
       "file": "11_phase24_viewport_notebook_1366x768.png",
-      "size_bytes": 162613
+      "size_bytes": 161039
     },
     {
       "file": "11_phase24_viewport_mobile_small_360x800.png",
-      "size_bytes": 61709
+      "size_bytes": 64051
     }
   ],
   "telemetry": {

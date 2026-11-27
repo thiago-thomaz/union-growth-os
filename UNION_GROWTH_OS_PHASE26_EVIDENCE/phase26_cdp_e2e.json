@@ -1,0 +1,124 @@
+{
+  "prod_url": "https://automacao.projetosunion.cloud",
+  "checks": {
+    "login_ok": true,
+    "switched_qa": true,
+    "home_ds4_ok": true,
+    "growth_center_0_90d_ok": true,
+    "agents_matrix_honest_ok": true,
+    "crm_smart_followup_ok": true,
+    "pipeline_move_stage_ok": true,
+    "seo_prioritized_recs_ok": true,
+    "oauth_integrations_ok": true,
+    "plans_entitlements_readiness_ok": true,
+    "light_mode_ok": true,
+    "total_elapsed_s": 57.6
+  },
+  "accessibility": {
+    "lang": "pt-BR",
+    "total_buttons": 61,
+    "unlabeled_buttons": 0,
+    "unlabeled_inputs": 0,
+    "passed": true
+  },
+  "viewports": {
+    "desktop_1920x1080": {
+      "scrollWidth": 1914,
+      "clientWidth": 1914,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "desktop_1440x900": {
+      "scrollWidth": 1434,
+      "clientWidth": 1434,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "notebook_1366x768": {
+      "scrollWidth": 1360,
+      "clientWidth": 1360,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "compact_1024x768": {
+      "scrollWidth": 1018,
+      "clientWidth": 1018,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "tablet_768x1024": {
+      "scrollWidth": 768,
+      "clientWidth": 768,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "mobile_430x932": {
+      "scrollWidth": 430,
+      "clientWidth": 430,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "mobile_390x844": {
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "overflowPx": 0,
+      "passed": true
+    },
+    "mobile_small_360x800": {
+      "scrollWidth": 360,
+      "clientWidth": 360,
+      "overflowPx": 0,
+      "passed": true
+    }
+  },
+  "screenshots": [
+    {
+      "file": "01_phase26_home_ds4.png",
+      "size_bytes": 233269
+    },
+    {
+      "file": "02_phase26_growth_center_0_90d.png",
+      "size_bytes": 193316
+    },
+    {
+      "file": "03_phase26_agents_matrix_honest.png",
+      "size_bytes": 207662
+    },
+    {
+      "file": "04_phase26_crm_smart_followup.png",
+      "size_bytes": 259002
+    },
+    {
+      "file": "05_phase26_pipeline_move_stage.png",
+      "size_bytes": 138208
+    },
+    {
+      "file": "06_phase26_seo_prioritized.png",
+      "size_bytes": 157289
+    },
+    {
+      "file": "07_phase26_integrations_oauth.png",
+      "size_bytes": 178641
+    },
+    {
+      "file": "08_phase26_plans_entitlements.png",
+      "size_bytes": 184239
+    },
+    {
+      "file": "09_phase26_light_mode.png",
+      "size_bytes": 178294
+    },
+    {
+      "file": "10_phase26_mobile_360x800.png",
+      "size_bytes": 64051
+    }
+  ],
+  "telemetry": {
+    "console_errors_count": 0,
+    "exceptions_count": 0,
+    "network_4xx_5xx_count": 0,
+    "url_token_leaks_count": 0,
+    "network_4xx_5xx": []
+  },
+  "all_phase26_e2e_passed": true
+}

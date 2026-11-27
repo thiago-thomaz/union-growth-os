@@ -155,7 +155,7 @@ def run_production_health_checks(target_url: str, expected_commit: str = "") -> 
             url = f"{target_url.rstrip('/')}{path}"
             passed_endpoint = False
             last_error = ""
-            for attempt in range(1, 5):
+            for attempt in range(1, 9):
                 try:
                     res = client.get(url)
                     if res.status_code == 200:
@@ -163,15 +163,15 @@ def run_production_health_checks(target_url: str, expected_commit: str = "") -> 
                         passed_endpoint = True
                         break
                     last_error = f"HTTP {res.status_code}"
-                    if res.status_code in (502, 503, 504) and attempt < 4:
-                        print(f"  [RETRY {attempt}/4] {url} -> {last_error} durante swap de container; aguardando 5s...")
+                    if res.status_code in (502, 503, 504) and attempt < 8:
+                        print(f"  [RETRY {attempt}/8] {url} -> {last_error} durante swap de container; aguardando 5s...")
                         time.sleep(5)
                         continue
                     break
                 except httpx.RequestError as e:
                     last_error = f"Exceção de conexão: {e}"
-                    if attempt < 4:
-                        print(f"  [RETRY {attempt}/4] {url} -> {last_error}; aguardando 5s...")
+                    if attempt < 8:
+                        print(f"  [RETRY {attempt}/8] {url} -> {last_error}; aguardando 5s...")
                         time.sleep(5)
                         continue
                     break

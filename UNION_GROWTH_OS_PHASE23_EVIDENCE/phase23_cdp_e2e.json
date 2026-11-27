@@ -78,7 +78,7 @@
   },
   "accessibility": {
     "lang": "pt-BR",
-    "total_buttons": 71,
+    "total_buttons": 72,
     "unlabeled_buttons": 0,
     "unlabeled_inputs": 0,
     "passed": true
@@ -124,31 +124,31 @@
   "screenshots": [
     {
       "file": "01_command_center_inicio.png",
-      "size_bytes": 228496
+      "size_bytes": 233269
     },
     {
       "file": "02_ask_union_copilot.png",
-      "size_bytes": 270142
+      "size_bytes": 273774
     },
     {
       "file": "03_onboarding_6_steps.png",
-      "size_bytes": 244022
+      "size_bytes": 244895
     },
     {
       "file": "04_brand_intelligence_center.png",
-      "size_bytes": 203578
+      "size_bytes": 204344
     },
     {
       "file": "07_analytics_and_attribution.png",
-      "size_bytes": 143177
+      "size_bytes": 116203
     },
     {
       "file": "05_content_factory_contextual.png",
-      "size_bytes": 117088
+      "size_bytes": 120318
     },
     {
       "file": "09_seo_intelligence.png",
-      "size_bytes": 134218
+      "size_bytes": 164865
     },
     {
       "file": "10_competitors_intelligence.png",
@@ -156,19 +156,19 @@
     },
     {
       "file": "06_conversational_automation_builder.png",
-      "size_bytes": 232681
+      "size_bytes": 231410
     },
     {
       "file": "11_modo_avancado.png",
-      "size_bytes": 257764
+      "size_bytes": 255606
     },
     {
       "file": "08_viewport_compact_1024x768.png",
-      "size_bytes": 101713
+      "size_bytes": 96721
     },
     {
       "file": "08_viewport_mobile_small_360x800.png",
-      "size_bytes": 43854
+      "size_bytes": 46662
     }
   ],
   "telemetry": {

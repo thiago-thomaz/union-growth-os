@@ -86,7 +86,7 @@
         "found": true,
         "count": 7,
         "urls": [
-          "blob:https://automacao.projetosunion.cloud/67e5bd22-684d-41f4-b31f-33b70a926f55"
+          "blob:https://automacao.projetosunion.cloud/22c8854c-d85a-4560-847a-4d6975177d55"
         ]
       },
       "passed": true
@@ -133,7 +133,7 @@
       "main": true,
       "nav": true
     },
-    "total_visible_buttons": 62,
+    "total_visible_buttons": 63,
     "unlabeled_buttons_count": 0,
     "unlabeled_buttons_sample": [],
     "unlabeled_inputs_count": 0,
@@ -176,19 +176,19 @@
   "screenshots": [
     {
       "file": "01_inicio_dashboard_dark.png",
-      "size_bytes": 237435
+      "size_bytes": 241213
     },
     {
       "file": "02_inicio_light_mode.png",
-      "size_bytes": 229628
+      "size_bytes": 238271
     },
     {
       "file": "03_command_center_ctrl_k.png",
-      "size_bytes": 297200
+      "size_bytes": 305073
     },
     {
       "file": "04_todos_recursos_favoritos.png",
-      "size_bytes": 87174
+      "size_bytes": 87176
     },
     {
       "file": "05_meu_trabalho_drawer.png",
@@ -200,11 +200,11 @@
     },
     {
       "file": "07_marketing_campanhas.png",
-      "size_bytes": 173392
+      "size_bytes": 157308
     },
     {
       "file": "08_ia_visao_e_agentes.png",
-      "size_bytes": 196620
+      "size_bytes": 206424
     },
     {
       "file": "09_ia_motores_provedores.png",
@@ -212,27 +212,27 @@
     },
     {
       "file": "10b_gestao_relatorios.png",
-      "size_bytes": 142507
+      "size_bytes": 113971
     },
     {
       "file": "10_gestao_integracoes.png",
-      "size_bytes": 178525
+      "size_bytes": 176188
     },
     {
       "file": "11_central_ajuda_drawer.png",
-      "size_bytes": 286560
+      "size_bytes": 249327
     },
     {
       "file": "12_responsive_notebook_1366.png",
-      "size_bytes": 169617
+      "size_bytes": 158023
     },
     {
       "file": "13_responsive_tablet_768.png",
-      "size_bytes": 120625
+      "size_bytes": 126426
     },
     {
       "file": "14_responsive_mobile_390.png",
-      "size_bytes": 65095
+      "size_bytes": 68156
     },
     {
       "file": "15_public_landing_page.png",
@@ -240,7 +240,7 @@
     }
   ],
   "telemetry": {
-    "total_network_requests": 111,
+    "total_network_requests": 100,
     "console_errors_count": 0,
     "console_errors": [],
     "runtime_exceptions_count": 0,
