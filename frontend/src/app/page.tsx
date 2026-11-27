@@ -45,6 +45,9 @@ import { MyWorkHub } from "@/components/MyWorkHub";
 import { AITeamAndGovernanceView } from "@/components/AITeamAndGovernanceView";
 import { AllResourcesHub, HelpCenterDrawer } from "@/components/ResourceCenterAndHelp";
 import { AreaContextGuide } from "@/components/AreaContextGuide";
+import { GrowthCommandCenter } from "@/components/GrowthCommandCenter";
+import { BrandIntelligenceCenter, ProgressiveOnboardingWizard } from "@/components/BrandAndOnboardingHub";
+import { AnalyticsAttributionPanel, ConversationalAutomationPanel } from "@/components/ConversationalAutomationAndAnalytics";
 
 type MenuId = LegacyMenuId;
 
@@ -140,6 +143,12 @@ export default function UnionGrowthOSPortal() {
   const [systemAlerts, setSystemAlerts] = useState<any[]>([]);
   const [pilotData, setPilotData] = useState<any>(null);
   const [resourceCosts, setResourceCosts] = useState<any>(null);
+
+  // FASE 23 — AI Growth Command Center, Modo Simples/Avançado, Onboarding 6 Etapas & Analytics
+  const [commandCenterData, setCommandCenterData] = useState<any>(null);
+  const [analyticsAttrData, setAnalyticsAttrData] = useState<any>(null);
+  const [uiMode, setUiMode] = useState<"SIMPLE" | "ADVANCED">("SIMPLE");
+  const [showOnboardingWizard, setShowOnboardingWizard] = useState<boolean>(false);
 
   // FASE 17 Multi-Business State Stores
   const [mbDashboard, setMbDashboard] = useState<any>(null);
@@ -341,9 +350,9 @@ export default function UnionGrowthOSPortal() {
       setIntegrationsData(intg);
       setAuditData(aud);
 
-      // Carregar dados da FASE 14, Piloto 7 Dias e MENU 25 (Motores de IA)
+      // Carregar dados da FASE 14, Piloto 7 Dias, MENU 25 (Motores de IA) e FASE 23 (Growth Command Center & Analytics)
       try {
-        const [cfItems, cPlan, opDash, sAlerts, rCosts, mbDash, aiCfg, pilotRes] = await Promise.all([
+        const [cfItems, cPlan, opDash, sAlerts, rCosts, mbDash, aiCfg, pilotRes, cmdRes, attrRes] = await Promise.all([
           apiFetch("/api/v1/content-factory/items").catch(() => []),
           apiFetch("/api/v1/ceo/daily-plan").catch(() => null),
           apiFetch("/api/v1/system/operational-dashboard").catch(() => null),
@@ -352,6 +361,8 @@ export default function UnionGrowthOSPortal() {
           apiFetch(`/api/v1/commercial/multibusiness-dashboard?unit=${selectedUnit}`).catch(() => null),
           apiFetch("/api/v1/ai-engines/config").catch(() => null),
           apiFetch("/api/v1/system/pilot-7-days").catch(() => null),
+          apiFetch("/api/v1/growth-os/command-center").catch(() => null),
+          apiFetch("/api/v1/growth-os/analytics-attribution").catch(() => null),
         ]);
         setContentFactoryItems(cfItems || []);
         setCeoDailyPlan(cPlan);
@@ -361,6 +372,11 @@ export default function UnionGrowthOSPortal() {
         setMbDashboard(mbDash);
         setAiEnginesConfig(aiCfg);
         if (pilotRes) setPilotData(pilotRes);
+        if (cmdRes) setCommandCenterData(cmdRes);
+        if (attrRes) setAnalyticsAttrData(attrRes);
+        if (me?.active_tenant?.ui_mode === "SIMPLE" || me?.active_tenant?.ui_mode === "ADVANCED") {
+          setUiMode(me.active_tenant.ui_mode);
+        }
       } catch (e) {
         // silencioso para não interromper carga base
       }
@@ -908,13 +924,13 @@ export default function UnionGrowthOSPortal() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               {/* Botão Command Center / Busca Global (Ctrl+K) */}
               <button
                 type="button"
                 onClick={() => setCommandOpen(true)}
                 aria-label="Abrir busca global (Ctrl+K)"
-                className="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 hover:border-indigo-500/60 text-slate-300 text-xs flex items-center gap-2 transition"
+                className="px-2 sm:px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 hover:border-indigo-500/60 text-slate-300 text-xs flex items-center gap-2 transition"
               >
                 <Search className="w-3.5 h-3.5 text-indigo-400" aria-hidden="true" />
                 <span className="hidden md:inline">Buscar...</span>
@@ -928,7 +944,7 @@ export default function UnionGrowthOSPortal() {
                 type="button"
                 onClick={() => navigateTo("my_work")}
                 aria-label={`Notificações e pendências (${pendingWorkCount})`}
-                className="relative p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 text-slate-300 transition"
+                className="relative p-1.5 sm:p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 text-slate-300 transition"
               >
                 <Bell className="w-4 h-4" />
                 {pendingWorkCount > 0 && (
@@ -938,13 +954,47 @@ export default function UnionGrowthOSPortal() {
                 )}
               </button>
 
+              {/* Seletor Persistente Modo Simples vs Avançado (Fase 23) */}
+              <button
+                id="ug-ui-mode-toggle"
+                type="button"
+                onClick={async () => {
+                  const nextMode = uiMode === "SIMPLE" ? "ADVANCED" : "SIMPLE";
+                  setUiMode(nextMode);
+                  if (typeof window !== "undefined") localStorage.setItem("ug_ui_mode", nextMode);
+                  try {
+                    await apiFetch("/api/v1/tenants/current", {
+                      method: "PUT",
+                      body: JSON.stringify({ ui_mode: nextMode }),
+                    });
+                    showNotice(
+                      nextMode === "SIMPLE"
+                        ? "Modo Simples ativado: foco em decisões e linguagem clara."
+                        : "Modo Avançado ativado: todos os controles técnicos visíveis."
+                    );
+                  } catch {
+                    // mantém preferência local em fallback
+                  }
+                }}
+                aria-label={uiMode === "SIMPLE" ? "Alternar para Modo Avançado" : "Alternar para Modo Simples"}
+                title="Alternar entre Modo Simples (empreendedor) e Modo Avançado (detalhes técnicos)"
+                className={`px-2 sm:px-2.5 py-1.5 rounded-xl border text-[11px] font-semibold transition ${
+                  uiMode === "ADVANCED"
+                    ? "bg-purple-600/25 border-purple-500/50 text-purple-200"
+                    : "bg-slate-900/80 border-slate-700 text-slate-200 hover:border-indigo-500/50"
+                }`}
+              >
+                <span className="sm:hidden">{uiMode === "SIMPLE" ? "Simples" : "Avanç."}</span>
+                <span className="hidden sm:inline">{uiMode === "SIMPLE" ? "Modo Simples" : "Modo Avançado"}</span>
+              </button>
+
               {/* Alternador Dark / Light Mode */}
               <button
                 type="button"
                 onClick={() => setThemeMode((prev) => (prev === "dark" ? "light" : "dark"))}
                 aria-label={themeMode === "dark" ? "Ativar Modo Claro" : "Ativar Modo Escuro"}
                 title={themeMode === "dark" ? "Ativar Modo Claro" : "Ativar Modo Escuro"}
-                className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 text-slate-300 transition"
+                className="p-1.5 sm:p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 text-slate-300 transition"
               >
                 {themeMode === "dark" ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-indigo-500" />}
               </button>
@@ -955,7 +1005,7 @@ export default function UnionGrowthOSPortal() {
                 onClick={() => setHelpOpen(true)}
                 aria-label="Abrir Central de Ajuda"
                 title="Ajuda desta tela, Glossário e Atalhos"
-                className="p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 text-slate-300 transition"
+                className="p-1.5 sm:p-2 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/50 text-slate-300 transition"
               >
                 <HelpCircle className="w-4 h-4 text-indigo-400" />
               </button>
@@ -965,7 +1015,7 @@ export default function UnionGrowthOSPortal() {
                 type="button"
                 onClick={loadAllActiveData}
                 aria-label="Atualizar Dados"
-                className="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs flex items-center gap-1.5 transition"
+                className="px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs flex items-center gap-1.5 transition"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} aria-hidden="true" />
                 <span className="hidden xl:inline">{loading ? "Atualizando..." : "Atualizar"}</span>
@@ -1034,9 +1084,30 @@ export default function UnionGrowthOSPortal() {
             />
           )}
 
-          {/* ÁREA 1 — INÍCIO (RECONSTRUÍDO NA FASE 22) */}
+          {/* ÁREA 1 — INÍCIO (AI GROWTH COMMAND CENTER FASE 23 + PAINEL EXECUTIVO) */}
           {activeMenu === "overview" && overviewData && (
             <div className="space-y-6">
+              {showOnboardingWizard && (
+                <ProgressiveOnboardingWizard
+                  apiFetch={apiFetch}
+                  onReload={loadAllActiveData}
+                  onNavigate={navigateTo}
+                  onClose={() => setShowOnboardingWizard(false)}
+                  showNotice={showNotice}
+                />
+              )}
+
+              <GrowthCommandCenter
+                meData={meData}
+                commandCenter={commandCenterData}
+                uiMode={uiMode}
+                apiFetch={apiFetch}
+                onReload={loadAllActiveData}
+                onNavigate={navigateTo}
+                onOpenOnboarding={() => setShowOnboardingWizard((v) => !v)}
+                showNotice={showNotice}
+              />
+
               <HomeWorkspace
                 meData={meData}
                 overviewData={overviewData}
@@ -3472,6 +3543,12 @@ export default function UnionGrowthOSPortal() {
           {/* 15. AUTOMAÇÕES NATIVAS PYTHON */}
           {activeMenu === "automations" && automationsData && (
             <div className="space-y-6">
+              <ConversationalAutomationPanel
+                apiFetch={apiFetch}
+                onReload={loadAllActiveData}
+                showNotice={showNotice}
+              />
+
               <div className="bg-[#0f1629] border border-emerald-500/30 rounded-xl p-4 flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-bold text-white">
@@ -3617,9 +3694,11 @@ export default function UnionGrowthOSPortal() {
             </div>
           )}
 
-          {/* 17. RELATÓRIOS */}
+          {/* 17. RELATÓRIOS & ANALYTICS */}
           {activeMenu === "reports" && reportsData && (
             <div className="space-y-6">
+              <AnalyticsAttributionPanel attribution={analyticsAttrData} />
+
               <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -4068,6 +4147,12 @@ export default function UnionGrowthOSPortal() {
                   </div>
                 </div>
               )}
+
+              <BrandIntelligenceCenter
+                apiFetch={apiFetch}
+                onReload={loadAllActiveData}
+                showNotice={showNotice}
+              />
 
               <div className="bg-[#0f1629] border border-slate-800 rounded-xl p-5 space-y-4">
                 <h3 className="text-sm font-bold text-white">4. Criar Nova Empresa no Grupo (Multi-Tenant Isolado)</h3>

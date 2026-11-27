@@ -119,7 +119,7 @@ def fetch_pagespeed_insights(target_url: str, response_time_ms: float = 0.0) -> 
         pass
 
     est_perf = 92.0 if 0 < response_time_ms < 500 else (78.0 if response_time_ms < 1200 else 64.0)
-    return {
+    fallback_res = {
         "provider": "HTTP Direct Latency Benchmark (PageSpeed Quota Fallback)",
         "data_origin": "ESTIMATED",
         "performance_score": est_perf,
@@ -127,6 +127,8 @@ def fetch_pagespeed_insights(target_url: str, response_time_ms: float = 0.0) -> 
         "ttfb_measured_ms": response_time_ms,
         "note": "Configure PAGESPEED_API_KEY para cota dedicada sem rate-limit público da Google API.",
     }
+    _RESEARCH_CACHE[cache_key] = (time.time() - CACHE_TTL_SECONDS + 120, fallback_res)
+    return fallback_res
 
 
 def generate_dynamic_robots_txt(base_url: str | None = None) -> str:

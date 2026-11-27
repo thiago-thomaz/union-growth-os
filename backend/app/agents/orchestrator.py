@@ -1,5 +1,6 @@
 import json
 import time
+import urllib.request
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -162,6 +163,17 @@ AGENT_REGISTRY: dict[str, dict[str, Any]] = {
         ],
         "default_autonomy": 2,
     },
+    "AGENT_12_DATA_ANALYST": {
+        "id": "AGENT_12_DATA_ANALYST",
+        "name": "AI Data Analyst",
+        "role": "Consolidação Analítica, Growth Score Transparente, Atribuição Real e Detecção de Anomalias",
+        "allowed_tools": [
+            "compute_growth_score",
+            "build_channel_attribution",
+            "audit_funnel_dropoffs",
+        ],
+        "default_autonomy": 1,
+    },
 }
 
 
@@ -266,6 +278,15 @@ AGENT_AI_CAPABILITY_AUDIT: dict[str, dict[str, Any]] = {
         "outputs": "Saúde de clientes e playbooks.",
         "limitations": "Sentimento vem do NPS, não de análise de texto por LLM.",
     },
+    "AGENT_12_DATA_ANALYST": {
+        "base_origin": "DETERMINISTIC_PYTHON_ENGINE",
+        "llm_narrative_enabled": False,
+        "deterministic_rules": "Cálculo transparente de Growth Score (5 pilares = 100 pts), atribuição por origem de lead e saúde em 12 dimensões reais.",
+        "templates": "Nenhum relevante.",
+        "tools_executed": ["Consulta multi-tabela PostgreSQL", "Cálculo de Growth Score", "Atribuição First-Touch"],
+        "outputs": "Diagnóstico analítico auditado sem métricas inventadas.",
+        "limitations": "Canais sem integração OAuth ativa ficam marcados como NAO_DISPONIVEL.",
+    },
 }
 
 
@@ -333,17 +354,28 @@ class MultiProviderAIAdapter:
     6. Registro Transparente da Origem das Respostas (nunca declara template como LLM real).
     """
 
-    @staticmethod
-    def resolve_provider_status() -> dict[str, Any]:
+    _ollama_probe_cache: dict[str, tuple[float, bool]] = {}
+
+    @classmethod
+    def resolve_provider_status(cls) -> dict[str, Any]:
         local_ollama_online = False
         if settings.AI_DEFAULT_PROVIDER.lower() in ("ollama", "hybrid"):
-            try:
-                with httpx.Client(timeout=1.2) as client:
-                    r = client.get(f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/tags")
-                    if r.status_code == 200:
-                        local_ollama_online = True
-            except Exception:
-                local_ollama_online = False
+            ollama_url = f"{settings.OLLAMA_BASE_URL.rstrip('/')}/api/tags"
+            cached_probe = cls._ollama_probe_cache.get(ollama_url)
+            if cached_probe and (time.time() - cached_probe[0]) < 30.0:
+                local_ollama_online = cached_probe[1]
+            else:
+                try:
+                    if ollama_url.startswith("http://"):
+                        with urllib.request.urlopen(ollama_url, timeout=0.45) as resp:
+                            local_ollama_online = getattr(resp, "status", 0) == 200
+                    else:
+                        with httpx.Client(timeout=1.2) as client:
+                            r = client.get(ollama_url)
+                            local_ollama_online = r.status_code == 200
+                except Exception:
+                    local_ollama_online = False
+                cls._ollama_probe_cache[ollama_url] = (time.time(), local_ollama_online)
 
         gemini_configured = bool((settings.GEMINI_API_KEY or "").strip())
         openai_compat_configured = bool((settings.OPENAI_COMPATIBLE_BASE_URL or "").strip() and (settings.OPENAI_COMPATIBLE_API_KEY or "").strip())
@@ -1078,6 +1110,24 @@ class CentralOrchestrator:
                 f"Apresentar proposta de upsell/expansão para os {len(promoters)} clientes promotores (NPS 9-10).",
             ]
             summary = f"Customer Success: NPS médio {avg_nps} | {len(at_risk)} em risco | {len(promoters)} oportunidades de upsell."
+
+        elif aid == "AGENT_12_DATA_ANALYST":
+            from app.services.phase23_growth_platform import (
+                compute_growth_score_and_health,
+                get_analytics_attribution_service,
+            )
+            health_pack = compute_growth_score_and_health(db, tenant)
+            attr = get_analytics_attribution_service(db, tenant.id)
+            gs = health_pack["growth_score"]
+            output_data = {
+                "growth_score": gs["score"],
+                "components": gs["components"],
+                "limitations": gs["limitations"],
+                "attribution_channels_count": len(attr["channels"]),
+                "external_analytics_status": attr["external_analytics_status"],
+            }
+            recs = gs["next_actions_to_improve"] or ["Manter acompanhamento semanal de atribuição e retenção."]
+            summary = f"AI Data Analyst: Growth Score auditado em {gs['score']}/100 ({len(attr['channels'])} canal(is) com atribuição real)."
 
         else:
             output_data = {"info": f"Agente {aid} executado com sucesso."}

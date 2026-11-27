@@ -25,6 +25,8 @@ from app.models.entities import (
     IntegrationConnection,
     AgentExecutionLog,
     AuditLog,
+    BrandVersionRecord,
+    AskUnionActionLog,
 )
 
 __all__ = [
@@ -54,5 +56,7 @@ __all__ = [
     "IntegrationConnection",
     "AgentExecutionLog",
     "AuditLog",
+    "BrandVersionRecord",
+    "AskUnionActionLog",
 ]
 

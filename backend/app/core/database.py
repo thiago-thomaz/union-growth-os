@@ -143,6 +143,19 @@ def run_automatic_schema_migrations(engine_instance=None):
         ("product_services", "scope_excluded_json", "TEXT DEFAULT '[]'"),
         ("product_services", "approval_criteria", "TEXT DEFAULT 'Validação de escopo técnico, margem mínima >= 30% e aprovação expressa do proprietário.'"),
         ("service_delivery_projects", "execution_evidence", "TEXT DEFAULT ''"),
+        # Fase 23 — UX Simples/Avançado, Brand Intelligence & Onboarding Progressivo
+        ("tenants", "ui_mode", "VARCHAR(20) DEFAULT 'SIMPLE'"),
+        ("tenants", "brand_voice", "VARCHAR(160) DEFAULT 'Consultivo, claro e orientado a resultados'"),
+        ("tenants", "brand_fonts", "VARCHAR(160) DEFAULT 'Inter + Plus Jakarta Sans'"),
+        ("tenants", "brand_differentials", "TEXT DEFAULT ''"),
+        ("tenants", "brand_allowed_terms", "TEXT DEFAULT ''"),
+        ("tenants", "brand_forbidden_terms", "TEXT DEFAULT 'lucro garantido, milagre financeiro, ganhe dinheiro fácil'"),
+        ("tenants", "brand_examples", "TEXT DEFAULT ''"),
+        ("tenants", "brand_country", "VARCHAR(80) DEFAULT 'Brasil'"),
+        ("tenants", "brand_description", "TEXT DEFAULT ''"),
+        ("tenants", "growth_goals_json", "TEXT DEFAULT '[]'"),
+        ("tenants", "onboarding_step", "INTEGER DEFAULT 1"),
+        ("tenants", "onboarding_state_json", "TEXT DEFAULT '{}'"),
     ]
 
     with eng.connect() as conn:

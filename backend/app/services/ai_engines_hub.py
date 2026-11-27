@@ -59,10 +59,10 @@ ALL_12_AGENTS: list[dict[str, str]] = [
     {"agent_id": "AGENT_06_COPYWRITER", "name": "Copywriter", "default_task": "copywriting"},
     {"agent_id": "AGENT_07_GROWTH", "name": "Growth", "default_task": "analysis"},
     {"agent_id": "AGENT_08_SALES", "name": "Sales", "default_task": "copywriting"},
-    {"agent_id": "AGENT_12_CRM", "name": "CRM Intelligence", "default_task": "analysis"},
     {"agent_id": "AGENT_09_COMPETITIVE", "name": "Competitive Intelligence", "default_task": "analysis"},
     {"agent_id": "AGENT_10_FINANCE", "name": "Finance", "default_task": "analysis"},
     {"agent_id": "AGENT_11_CS", "name": "Customer Success", "default_task": "copywriting"},
+    {"agent_id": "AGENT_12_DATA_ANALYST", "name": "AI Data Analyst", "default_task": "analysis"},
 ]
 
 
@@ -1356,6 +1356,10 @@ def save_ai_provider_credential(
         prov.updated_at = datetime.now(timezone.utc)
 
     db.commit()
+    # Ao cadastrar ou atualizar credencial do provedor, limpa circuit breaker e cache prévio deste provedor
+    breakers = getattr(AIRouter, "_CIRCUIT_BREAKERS", None)
+    if isinstance(breakers, dict):
+        breakers.pop(f"{tenant_id}:{pkey}", None)
     return {
         "provider_key": pkey,
         "is_active": cred.is_active,
@@ -1434,6 +1438,10 @@ def test_ai_provider_connection_service(
         cred_rec.last_error = res.get("error", "") if not res.get("ok") else ""
 
     db.commit()
+    if res.get("ok"):
+        breakers = getattr(AIRouter, "_CIRCUIT_BREAKERS", None)
+        if isinstance(breakers, dict):
+            breakers.pop(f"{tenant_id}:{pkey}", None)
     return {
         "provider_key": pkey,
         "model_tested": model_id,
@@ -1620,6 +1628,20 @@ class AIRouter:
         primary_failure_reason = ""
         last_status_code = "FAILED"
 
+        # Cache TTL in-memory (180s) para prompts idênticos bem-sucedidos (economia de cota e latência)
+        import hashlib as _hl
+        cache_store = getattr(cls, "_RESPONSE_CACHE", {})
+        breaker_store = getattr(cls, "_CIRCUIT_BREAKERS", {})
+        setattr(cls, "_RESPONSE_CACHE", cache_store)
+        setattr(cls, "_CIRCUIT_BREAKERS", breaker_store)
+
+        cache_key = f"{tenant_id}:{req_prov}:{req_model}:{required_capability}:{_hl.sha256(prompt.encode('utf-8', 'ignore')).hexdigest()[:16]}"
+        cached_entry = cache_store.get(cache_key)
+        if cached_entry and (time.time() - cached_entry["ts"]) <= 180:
+            res_copy = dict(cached_entry["response"])
+            res_copy["cache_hit"] = True
+            return res_copy
+
         for cand_prov_key, cand_model_id, is_fb in candidates:
             prov_rec = (
                 db.query(AIProviderRecord)
@@ -1679,6 +1701,15 @@ class AIRouter:
                 if not is_fb:
                     primary_failure_reason = limit_msg
                     last_status_code = "BLOCKED_LIMIT"
+                continue
+
+            # Circuit Breaker por (tenant_id, provedor): abre por 90s após >=3 falhas transitórias reais
+            cb_key = f"{tenant_id}:{cand_prov_key}"
+            cb = breaker_store.get(cb_key)
+            if cb and cb.get("open_until", 0) > time.time():
+                if not is_fb:
+                    primary_failure_reason = f"Circuit breaker ativo temporariamente para '{cand_prov_key}' após falhas consecutivas."
+                    last_status_code = "CIRCUIT_OPEN"
                 continue
 
             # Verificar credencial e executar chamada real ao provedor
@@ -1760,7 +1791,8 @@ class AIRouter:
                     db.add(fb_rec)
 
                 db.commit()
-                return {
+                breaker_store.pop(cb_key, None)
+                ok_payload = {
                     "ok": True,
                     "execution_uuid": exec_uuid,
                     "status": "SUCCESS",
@@ -1772,15 +1804,43 @@ class AIRouter:
                     "cost_classification": cost_class,
                     "execution_origin": "REAL_PROVIDER_API",
                     "estimated_cost_brl": est_brl,
+                    "cache_hit": False,
                     "output": out,
                 }
+                cache_store[cache_key] = {"ts": time.time(), "response": ok_payload}
+                return ok_payload
             except Exception as exc:
                 err_str = str(exc)
+                err_low = err_str.lower()
+                is_non_transient = any(
+                    tok in err_low
+                    for tok in (
+                        "não configurada",
+                        "inexistente",
+                        "não encontrado",
+                        "api key",
+                        "api_key",
+                        "inválid",
+                        "invalid",
+                        "400",
+                        "401",
+                        "402",
+                        "403",
+                        "billing",
+                        "faturamento",
+                    )
+                )
+                if not is_non_transient:
+                    st = breaker_store.get(cb_key, {"fails": 0, "open_until": 0.0})
+                    st["fails"] = int(st.get("fails", 0)) + 1
+                    if st["fails"] >= 3:
+                        st["open_until"] = time.time() + 90.0
+                    breaker_store[cb_key] = st
                 if not is_fb:
                     primary_failure_reason = err_str
-                    if "não configurada" in err_str.lower():
+                    if "não configurada" in err_low:
                         last_status_code = "PENDING_API_KEY"
-                    elif "inexistente" in err_str.lower() or "não encontrado" in err_str.lower():
+                    elif "inexistente" in err_low or "não encontrado" in err_low:
                         last_status_code = "MODEL_NOT_FOUND"
                     elif "402" in err_str:
                         last_status_code = "QUOTA_OR_BILLING_REQUIRED"

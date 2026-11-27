@@ -480,7 +480,7 @@ def test_14_agents_audit_is_honest_about_llm(client: TestClient):
     r = client.get("/api/v1/agents/audit", headers=_auth_headers(token))
     assert r.status_code == 200
     data = r.json()
-    assert len(data["agents"]) == 11
+    assert len(data["agents"]) == 12
     assert all(a["limitations"] for a in data["agents"])
     # Without any LLM configured, no agent may claim to use a real LLM.
     if not data["provider_status"]["llm_active"]:
@@ -567,7 +567,7 @@ def test_20_autonomy_limits_and_financial_always_requires_approval(client: TestC
     assert r.json()["limits"]["require_approval_for_financial_actions"] is True  # immutable
     panel = client.get("/api/v1/autonomy/panel", headers=h)
     assert panel.status_code == 200
-    assert len(panel.json()["agents"]) == 11
+    assert len(panel.json()["agents"]) == 12
     # restore safe defaults
     client.put("/api/v1/autonomy/limits", headers=h, json={"autonomy_default_level": 2, "agent_autonomy": {}, "limits": {}})
 
@@ -2507,6 +2507,131 @@ def test_46_custom_tenant_content_factory_uses_site_niche_and_persona(client: Te
     assert r_del.json()["deleted_count"] == 5
     remaining = client.get("/api/v1/content-factory/items?limit=50", headers=h).json()
     assert len(remaining) == 1 and remaining[0]["id"] == pub_id
+
+
+def test_47_phase23_10_user_journeys_and_agent12(client: TestClient):
+    """Fase 23: Testa ponta a ponta todas as 10 jornadas principais + Modo Simples/Avançado + Brand Intelligence + Ask Union + Conversational Automation."""
+    email_23 = f"phase23.founder.{RUN_SUFFIX}@teste.com.br"
+    r_reg = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email_23,
+            "password": "StrongPassword#2026!",
+            "full_name": "Empreendedor Fase23",
+            "company_name": "Clínica Vida Mais",
+            "lgpd_consent": True,
+        },
+    )
+    assert r_reg.status_code in (200, 201)
+    h = _auth_headers(r_reg.json()["access_token"])
+
+    # Jornada 1: Onboarding progressivo 6 etapas (Etapa 1 Empresa + Etapa 2 Marca + Etapa 3 Objetivos + Etapa 4 Plano)
+    r_ob1 = client.post(
+        "/api/v1/growth-os/onboarding",
+        headers=h,
+        json={"step": 1, "data": {"name": "Clínica Vida Mais Ltda", "niche": "Odontologia Preventiva", "domain": "https://clinicavidamais.com.br", "target_audience": "Pacientes locais buscando prevenção"}},
+    )
+    assert r_ob1.status_code == 200
+    assert r_ob1.json()["current_step"] == 2
+
+    r_ob2 = client.post(
+        "/api/v1/growth-os/onboarding",
+        headers=h,
+        json={"step": 2, "data": {"brand_name": "Clínica Vida Mais", "brand_voice": "Acolhedor e profissional", "brand_differentials": "Avaliação digital sem dor"}},
+    )
+    assert r_ob2.status_code == 200 and r_ob2.json()["current_step"] == 3
+
+    # Jornada 2: Brand Intelligence Hub + Versionamento + Detector de Inconsistências
+    r_brand = client.put(
+        "/api/v1/growth-os/brand",
+        headers=h,
+        json={
+            "brand_voice": "Humanizado e educativo",
+            "brand_differentials": "Atendimento no mesmo dia",
+            "brand_forbidden_terms": "milagre financeiro, barato demais",
+            "notes": "Versão inicial validada",
+        },
+    )
+    assert r_brand.status_code == 200
+    assert len(r_brand.json()["versions"]) >= 1
+    assert r_brand.json()["consistency_audit"]["consistency_score"] >= 50
+
+    # Jornada 3 & 4: Criação de objetivo + Geração automática de Plano de Crescimento (Etapas 3 e 4)
+    assert client.post("/api/v1/growth-os/onboarding", headers=h, json={"step": 3, "data": {"growth_goals": ["Gerar leads", "Melhorar SEO"]}}).status_code == 200
+    r_ob4 = client.post("/api/v1/growth-os/onboarding", headers=h, json={"step": 4, "data": {}})
+    assert r_ob4.status_code == 200
+    assert r_ob4.json()["data"]["generated_plan"]["cost_policy"].startswith("FREE_ONLY")
+
+    # Jornada 5 & 6: Criação de campanha + Geração de conteúdo personalizado
+    r_camp = client.post("/api/v1/marketing/campaigns", headers=h, json={"name": "Campanha Checkup", "campaign_type": "ACQUISITION", "channel": "Instagram", "objective": "Agendamento", "budget_planned": 0})
+    assert r_camp.status_code in (200, 201)
+    r_cf = client.post("/api/v1/content-factory/generate-batch", headers=h, json={"count": 5})
+    assert r_cf.status_code == 201
+    assert "Clínica Vida Mais" in r_cf.json()["items"][0]["body_text"]
+
+    # Jornada 7: Organização de Leads no CRM + LGPD
+    r_lead = client.post("/api/v1/crm/leads", headers=h, json={"full_name": "Carlos Paciente", "email": f"carlos.{RUN_SUFFIX}@paciente.com", "phone": "+5511999990000", "company_name": "Particular", "estimated_value": 900, "consent_lgpd": True, "source_channel": "Instagram"})
+    assert r_lead.status_code == 201
+
+    # Jornada 8: Criação de Automação Conversacional Nativa Python (Dry-Run + Ativação)
+    r_conv_dry = client.post("/api/v1/automations/conversational-build", headers=h, json={"prompt": "Quando entrar um lead, quero que a IA analise e me avise", "dry_run": True, "approve_create": False})
+    assert r_conv_dry.status_code == 200 and r_conv_dry.json()["status"] == "PREVIEW_READY"
+    r_conv_ok = client.post("/api/v1/automations/conversational-build", headers=h, json={"prompt": "Quando entrar um lead, quero que a IA analise e me avise", "dry_run": True, "approve_create": True})
+    assert r_conv_ok.status_code == 200 and r_conv_ok.json()["status"] == "ACTIVATED" and r_conv_ok.json()["created_rule_id"] is not None
+
+    # Jornada 9: ASK UNION + Ação Executiva + Persistência Modo Simples/Avançado
+    r_ask = client.post("/api/v1/growth-os/ask-union", headers=h, json={"prompt": "Quero vender mais", "auto_execute_safe": True})
+    assert r_ask.status_code == 200
+    assert r_ask.json()["intent"] == "INCREASE_SALES"
+    assert len(r_ask.json()["executed_actions"]) == 1
+
+    assert client.put("/api/v1/tenants/current", headers=h, json={"ui_mode": "ADVANCED"}).status_code == 200
+    assert client.get("/api/v1/auth/me", headers=h).json()["active_tenant"]["ui_mode"] == "ADVANCED"
+
+    # Jornada 10: Command Center (12 pilares, Growth Score, Opportunity Radar) + Analytics + AGENT_12_DATA_ANALYST
+    r_cc = client.get("/api/v1/growth-os/command-center", headers=h)
+    assert r_cc.status_code == 200
+    cc = r_cc.json()
+    assert len(cc["business_health"]) == 12
+    assert 0 <= cc["growth_score"]["score"] <= 100
+    assert any(h_item["data_origin"] == "NAO_DISPONIVEL" for h_item in cc["business_health"])  # zero inventado (ex: receita em 0)
+    assert len(cc["opportunity_radar"]) >= 1
+
+    r_attr = client.get("/api/v1/growth-os/analytics-attribution", headers=h)
+    assert r_attr.status_code == 200
+    assert r_attr.json()["external_analytics_status"] == "NAO_DISPONIVEL"
+
+    r_ag12 = client.post("/api/v1/agents/AGENT_12_DATA_ANALYST/execute", headers=h, json={})
+    assert r_ag12.status_code == 200
+    assert "growth_score" in r_ag12.json()["structured_output"]
+
+
+def test_48_explicit_rate_limit_enforcement_and_xff_isolation(client: TestClient):
+    """Fase 23: Valida explicitamente que enforce_rate_limit bloqueia excesso com HTTP 429 isolando por IP X-Forwarded-For."""
+    from fastapi import HTTPException
+    from starlette.requests import Request
+    from app.core import security as sec_mod
+
+    orig_limit = sec_mod.settings.RATE_LIMIT_PER_MINUTE
+    sec_mod.settings.RATE_LIMIT_PER_MINUTE = 3
+    try:
+        ip_a = f"203.0.113.{abs(hash(RUN_SUFFIX)) % 200 + 10}"
+        ip_b = f"203.0.114.{abs(hash(RUN_SUFFIX)) % 200 + 10}"
+        scope_a = {"type": "http", "method": "GET", "path": "/api/v1/dashboard/overview", "headers": [(b"x-forwarded-for", ip_a.encode())], "client": ("10.0.1.11", 12345)}
+        scope_b = {"type": "http", "method": "GET", "path": "/api/v1/dashboard/overview", "headers": [(b"x-forwarded-for", ip_b.encode())], "client": ("10.0.1.11", 12346)}
+
+        # Primeiras 3 requisições do IP A passam; 4ª estoura com HTTP 429
+        for _ in range(3):
+            sec_mod.enforce_rate_limit(Request(scope_a))
+        with pytest.raises(HTTPException) as exc:
+            sec_mod.enforce_rate_limit(Request(scope_a))
+        assert exc.value.status_code == 429
+
+        # IP B atrás do mesmo proxy (10.0.1.11) NÃO é bloqueado pelo balde do IP A
+        sec_mod.enforce_rate_limit(Request(scope_b))
+    finally:
+        sec_mod.settings.RATE_LIMIT_PER_MINUTE = orig_limit
+
 
 
 

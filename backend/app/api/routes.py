@@ -132,6 +132,12 @@ from app.schemas.contracts import (
     ServiceDeliveryUpdateRequest,
     LeadReactivationRequest,
     LeadOutreachPrepRequest,
+    BrandIntelligenceUpdateRequest,
+    ProgressiveOnboardingStepRequest,
+    AskUnionRequest,
+    AskUnionExecuteActionRequest,
+    ExecutiveActionDecisionRequest,
+    ConversationalAutomationRequest,
 )
 from app.services.phase17_commercial_engine import (
     AGENCY_PLAN_LIMITS,
@@ -418,6 +424,12 @@ def get_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)
             "target_audience": tenant.target_audience,
             "plan_tier": tenant.plan_tier,
             "autonomy_default_level": tenant.autonomy_default_level,
+            "ui_mode": getattr(tenant, "ui_mode", "SIMPLE") or "SIMPLE",
+            "brand_voice": getattr(tenant, "brand_voice", "Consultivo, claro e orientado a resultados") or "",
+            "brand_fonts": getattr(tenant, "brand_fonts", "Inter + Plus Jakarta Sans") or "",
+            "brand_differentials": getattr(tenant, "brand_differentials", "") or "",
+            "brand_forbidden_terms": getattr(tenant, "brand_forbidden_terms", "") or "",
+            "onboarding_step": int(getattr(tenant, "onboarding_step", 1) or 1),
             "agent_autonomy": get_tenant_autonomy_config(tenant)["agent_autonomy"],
             "autonomy_limits": get_tenant_autonomy_config(tenant)["limits"],
             "products": json.loads(tenant.products_json or "[]"),
@@ -545,9 +557,38 @@ def update_current_tenant(
         tenant.products_json = json.dumps(payload.products, ensure_ascii=False)
     if payload.services is not None:
         tenant.services_json = json.dumps(payload.services, ensure_ascii=False)
+    if payload.ui_mode is not None:
+        tenant.ui_mode = payload.ui_mode
+    if payload.brand_voice is not None:
+        tenant.brand_voice = sanitize_text(payload.brand_voice)
+    if payload.brand_fonts is not None:
+        tenant.brand_fonts = sanitize_text(payload.brand_fonts)
+    if payload.brand_differentials is not None:
+        tenant.brand_differentials = sanitize_text(payload.brand_differentials)
+    if payload.brand_allowed_terms is not None:
+        tenant.brand_allowed_terms = sanitize_text(payload.brand_allowed_terms)
+    if payload.brand_forbidden_terms is not None:
+        tenant.brand_forbidden_terms = sanitize_text(payload.brand_forbidden_terms)
+    if payload.brand_examples is not None:
+        tenant.brand_examples = sanitize_text(payload.brand_examples)
+    if payload.brand_country is not None:
+        tenant.brand_country = sanitize_text(payload.brand_country)
+    if payload.brand_description is not None:
+        tenant.brand_description = sanitize_text(payload.brand_description)
+    if payload.growth_goals is not None:
+        tenant.growth_goals_json = json.dumps([sanitize_text(g) for g in payload.growth_goals], ensure_ascii=False)
+    if payload.onboarding_step is not None:
+        tenant.onboarding_step = max(1, min(6, int(payload.onboarding_step)))
+    if payload.onboarding_state is not None:
+        tenant.onboarding_state_json = json.dumps(payload.onboarding_state, ensure_ascii=False)
     db.commit()
     record_audit_log(db, tenant_id=tid, user_id=user.id, actor=user.email, action="TENANT_SETTINGS_UPDATED")
-    return {"status": "updated", "tenant_id": tenant.id, "autonomy_default_level": tenant.autonomy_default_level}
+    return {
+        "status": "updated",
+        "tenant_id": tenant.id,
+        "autonomy_default_level": tenant.autonomy_default_level,
+        "ui_mode": getattr(tenant, "ui_mode", "SIMPLE") or "SIMPLE",
+    }
 
 
 # ==============================================================================
@@ -3844,6 +3885,174 @@ def ai_engine_hub_generate_video(
     tid = get_active_tenant_id(user)
     tenant = _get_tenant_or_404(db, tid)
     return generate_ai_video_studio_service(db, tenant, payload)
+
+
+# ==============================================================================
+# 22. FASE 23 — AI GROWTH COMMAND CENTER, ASK UNION, BRAND KIT, ONBOARDING & CONVERSATIONAL AUTOMATION
+# ==============================================================================
+@router.get("/growth-os/command-center")
+def growth_os_command_center(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.phase23_growth_platform import get_growth_command_center_service
+
+    tid = get_active_tenant_id(user)
+    return get_growth_command_center_service(db, tenant_id=tid)
+
+
+@router.post("/growth-os/actions/decide")
+def growth_os_decide_executive_action(
+    payload: ExecutiveActionDecisionRequest,
+    user: User = Depends(require_roles("owner", "admin", "operator")),
+    db: Session = Depends(get_db),
+):
+    from app.services.phase23_growth_platform import execute_or_decide_executive_action_service
+
+    tid = get_active_tenant_id(user)
+    return execute_or_decide_executive_action_service(
+        db,
+        tenant_id=tid,
+        user=user,
+        action_id=payload.action_id,
+        decision=payload.decision,
+    )
+
+
+@router.get("/growth-os/brand")
+def growth_os_get_brand_intelligence(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.phase23_growth_platform import get_brand_intelligence_service
+
+    tid = get_active_tenant_id(user)
+    return get_brand_intelligence_service(db, tenant_id=tid)
+
+
+@router.put("/growth-os/brand")
+def growth_os_save_brand_intelligence(
+    payload: BrandIntelligenceUpdateRequest,
+    user: User = Depends(require_roles("owner", "admin", "operator")),
+    db: Session = Depends(get_db),
+):
+    from app.services.phase23_growth_platform import save_brand_intelligence_service
+
+    tid = get_active_tenant_id(user)
+    return save_brand_intelligence_service(
+        db,
+        tenant_id=tid,
+        payload=payload.model_dump(exclude_none=True),
+        actor=user.email,
+    )
+
+
+@router.post("/growth-os/brand/audit")
+def growth_os_audit_brand_consistency(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.phase23_growth_platform import audit_brand_consistency_service
+
+    tid = get_active_tenant_id(user)
+    return audit_brand_consistency_service(db, tenant_id=tid)
+
+
+@router.get("/growth-os/onboarding")
+def growth_os_get_onboarding(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.phase23_growth_platform import get_progressive_onboarding_service
+
+    tid = get_active_tenant_id(user)
+    return get_progressive_onboarding_service(db, tenant_id=tid)
+
+
+@router.post("/growth-os/onboarding")
+def growth_os_save_onboarding_step(
+    payload: ProgressiveOnboardingStepRequest,
+    user: User = Depends(require_roles("owner", "admin", "operator")),
+    db: Session = Depends(get_db),
+):
+    from app.services.phase23_growth_platform import save_progressive_onboarding_step_service
+
+    tid = get_active_tenant_id(user)
+    return save_progressive_onboarding_step_service(
+        db,
+        tenant_id=tid,
+        step=payload.step,
+        data=payload.data,
+        save_only=payload.save_only,
+        reset_onboarding=payload.reset_onboarding,
+        actor=user.email,
+    )
+
+
+@router.post("/growth-os/ask-union")
+def growth_os_ask_union(
+    payload: AskUnionRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.phase23_growth_platform import ask_union_copilot_service
+
+    tid = get_active_tenant_id(user)
+    return ask_union_copilot_service(
+        db,
+        tenant_id=tid,
+        user=user,
+        prompt=payload.prompt,
+        auto_execute_safe=payload.auto_execute_safe,
+    )
+
+
+@router.post("/growth-os/ask-union/execute")
+def growth_os_ask_union_execute(
+    payload: AskUnionExecuteActionRequest,
+    user: User = Depends(require_roles("owner", "admin", "operator")),
+    db: Session = Depends(get_db),
+):
+    from app.services.phase23_growth_platform import execute_or_decide_executive_action_service
+
+    tid = get_active_tenant_id(user)
+    return execute_or_decide_executive_action_service(
+        db,
+        tenant_id=tid,
+        user=user,
+        action_id=payload.action_id,
+        decision=payload.decision,
+    )
+
+
+@router.get("/growth-os/analytics-attribution")
+def growth_os_analytics_attribution(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.services.phase23_growth_platform import get_analytics_attribution_service
+
+    tid = get_active_tenant_id(user)
+    return get_analytics_attribution_service(db, tenant_id=tid)
+
+
+@router.post("/automations/conversational-build")
+def automations_conversational_build(
+    payload: ConversationalAutomationRequest,
+    user: User = Depends(require_roles("owner", "admin", "operator")),
+    db: Session = Depends(get_db),
+):
+    from app.services.phase23_growth_platform import build_conversational_automation_service
+
+    tid = get_active_tenant_id(user)
+    return build_conversational_automation_service(
+        db,
+        tenant_id=tid,
+        prompt=payload.prompt,
+        dry_run=payload.dry_run,
+        approve_create=payload.approve_create,
+        actor=user.email,
+    )
 
 
 

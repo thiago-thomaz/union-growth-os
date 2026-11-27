@@ -55,6 +55,18 @@ class TenantUpdateRequest(BaseModel):
     agent_autonomy: dict[str, int] | None = None
     products: list[str] | None = None
     services: list[str] | None = None
+    ui_mode: Literal["SIMPLE", "ADVANCED"] | None = None
+    brand_voice: str | None = None
+    brand_fonts: str | None = None
+    brand_differentials: str | None = None
+    brand_allowed_terms: str | None = None
+    brand_forbidden_terms: str | None = None
+    brand_examples: str | None = None
+    brand_country: str | None = None
+    brand_description: str | None = None
+    growth_goals: list[str] | None = None
+    onboarding_step: int | None = None
+    onboarding_state: dict[str, Any] | None = None
 
 
 class UserRoleUpdateRequest(BaseModel):
@@ -774,6 +786,59 @@ class LeadOutreachPrepRequest(BaseModel):
     service_code: str = "SRV_01_DIAGNOSTICO"
     custom_angle: str = ""
     owner_approve_outreach: bool = False
+
+
+# ==============================================================================
+# FASE 23 — SCHEMAS: COMMAND CENTER, ASK UNION, BRAND INTELLIGENCE, ONBOARDING & CONVERSATIONAL AUTOMATION
+# ==============================================================================
+class BrandIntelligenceUpdateRequest(BaseModel):
+    brand_name: str | None = None
+    domain: str | None = None
+    niche: str | None = None
+    logo_url: str | None = None
+    primary_color: str | None = None
+    secondary_color: str | None = None
+    brand_voice: str | None = None
+    brand_fonts: str | None = None
+    brand_differentials: str | None = None
+    brand_allowed_terms: str | None = None
+    brand_forbidden_terms: str | None = None
+    brand_examples: str | None = None
+    brand_description: str | None = None
+    target_audience: str | None = None
+    strategy_summary: str | None = None
+    products: list[str] | None = None
+    services: list[str] | None = None
+    notes: str = "Atualização via Central de Inteligência de Marca"
+
+
+class ProgressiveOnboardingStepRequest(BaseModel):
+    step: int = Field(ge=1, le=6)
+    save_only: bool = False
+    reset_onboarding: bool = False
+    data: dict[str, Any] = {}
+
+
+class AskUnionRequest(BaseModel):
+    prompt: str = Field(min_length=2, max_length=2000)
+    auto_execute_safe: bool = False
+
+
+class AskUnionExecuteActionRequest(BaseModel):
+    log_id: int | None = None
+    action_id: str
+    decision: Literal["EXECUTE", "APPROVE", "REJECT", "SCHEDULE"] = "EXECUTE"
+
+
+class ExecutiveActionDecisionRequest(BaseModel):
+    action_id: str
+    decision: Literal["EXECUTE", "SCHEDULE", "APPROVE", "REJECT"] = "EXECUTE"
+
+
+class ConversationalAutomationRequest(BaseModel):
+    prompt: str = Field(min_length=4, max_length=1500)
+    dry_run: bool = True
+    approve_create: bool = False
 
 
 

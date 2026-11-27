@@ -30,6 +30,19 @@ class Tenant(Base):
     owner_email = Column(String(255), index=True, nullable=False)
     data_retention_days = Column(Integer, default=365)
     lgpd_dpo_email = Column(String(255), default="dpo@empresa.com.br")
+    # Fase 23 — Modo UX Simples/Avançado, Brand Intelligence & Onboarding Progressivo 6 Etapas
+    ui_mode = Column(String(20), default="SIMPLE")
+    brand_voice = Column(String(160), default="Consultivo, claro e orientado a resultados")
+    brand_fonts = Column(String(160), default="Inter + Plus Jakarta Sans")
+    brand_differentials = Column(Text, default="")
+    brand_allowed_terms = Column(Text, default="")
+    brand_forbidden_terms = Column(Text, default="lucro garantido, milagre financeiro, ganhe dinheiro fácil")
+    brand_examples = Column(Text, default="")
+    brand_country = Column(String(80), default="Brasil")
+    brand_description = Column(Text, default="")
+    growth_goals_json = Column(Text, default="[]")
+    onboarding_step = Column(Integer, default=1)
+    onboarding_state_json = Column(Text, default="{}")
     created_at = Column(DateTime, default=utcnow)
 
 
@@ -1257,6 +1270,38 @@ class AIMediaGenerationRecord(Base):
     cost_classification = Column(String(40), default="VERIFIED_FREE")
     status = Column(String(40), default="COMPLETED")
     error_message = Column(Text, default="")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class BrandVersionRecord(Base):
+    """Histórico versionado da Central de Inteligência de Marca (Fase 23)."""
+
+    __tablename__ = "brand_versions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    version_number = Column(Integer, default=1, nullable=False)
+    snapshot_json = Column(Text, nullable=False, default="{}")
+    consistency_score = Column(Integer, default=100)
+    inconsistencies_json = Column(Text, default="[]")
+    notes = Column(String(255), default="Snapshot da identidade e diretrizes de marca")
+    created_by = Column(String(255), default="")
+    created_at = Column(DateTime, default=utcnow)
+
+
+class AskUnionActionLog(Base):
+    """Registro auditável do copiloto conversacional ASK UNION e ações executadas (Fase 23)."""
+
+    __tablename__ = "ask_union_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id", ondelete="CASCADE"), index=True, nullable=False)
+    user_email = Column(String(255), default="")
+    prompt = Column(Text, nullable=False)
+    intent_classified = Column(String(80), default="GENERAL_GROWTH")
+    response_json = Column(Text, default="{}")
+    executed_actions_json = Column(Text, default="[]")
+    status = Column(String(40), default="COMPLETED")
     created_at = Column(DateTime, default=utcnow)
 
 

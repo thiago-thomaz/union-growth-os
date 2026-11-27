@@ -117,6 +117,14 @@ const AGENT_FRIENDLY_META: Record<
     needsApproval: "Não",
     credentialDep: "Funciona 100% nativo",
   },
+  AGENT_12_DATA_ANALYST: {
+    problemSolved: "Consolida métricas reais, Growth Score transparente e origem dos clientes sem inventar números.",
+    dataUsed: "Leads reais, funil comercial, finanças auditáveis e auditorias SEO",
+    canExecute: "Calcular Growth Score (0–100) e mapa de atribuição por canal",
+    scheduleHint: "Sob demanda e toda segunda-feira",
+    needsApproval: "Não (somente leitura analítica)",
+    credentialDep: "100% nativo (GA4 opcional)",
+  },
 };
 
 export function AITeamAndGovernanceView({
